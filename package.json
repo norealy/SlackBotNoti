@@ -1,0 +1,23 @@
+{
+  "name": "noesvn_noti_wrapper",
+  "version": "0.0.1",
+  "description": "Micro service wrapper calendar",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "bot-noti@bot-noti.git.backlog.com:/NEOS_VN_BNT/noesvn_noti_wrapper.git"
+  },
+  "author": "tuannv@neoscorp.vn",
+  "license": "ISC"
+}

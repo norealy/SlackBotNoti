@@ -1,0 +1,12 @@
+{
+  "server": {
+    "PORT": 5000,
+		"ENV": "dev"
+  },
+	"chatService": {
+
+	},
+	"resourceServer": {
+
+	}
+}

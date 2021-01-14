@@ -15,11 +15,11 @@ class GoogleCalendar extends BaseServer {
 }
 
 {
-	const wrapper = new GoogleCalendar(process.argv[2], {
+	const pipeline = new GoogleCalendar(process.argv[2], {
 		config: {
 			path: process.argv[3],
 			appRoot: __dirname,
 		},
 	});
-	wrapper.init();
+	pipeline.init();
 }

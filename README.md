@@ -1,4 +1,4 @@
-#Build a services wrapper with nodejs
+#Build a services pipeline with nodejs
 
 ##1. Intro Project
 

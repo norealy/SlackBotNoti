@@ -1,3 +1,6 @@
+const Log = require('./LogModel');
+const Env = require('../Env');
+
 const logger = (app, personality) => {
 
   const log = (request, response, errorMessage, requestStart, body) => {
@@ -5,7 +8,7 @@ const logger = (app, personality) => {
     const {statusCode} = response;
     const processingTime = new Date() - requestStart;
 
-    if(/dev/i.test(process.env.NODE_ENV))
+    if(/dev/i.test(Env.get('NODE_ENV', 'production')))
     	return writeLog("debug", headers, body, requestStart, personality, method, url,
 				statusCode, httpVersion, processingTime);
 
@@ -19,6 +22,19 @@ const logger = (app, personality) => {
 			console.log(`request headers: ${JSON.stringify(headers)}`);
 			console.log(`request body: ${JSON.stringify(body)}`);
 		}
+		const newLog = new Log({
+			headers: JSON.stringify(headers),
+			requestStart,
+			personality,
+			method: arg[1],
+			url: arg[2],
+			statusCode: arg[3],
+			httpVersion: arg[4],
+			processingTime: arg[5]});
+
+		newLog.save(function (err) {
+			if (err) return console.log('save log db fail: ', err);
+		});
   };
 
   app.use((request, response, next) => {

@@ -20,11 +20,11 @@
 ```
 
 ##3. How to start
-###Google Calendar
+###Slack - Google
 Start from command line
-- `cd slack-google_calendar; node index.js SLACK-GOOGLE_CALENDAR ../config/`
-- For `SLACK-GOOGLE_CALENDAR` in the above example, enter the key name described in
- `config/SLACK-GOOGLE_CALENDAR.json` of the bot body. The value corresponding to that key is
+- `cd slack-google; node index.js SLACK-GOOGLE ../config/`
+- For `SLACK-GOOGLE` in the above example, enter the key name described in
+ `config/SLACK-GOOGLE.json` of the bot body. The value corresponding to that key is
  used to start the server.
 
 ##4. Coding conventions

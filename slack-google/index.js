@@ -1,6 +1,6 @@
 const BaseServer = require('../common/BaseServer');
 
-class GoogleCalendar extends BaseServer {
+class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
 	}
@@ -14,8 +14,10 @@ class GoogleCalendar extends BaseServer {
 	}
 }
 
+module.exports = SlackGoogle;
+
 {
-	const pipeline = new GoogleCalendar(process.argv[2], {
+	const pipeline = new SlackGoogle(process.argv[2], {
 		config: {
 			path: process.argv[3],
 			appRoot: __dirname,

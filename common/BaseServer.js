@@ -4,6 +4,7 @@ const Path = require('path');
 const Fs = require('fs-extra');
 const BodyParser = require('body-parser');
 const _ = require("lodash");
+const Env = require('./utils/Env');
 
 class BaseServer {
 	/**
@@ -87,13 +88,12 @@ class BaseServer {
 			throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer object does not exist in the
 			config file or it is not an object`);
 		}
-		const Env = require('./utils/Env');
-		this.env = new Env(instanceEnv);
+		Env.setConfig(instanceEnv);
 	}
 
   requestHealthCheck(req, res, next) {
     try {
-      return res.status(200).send("OK");
+      return res.status(200).send({"pong":"OK"});
     } catch (e) {
       return res.status(400);
     }
@@ -112,11 +112,10 @@ class BaseServer {
   }
 
   async init() {
-
     await this.loadConfig();
 		this.configEnv();
 
-    require('./utils/Logger')(this.app, this.instanceId, this.config.appRoot);
+    require('./utils/logger')(this.app, this.instanceId);
 
     this.app.disable('x-powered-by');
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));
@@ -127,8 +126,8 @@ class BaseServer {
     this.app.post('/watch/response-handling', this.requestHandler.watchResponse);
     this.app.post('/push/response-handling', this.requestHandler.pushResponse);
 
-    this.app.listen(this.env.getOrFail("PORT"), () => {
-      console.log('%s listening at %s', this.instanceId, this.env.getOrFail("PORT"));
+    this.app.listen(Env.serverGOF("PORT"), () => {
+      console.log('%s listening at %s', this.instanceId, Env.serverGOF("PORT"));
     });
   }
 

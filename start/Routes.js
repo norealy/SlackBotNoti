@@ -7,7 +7,6 @@ const Calendars = require('../routes/Calendar.Route');
 const Groups = require('../routes/Group.Route');
 const Notis = require('../routes/Noti.Route');
 const {common} = require('../middlewares/Common');
-const { addNoti } = require('../controllers/Notification.Controller');
 
 function Routes(app) {
     app.use('/', express.static('public'));

@@ -9,7 +9,7 @@ const getAll = async (req, res) => {
             url: `https://graph.microsoft.com/v1.0/me/events`
         };
         const result = await axios(options);
-        return res.status(200).send(result.data);
+        return res.status(200).send(result.data.value);
     } catch (error) {
         return res.status(403).send("Error");
     }
@@ -39,14 +39,16 @@ const getEventInCalendar = async (req, res) => {
             url: `https://graph.microsoft.com/v1.0/me/calendars/${id}/events`
         };
         const result = await axios(options);
-        return res.status(200).send(result.data);
+        return res.status(200).send(result.data.value);
     } catch (error) {
         return res.status(403).send("Error");
     }
 }
 const addEvent = async (req, res) => {
     try {
+        console.log("Create event")
         const data = req.body;
+        if(!req.body) return res.status(422).send("Error");
         const accessTokenAzure = req.cookies['accessTokenAzure'];
         const options = {
             method: 'POST',
@@ -89,7 +91,6 @@ const deleteEvent = async (req, res) => {
         const result = await axios(options);
         return res.status(200).send("Delete OK");
     } catch (error) {
-        console.log(error)
         return res.status(403).send("Error");
     }
 }

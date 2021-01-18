@@ -8,3 +8,4 @@ require('./start/Routes')(app);
 app.listen(port, () => {
 	console.log(`app listening at http://localhost:${port}`)
 });
+module.exports = app

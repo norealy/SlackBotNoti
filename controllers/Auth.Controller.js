@@ -10,7 +10,7 @@ const secretAzure = ENV.get("AZURE_SECRET");
 
 const redirectMicrosoft = (req, res) => {
 	try {
-		const urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${azureIdAzure}&response_type=code&redirect_uri=${redirectUrlAzure}&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
+		const urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${azureIdAzure}&response_type=code&redirect_uri=${redirectUrlAzure}&response_mode=query&scope=${scopeAzure}`; //&state=${stateAzure}
 		return res.status(301).redirect(urlRequestAuthor)
 	} catch (error) {
 		return res.status(403).send("Error");

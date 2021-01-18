@@ -15,26 +15,31 @@ Outlook calendar cho phép bạn quản lý email và danh bạ, tìm thông tin
 ## Outlook calendars
 #### **Đăng ký ứng dụng với Azure AD**
 - > Truy cập [Azure portal](https://portal.azure.com/)
+
 - >App registrations > New registration
+
 - >Link redirect > save
+
 - >Certificates & secrets > New client secret
+
 - >API Permisstion > calendars.readwrite, calendars.read
+
 #### **Thực hiện authentication**
  Sau khi tạo tài khoản Azure ta cần một số thông tin như sau : `AZURE_SECRET`, `AZURE_ID`, `AZURE_REDIRECT`, `AZURE_STATE`.
 
 **Bước 1** : Client yêu cầu đăng nhập vs microsoft. Server thực hiện redirect đến máy chủ ủy quyền của microfsoft.
 ```
-const urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
+const urlRequestAuthor = https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
     client_id=${azureIdAzure}&
     response_type=code&
     redirect_uri=${AZURE_REDIRECT}&
     response_mode=query&
     scope=${scopeAzure}&
-    state=${AZURE_STATE}`;
-return res.status(301).redirect(urlRequestAuthor)
+    state=${AZURE_STATE};
+return res.status(301).redirect(urlRequestAuthor);
 ```
  Trong đó có 1 số options sau
- ![Alt](./image/optionAuthor1.png)
+ ![Alt](public/image/optionAuthor1.png)
 - Sau đó client nhận lại được `CODE` nằm trong url. Có dạng :
 `http://<domain>/<urlRedirect>?code=M.R3_BAY.b7705625-1585-a246-6c1b-4e4a04c424a1&state=QVpVUkUtUkFO...`
 
@@ -110,6 +115,7 @@ return res.status(301).redirect(urlRequestAuthor)
     - headers: `{Content-Type :	application/json ,Authorization : Bearer ${accessTokenAzure} }`
 
 **Add Event**
+
 ```
 const data = {
     "subject": "Christmas dinner1111",
@@ -131,7 +137,7 @@ const data = {
     "attendees": [
         {
             "emailAddress": {
-                "address": "outlook_D814847BC8D772FA@outlook.com",  // nguoi nhan
+                "address": "outlook_D814847BC8@outlook.com",  // nguoi nhan
                 "name": "Nguyễn Đạt"
             },
             "type": "required"
@@ -141,22 +147,24 @@ const data = {
 }
 const options2 = {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/events",
 };
+
 ```
 - POST /me/calendar/events
 - POST /me/calendars/{id}/events
 
 **Add Calendar:**
+
 ```
 const data = {
     "name": "Create calendar name"
 }
 const options2 = {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/calendars",
 };
@@ -170,7 +178,7 @@ const data = {
 }
 const options2 = {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/calendarGroups",
 };
@@ -193,9 +201,9 @@ const data = {
 }
 const options2 = {
     method: 'PATCH',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/v1.0/me/events/${eventID}`
+    url: https://graph.microsoft.com/v1.0/me/events/${eventID}
 ```
 - PATCH /me/groups/{id}/events/{id}
 - PATCH /me/calendar/events/{id}
@@ -211,7 +219,7 @@ const data = {
 }
 const options2 = {
     method: 'PATCH',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/calendars/{id}"
 };
@@ -227,9 +235,9 @@ const data = {
 }
 const options2 = {
     method: 'PATCH',
-    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'content-type': 'application/json', 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/v1.0/me/calendarGroups/${groupID}`,
+    url: https://graph.microsoft.com/v1.0/me/calendarGroups/${groupID},
 };
 ```
 - PATCH /me/calendarGroups/{id}
@@ -245,7 +253,7 @@ const options2 = {
 const eventID = "AQMkADAwATM3ZmYAZS0...";
 const options2 = {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/events/${eventsID}",
 };
@@ -263,7 +271,7 @@ const options2 = {
 const calendarID = "AQMkADAwATM3ZmYAZS0w..."
 const options2 = {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
     url: "https://graph.microsoft.com/v1.0/me/calendars/${calendarID}"
 };
@@ -276,9 +284,9 @@ const options2 = {
 const groupID = "AQMkADAwATM3ZmYAZS0...";
 const options2 = {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/v1.0/me/calendarGroups/${groupID}`,
+    url: https://graph.microsoft.com/v1.0/me/calendarGroups/${groupID},
 };
 ```
 - DELETE /me/calendarGroups/{id}
@@ -295,8 +303,8 @@ const options2 = {
 ```
 const options = {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
-    url: `https://graph.microsoft.com/v1.0/subscriptions`
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
+    url: https://graph.microsoft.com/v1.0/subscriptions
 };
 ```
 **Create subscriptions**
@@ -305,103 +313,83 @@ const options = {
 - url : https://graph.microsoft.com/v1.0/subscriptions
 
 - **Create notificationUrl**
+> Truy cập vào [https://ngrok.com/](https://ngrok.com/)
 
-*a.* _Steps Configuring the Azure Event Hub_ :
-1. _Open a browser to the Azure Portal._
-2. _Select **Create a resource**._
-3. _Type **Event Hubs** in the search bar._
-4. _Select the **Event Hubs** suggestion. The Event Hubs creation 4. page will load._
-5. _On the Event Hubs creation page, click **Create**._
-6. _Fill in the Event Hubs namespace creation details, and then click **Create**._
-7. _When the Event Hub namespace is provisioned, go to the page for the namespace._
-8. _Click **Event Hubs** and + **Event Hub**._
-9. _Give a name to the new Event Hub, and click **Create**._
-10. _After the Event Hub has been created, click the name of the Event Hub, and then click **Shared access policies** and + Add to add a new policy._
-11. _Give a name to the policy, check **Send**, and click **Create**._
-12. _After the policy has been created, click the name of the policy to open the details panel, and then copy the **Connection string-primary key** value. Write it down; you'll need it for the next step._
-    
+> Chạy lệnh ./ngrok http 4000
 
-*b.* _Steps Configuring the Azure Key Vault_ :
-1. _Open a browser to the Azure Portal._
-1. _Select **Create a resource**._
-1. _Type **Key Vault** in the search bar._
-1. _Select the **Key Vault** suggestion. The Key Vault creation page will load._
-1. _On the Key Vault creation page, click **Create**._
-1. _Fill in the Key Vault creation details, and then click **Review + Create** and **Create**._
-1. _Go to the newly crated key vault using the **Go to resource** from the notification._
-1. _Copy the **DNS name**, you will need it for the next step._
-1. _Go to **Secrets** and click + **Generate/Import.**_
-1. _Give a name to the secret, and keep the name for later; you will need it for the next step. For the value, paste in the connection string you generated at the Event Hubs step. Click **Create**._
-1. _Click **Access Policies** and + **Add Access Policy**._
-1. _For **Secret permissions**, select Get, and for **Select Principal**, select **Microsoft Graph Change Tracking**. Click **Add**._
+> Tạo endpoint : Sau khi gửi request tạo subcription thì microsoft graph sẽ gửi 1 validationToken trong request. Thực hiện end-point nhận validationToken và gửi lại với status = 200 và body = validationToken.
 
-*c.* _Steps Configuring the Azure Key Vault_ :
-* **notificationUrl**: https://`<azurekeyvaultname>`.vault.azure.net/secrets/`<secretname>`?tenantId=`<domainname>`
+Hình minh họa
+@startuml
+Client->Subcriptions: Send data Subscription
+Subcriptions->EndPoint: Send validationToken
+EndPoint->Subcriptions: Return status 200, validationToken
+Subcriptions->Client: Created data
+@enduml
 
-  `azurekeyvaultname` - The name you gave to the key vault when you created it. Can be found in the DNS name.
-  
-  `secretname` - The name you gave to the secret when you created it. Can be found on the Azure Key Vault Secrets page.
-
-  `domainname` - The name of your tenant; for example, consto.onmicrosoft.com or contoso.com.
-
-_**Code example**_
+Code demo
 ```
-const data = {
-   "changeType": "created,updated,deleted",
-   "notificationUrl": "https://keyvaultoutlookcalendar.vault.azure.net/secrets/nrx2?tenantId=xdatgdgmail.onmicrosoft.com",
-   "resource": "/me/events",
-   "expirationDateTime":"2023-11-20T18:23:45.9356913Z",
-   "clientState": "secretClientValue",
-   "latestSupportedTlsVersion": "v1_2"
-}
-
-const options = {
-    method: 'POST',
-    headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${accessTokenAzure}` },
-    data: JSON.stringify(data),
-    url: "https://graph.microsoft.com/beta/subscriptions",
-};
+    // Create end-point nhận và gửi validationToken
+    if(req.body.value) console.log(req.body.value[0]);
+    const {validationToken} = req.query;
+    if(validationToken)
+        return res.status(200).send(validationToken);
+    return res.status(202).send("ok");
 ```
 
-**Get subscriptions**
+```
+    // Create Subcriptions
+    const data = req.body;
+    const accessTokenAzure = req.cookies['accessTokenAzure'];
+    const options = {
+        method: 'POST',
+        headers: { "Content-Type": "application/json", 'Authorization': Bearer ${accessTokenAzure} },
+        data: JSON.stringify(data),
+        url:  `https://graph.microsoft.com/v1.0/subscriptions`
+    };
+    const result = await axios(options);
+    return res.status(200).send(result.data);
+```
+
+**Get subscriptions id**
 - method: `GET`
 - headers: `{ Authorization : Bearer ${accessTokenAzure} }`
-- url : https://graph.microsoft.com/beta/subscriptions/{id}
+- url : https://graph.microsoft.com/v1.0/subscriptions/{id}
 
 ```
 const options = {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
-    url: `https://graph.microsoft.com/beta/subscriptions/{id}`
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
+    url: https://graph.microsoft.com/v1.0/subscriptions/{id}`
 };
 ```
 
 **Update subscriptions**
 - method: `PATCH`
 - headers: `{Content-type: application/json, Authorization : Bearer ${accessTokenAzure} }`
-- url : https://graph.microsoft.com/beta/subscriptions/{id}
+- url : https://graph.microsoft.com/v1.0/subscriptions/{id}
 
 ```
 const data = {
-   "expirationDateTime":"2023-11-22T18:23:45.9356913Z"
+   "expirationDateTime": "2021-01-20T11:00:00.0000000Z",
 }
 const options = {
     method: 'PATCH',
     headers: { Content-type: application/json, Authorization : Bearer ${accessTokenAzure} },
     data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/beta/subscriptions/{id}`
+    url: https://graph.microsoft.com/v1.0/subscriptions/{id}
 };
 ```
 
 **Delete subscriptions**
 - method: `DELETE`
 - headers: `{ Authorization : Bearer ${accessTokenAzure} }`
-- url : https://graph.microsoft.com/beta/subscriptions/{id}
+- url : https://graph.microsoft.com/v1.0/subscriptions/{id}
                                            
 ```
 const options = {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${accessTokenAzure}` },
-    url: `https://graph.microsoft.com/beta/subscriptions/{subscription-id}`
+    headers: { 'Authorization': Bearer ${accessTokenAzure} },
+    url: https://graph.microsoft.com/v1.0/subscriptions/{id}
 };
 ```

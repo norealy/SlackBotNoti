@@ -14,6 +14,4 @@ function Routes(app) {
     app.get('/slack', AuthCtrl.redirect);
 }
 
-
-
 module.exports = Routes;

@@ -1,6 +1,6 @@
 # Create app with Slack
 
-Bước 1: Truy cập `https://api.slack.com/apps`
+Bước 1: Truy cập [Slack api](https://api.slack.com/apps)
 
 Bước 2: Create New App
 
@@ -11,7 +11,7 @@ Bước 4: Install your app
 Bước 5: Manage Distribution => add OAuth Redirect URLs => Submit App
 
 - Sau khi tạo xong sẽ được cấp`Client ID` `Client Secret`
-	![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/anh1.PNG)
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/anh1.PNG)
 # Luồng OAuth2 
 ![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/oath.png)
 

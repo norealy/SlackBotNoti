@@ -4,7 +4,7 @@ const ENV = require('../utils/Env');
 const stateSecretSlack = ENV.get("STATE", 'RANDOMID@@--123');
 const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
 const redirectUrlSlack = ENV.get("REDIRECT_URI", "http://localhost:4000/auth/slack");
-const scopeSlack = "channels:read+channels:write+users:read+admin.conversations:write";
+const scopeSlack = "channels:read+channels:write+users:read";
 const CLIENT_ID = ENV.get("CLIENT_ID");
 const clientSecretSlack =  ENV.get("CLIENT_SECRET");
 

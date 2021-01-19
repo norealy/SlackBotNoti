@@ -55,6 +55,5 @@ const addChannel = async (req, res) => {
 module.exports = {
     getAll,
     addChannel,
-    deleteChannel,
     getInfo
 }

@@ -71,7 +71,7 @@ url: "https://slack.com/api/conversations.create",
 };
 ```
 
-![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/add.PNG
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/add.PNG)
 
 - List app
 ```

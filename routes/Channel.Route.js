@@ -4,9 +4,9 @@ const Channel = require('../controllers/Channel.Controller');
 
 router.get('/list',Channel.getAll);
 
-router.post('/create',Channel.addChannel);
+router.get('/info',Channel.getInfo);
 
-router.patch('/update/:id',Channel.updateChannel);
+router.post('/create',Channel.addChannel);
 
 router.delete('/delete/:id',Channel.deleteChannel);
 

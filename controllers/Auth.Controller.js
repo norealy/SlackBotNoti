@@ -4,7 +4,7 @@ const ENV = require('../utils/Env');
 const stateSecretSlack = ENV.get("STATE", 'RANDOMID@@--123');
 const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
 const redirectUrlSlack = ENV.get("REDIRECT_URI", "http://localhost:4000/auth/slack");
-const scopeSlack = "channels:read+channels:write+users:read";
+const scopeSlack = "channels:read+channels:write+users:read+admin.conversations:write";
 const CLIENT_ID = ENV.get("CLIENT_ID");
 const clientSecretSlack =  ENV.get("CLIENT_SECRET");
 
@@ -32,6 +32,7 @@ const sendCode = async (req, res) => {
 	};
 	try {
         await axios(options1);
+        // res.cookie('accessTokenSlack', "xoxp-1648454437793-1629047264054-1641609298326-e252db6810f38ce3c6b1b8187c7e18c8");
 		return res.status(200).send("Post Code ok");
 	} catch (error) {
 		return res.status(403).send("Error");

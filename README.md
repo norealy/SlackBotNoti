@@ -11,9 +11,9 @@ Bước 4: Install your app
 Bước 5: Manage Distribution => add OAuth Redirect URLs => Submit App
 
 - Sau khi tạo xong sẽ được cấp`Client ID` `Client Secret`
-	![alt text](https://github.com/norealy/SlackBotNoti/blob/master/img/anh1.PNG)
+	![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/anh1.PNG)
 # Luồng OAuth2 
-![alt text](https://github.com/norealy/SlackBotNoti/blob/master/img/oath.png)
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/oath.png)
 
 Bước 1: Gửi người dùng ủy quyền và / hoặc cài đặt
 Ứng dụng web hoặc thiết bị di động của bạn phải chuyển hướng người dùng đến URL sau:`https://slack.com/oauth/authorize`
@@ -26,7 +26,7 @@ Các giá trị sau phải được chuyển dưới dạng tham số GET:
 
 `redirect_uri` - URL để chuyển hướng trở lại (xem bên dưới) (tùy chọn)
 
-![alt text](https://github.com/norealy/SlackBotNoti/blob/master/img/url.PNG)
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/url.PNG)
 
 `state` - chuỗi duy nhất được trả lại khi hoàn thành (tùy chọn)
 
@@ -71,7 +71,7 @@ url: "https://slack.com/api/conversations.create",
 };
 ```
 
-![alt text](https://github.com/norealy/SlackBotNoti/blob/master/img/add.PNG)
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/add.PNG
 
 - List app
 ```
@@ -82,4 +82,4 @@ url: `https://slack.com/api/conversations.list`
 };
 ```
 
-![alt text](https://github.com/norealy/SlackBotNoti/blob/master/img/list.PNG)
+![alt text](https://github.com/norealy/SlackBotNoti/blob/zipPush/public/image/list.PNG)

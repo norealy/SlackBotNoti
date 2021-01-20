@@ -8,7 +8,7 @@ const getAll = async (req, res) => {
             url: `https://slack.com/api/conversations.list`
         };
         const result = await axios(options);
-        console.log(result.data.channels)
+        // console.log(result.data.channels)
         return res.status(200).send(result.data.channels);
     } catch (error) {
         console.log(error)
@@ -18,16 +18,22 @@ const getAll = async (req, res) => {
 const getInfo = async (req, res) => {
     try {
         const accessTokenSlack = req.cookies['accessTokenSlack'];
+        const data = req.body;
+        if(!req.body) {
+            // console.log(req.body);
+            return res.status(422).send("Error");
+        }
         const options = {
-            method: 'GET',
+            method: 'POST',
             headers: { 'Authorization': `Bearer ${accessTokenSlack}` },
+            data:data,
             url: `https://slack.com/api/conversations.info`
         };
         const result = await axios(options);
-        console.log(result)
-        return res.status(200).send(result);
+        // console.log(result)
+        return res.status(200).send(result.data);
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return res.status(403).send("Error");
     }
 }
@@ -39,15 +45,15 @@ const addChannel = async (req, res) => {
         
         const options = {
             method: 'POST',
-            headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${accessTokenSlack}` }, //
+            headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${accessTokenSlack}` },
             data: data,
             url: "https://slack.com/api/conversations.create",
         };
         const result = await axios(options);
-        console.log(result)
+        // console.log(result)
         return res.status(200).send(result.data);
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         return res.status(403).send("Error");
     }
 }

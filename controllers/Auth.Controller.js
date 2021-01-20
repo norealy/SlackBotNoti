@@ -4,7 +4,7 @@ const ENV = require('../utils/Env');
 const stateSecretSlack = ENV.get("STATE", 'RANDOMID@@--123');
 const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
 const redirectUrlSlack = ENV.get("REDIRECT_URI", "http://localhost:4000/auth/slack");
-const scopeSlack = "channels:read+channels:write+users:read";
+const scopeSlack = "channels:read+channels:write+users:read+chat:write:bot+channels:history+bot";
 const CLIENT_ID = ENV.get("CLIENT_ID");
 const clientSecretSlack =  ENV.get("CLIENT_SECRET");
 
@@ -41,7 +41,7 @@ const sendCode = async (req, res) => {
 
 const setAccessToken = async (req, res) => {
 	const code = req.body.code;
-	console.log(stateSlack);
+	// console.log(stateSlack);
 	const urlGetToken = "https://slack.com/api/oauth.access";
 	let data = {
 		client_id: CLIENT_ID,
@@ -61,7 +61,7 @@ const setAccessToken = async (req, res) => {
 		console.log(accessTokenSlack)
 		return res.status(200).send("Done");
 	} catch (e) {
-		console.log("Error")
+		// console.log("Error")
 		return res.status(403).send("Error")
 	}
 };

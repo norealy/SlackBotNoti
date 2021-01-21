@@ -166,10 +166,18 @@ class BaseServer {
 		this.configEnv(instanceEnv);
 
     require('./utils/logger')(this.app, this.instanceId);
+<<<<<<< HEAD
 		require('./utils/Axios');
 
 		await this.configMySQL();
 		await this.configRedis();
+=======
+		require('./utils/Axios')();
+		const configMysql = require('./utils/mysql/Database')(__dirname + '/utils/mysql');
+		// connection Database mysql
+		knex(configMysql);
+		Model.knex(knex);
+>>>>>>> e801f9d (NEOS_VN_BNT-3 update setup knex)
 
     this.app.disable('x-powered-by');
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));

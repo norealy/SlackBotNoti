@@ -9,6 +9,7 @@ const configDB = {
 		password: Env.getOrFail('MYSQL_DB_PASSWORD'),
 		database: Env.getOrFail('MYSQL_DB_DATABASE'),
 		charset: 'utf8mb4',
+<<<<<<< HEAD
 		timezone: Env.get('MYSQL_DB_TZ', 'Z'),
 	},
 	debug: Env.get('MYSQL_DB_DEBUG', false),
@@ -16,6 +17,11 @@ const configDB = {
 		min: 2,
 		max: 10,
 	}
+=======
+		timezone: Env.get('DB_TZ', 'UTC'),
+	},
+	debug: Env.get('MYSQL_DB_DEBUG', false)
+>>>>>>> e801f9d (NEOS_VN_BNT-3 update setup knex)
 };
 
 module.exports = function(appRoot) {

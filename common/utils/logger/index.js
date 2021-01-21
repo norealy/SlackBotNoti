@@ -1,5 +1,5 @@
 const Log = require('./LogModel');
-const Env = require('../Env');
+const Env = require('../../../utils/Env');
 
 const logger = (app, personality) => {
 
@@ -8,29 +8,22 @@ const logger = (app, personality) => {
     const {statusCode} = response;
     const processingTime = new Date() - requestStart;
 
-    if(/dev/i.test(Env.get('NODE_ENV', 'production')))
-    	return writeLog("debug", headers, body, requestStart, personality, method, url,
-				statusCode, httpVersion, processingTime);
-
-		return writeLog(null, headers, body, requestStart, personality, method, url, statusCode,
-			httpVersion, processingTime);
-  };
-
-  const writeLog = (type, headers, body, requestStart, ...arg) => {
-		if (type === "debug") {
-			if (arg.length > 0) console.log(new Date(requestStart).toISOString() + " " + arg.toString().replace(/,/g, " "));
+    if(Env.get('LOG_DEBUG', false)){
+    	const reqStartISO = new Date(requestStart).toISOString();
+			console.log(`${reqStartISO} ${personality} ${method} ${url} ${httpVersion} ${statusCode} ${processingTime}`);
 			console.log(`request headers: ${JSON.stringify(headers)}`);
 			console.log(`request body: ${JSON.stringify(body)}`);
 		}
+
 		const newLog = new Log({
 			headers: JSON.stringify(headers),
 			requestStart,
 			personality,
-			method: arg[1],
-			url: arg[2],
-			statusCode: arg[3],
-			httpVersion: arg[4],
-			processingTime: arg[5]});
+			method,
+			url,
+			statusCode,
+			httpVersion,
+			processingTime});
 
 		newLog.save(function (err) {
 			if (err) return console.log('save log db fail: ', err);

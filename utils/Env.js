@@ -1,8 +1,9 @@
+require('dotenv').config();
 const _ = require('lodash');
 
 /**
  * Manages the application environment variables by
- * reading the `config` folder from the project root.
+ * reading the `config` folder and `process.env` from the project root.
  */
 class Env {
 	/**
@@ -14,6 +15,14 @@ class Env {
 		this.resourceServer = "";
 	}
 
+	formatBoolean(value) {
+		if(/^true$/.test(value))
+			return true;
+		if(/^false$/.test(value))
+			return false;
+		return value
+	}
+
 	/**
 	 * Get value for a given key from the `process.env`
 	 * object.
@@ -23,7 +32,7 @@ class Env {
 	 * @return {*}
 	 */
 	get(key, defaultValue = null) {
-		return _.get(process.env, key, defaultValue)
+		return this.formatBoolean(_.get(process.env, key, defaultValue))
 	}
 
 	/**
@@ -79,7 +88,7 @@ class Env {
 			throw err
 		}
 
-		return val
+		return this.formatBoolean(val)
 	}
 
 	/**
@@ -147,22 +156,19 @@ class Env {
 	 * @param {object} server
 	 * @param {object} chatService
 	 * @param {object} resourceServer
-	 * @return {null|void}
+	 * @return {error|void}
 	 */
 	setConfig({server = {}, chatService = {}, resourceServer = {}}) {
-		if(this.server || this.chatService || this.resourceServer)
-			return null;
+		if(this.server || this.chatService || this.resourceServer){
+			const code = 'E_SET_ENV_VARIABLE';
+			const err = new Error(`${code} Application environment variables are allowed to be declared only once`);
+			err.code = code;
+			throw err
+		}
 		this.server = server;
 		this.chatService = chatService;
 		this.resourceServer = resourceServer;
 	}
 }
 
-let instance = null;
-const singleton = () => {
-	if (!instance)
-		instance = new Env();
-	return instance
-};
-
-module.exports = singleton();
+module.exports = new Env();

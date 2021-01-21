@@ -7,11 +7,12 @@
 .
 ├── common                 //code module
 │   ├── BaseServer.js
-│   └── utils              //Utility file storage
+│   └── utils              //Utility file storage of the common code
 ├── config                 //config file application environment variables
 ├── slack-google_calendar  //Pipeline of Slack and Google calendar
 ├── scripts                //Various scripts for starting the server
 ├── test                   //Unit test files
+├── utils                  //Utility file storage of the application
 ├── .editorconfig
 ├── .env.example
 ├── .gitignore

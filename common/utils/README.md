@@ -1,2 +1,2 @@
 #Utility file storage
-Where you can write utility code snippets that you can use throughout the application
+Where you can write utility code snippets that you can use throughout the common code

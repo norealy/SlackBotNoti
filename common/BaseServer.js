@@ -1,10 +1,12 @@
 require('dotenv').config();
 const Express = require('express');
+const knex = require("knex");
+const { Model } = require('objection');
 const Path = require('path');
 const Fs = require('fs-extra');
 const BodyParser = require('body-parser');
 const _ = require("lodash");
-const Env = require('./utils/Env');
+const Env = require('../utils/Env');
 
 class BaseServer {
 	/**
@@ -19,7 +21,6 @@ class BaseServer {
 		this.instanceId = instanceId;
 		this.chatService = args[0];
 		this.resourceServer = args[1];
-		this.axios = require('./utils/Axios');
 
     this.config = typeof opt.config === "object" ? opt.config : {};
 
@@ -116,6 +117,11 @@ class BaseServer {
 		this.configEnv();
 
     require('./utils/logger')(this.app, this.instanceId);
+		require('./utils/Axios')();
+		const configMysql = require('./utils/mysql/Database')(__dirname + '/utils/mysql');
+		// connection Database mysql
+		knex(configMysql);
+		Model.knex(knex);
 
     this.app.disable('x-powered-by');
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));

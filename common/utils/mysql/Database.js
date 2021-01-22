@@ -9,9 +9,13 @@ const configDB = {
 		password: Env.getOrFail('MYSQL_DB_PASSWORD'),
 		database: Env.getOrFail('MYSQL_DB_DATABASE'),
 		charset: 'utf8mb4',
-		timezone: Env.get('DB_TZ', 'UTC'),
+		timezone: Env.get('MYSQL_DB_TZ', 'UTC'),
 	},
-	debug: Env.get('MYSQL_DB_DEBUG', false)
+	debug: Env.get('MYSQL_DB_DEBUG', false),
+	pool: {
+		min: 2,
+		max: 10,
+	}
 };
 
 module.exports = function(appRoot) {

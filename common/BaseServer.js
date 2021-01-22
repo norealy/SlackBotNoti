@@ -71,25 +71,44 @@ class BaseServer {
 	 */
 	configEnv() {
 		const {instanceEnv} = this.config;
+		const message = "object does not exist in the config file or it is not an object"
 		if(!instanceEnv.server
 			|| typeof instanceEnv.server !== "object"
 			|| _.isArray(instanceEnv.server)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The server object does not exist in the config
-			 file or it is not an object`);
+			throw new Error(`E_CONFIG_ENVIRONMENT: The server ${message}`);
 		}
 		if(!instanceEnv.chatService
 			|| typeof instanceEnv.chatService !== "object"
 			|| _.isArray(instanceEnv.chatService)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The chatService object does not exist in the
-			config file or it is not an object`);
+			throw new Error(`E_CONFIG_ENVIRONMENT: The chatService ${message}`);
 		}
 		if(!instanceEnv.resourceServer
 			|| typeof instanceEnv.resourceServer !== "object"
 			|| _.isArray(instanceEnv.resourceServer)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer object does not exist in the
-			config file or it is not an object`);
+			throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer ${message}`);
 		}
-		Env.setConfig(instanceEnv);
+		try {
+			Env.setConfig(instanceEnv);
+		} catch (e){
+			throw e;
+		}
+	}
+
+	configMySQL() {
+		const configMysql = require('./utils/mysql/Database')(Env.get('PWD', __dirname));
+		const mysql = knex(configMysql);
+		mysql.raw("SELECT VERSION()")
+			.then(() => {
+				console.log('connect database mysql success !')
+			})
+			.catch((err) => {
+				const code ="E_ACCESS_MYSQL_ERROR";
+				const message = err.sqlMessage ? err.sqlMessage : 'Access to mysql database denied';
+				const error = new Error(`${code}: ${message}`);
+				error.code = code;
+				throw error;
+			})
+		Model.knex(knex);
 	}
 
   requestHealthCheck(req, res, next) {
@@ -118,10 +137,8 @@ class BaseServer {
 
     require('./utils/logger')(this.app, this.instanceId);
 		require('./utils/Axios')();
-		const configMysql = require('./utils/mysql/Database')(__dirname + '/utils/mysql');
-		// connection Database mysql
-		knex(configMysql);
-		Model.knex(knex);
+
+		this.configMySQL();
 
     this.app.disable('x-powered-by');
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));

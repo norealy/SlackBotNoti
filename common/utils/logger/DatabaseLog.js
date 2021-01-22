@@ -9,7 +9,7 @@ function DatabaseLog() {
 	const conn = mongoose.createConnection(Env.getOrFail("LOG_DATABASE_URI"), opt);
 
 	conn.on('connected', function () {
-		console.log("connect log database success !");
+		console.log("connect database log success !");
 	});
 
 	conn.on('error', function (err) {

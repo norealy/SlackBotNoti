@@ -1,22 +1,37 @@
 {
-  "name": "noesvn_noti_wrapper",
+  "name": "bot_noti_pipeline",
   "version": "0.0.1",
-  "description": "Micro service wrapper calendar",
+  "description": "Microservice pipeline",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.6"
+    "start": "node slack-google_calendar/index.js SLACK-GOOGLE_CALENDAR ./config/",
+    "dev": "nodemon slack-google_calendar/index.js SLACK-GOOGLE_CALENDAR ./config/",
+    "test": "mocha ./test/slack-google_calendar/*.js SLACK-GOOGLE_CALENDAR ./config/ --exit"
   },
   "dependencies": {
+    "axios": "^0.21.1",
+    "bluebird": "^3.7.2",
+    "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "fs-extra": "^9.0.1",
+    "knex": "^0.21.16",
+    "lodash": "^4.17.20",
+    "mongodb": "^3.6.3",
+    "mongoose": "^5.11.12",
+    "mysql2": "^2.2.5",
+    "objection": "^2.2.7",
+    "redis": "^3.0.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
+    "mocha": "^8.2.1",
+    "nodemon": "^2.0.6"
   },
   "repository": {
     "type": "git",
-    "url": "bot-noti@bot-noti.git.backlog.com:/NEOS_VN_BNT/noesvn_noti_wrapper.git"
+    "url": "bot-noti@bot-noti.git.backlog.com:/NEOS_VN_BNT/bot_noti_pipeline.git"
   },
   "author": "tuannv@neoscorp.vn",
   "license": "ISC"

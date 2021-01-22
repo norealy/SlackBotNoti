@@ -1,2 +1,2 @@
-#Function storage
-Where you can write function snippets that you can use throughout the application
+#Utility file storage
+Where you can write utility code snippets that you can use throughout the application

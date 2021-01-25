@@ -19,7 +19,7 @@ const redirect = (req, res) => {
 
 const sendCode = async (req, res) => {
 	const code = req.query.code;
-	console.log("Code :", code)
+	// console.log("Code :", code)
 	const uri = "http://localhost:4000/auth/code";
 	const data = {
 		code: code

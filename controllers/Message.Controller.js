@@ -31,7 +31,27 @@ const createMessage = async (req, res) => {
         };
         const result = await axios(options);
         // console.log(result.data.message)
-        return res.status(200).send(result.data.message);
+        return res.status(200).send(result.data);
+    } catch (error) {
+        console.error(error);
+        return res.status(403).send("Error");
+    }
+}
+const addCalendarsToChannel = async (req, res) => {
+    try {
+        const accessTokenSlack = req.cookies['accessTokenSlack'];
+        const data = req.body;
+        if(!req.body) return res.status(422).send("Error");
+        
+        const options = {
+            method: 'POST',
+            headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${accessTokenSlack}` },
+            data: data,
+            url: "https://slack.com/api/chat.postMessage",
+        };
+        const result = await axios(options);
+        // console.log(result.data.message)
+        return res.status(200).send(result.data);
     } catch (error) {
         console.error(error);
         return res.status(403).send("Error");
@@ -52,7 +72,7 @@ const updateMessage = async (req, res) => {
         // console.log(result.data)
         return res.status(200).send(result.data);
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return res.status(403).send("Error");
     }
 }
@@ -69,10 +89,10 @@ const deleteMessage = async (req, res) => {
             url: `https://slack.com/api/chat.delete`
         };
         const result = await axios(options);
-        console.log(result.data)
+        // console.log(result.data)
         return res.status(200).send(result.data);
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return res.status(403).send("Error");
     }
 }
@@ -80,5 +100,6 @@ module.exports = {
     getHistory,
     createMessage,
     updateMessage,
-    deleteMessage
+    deleteMessage,
+    addCalendarsToChannel
 }

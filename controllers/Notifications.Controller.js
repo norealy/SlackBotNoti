@@ -4,7 +4,7 @@ const getNotis = (req, res) => {
         if (challenge) {
             return res.status(200).send(challenge);
         }
-        console.log(req.body.event) 
+        // console.log(req.body) 
         return res.status(202).send("Ok");
     } catch (error) {
         return res.status(403).send("Error");

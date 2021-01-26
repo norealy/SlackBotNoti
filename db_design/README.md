@@ -4,50 +4,61 @@
 ## Các thành phần đối tượng của dự án Slack - Calendar
 
 ### Channel
-- Mục đích tạo đối tượng : Lưu trữ các Channel bên Slack có liên kết với Google Calendar hoặc Outlook Calendar
-
-### Message Slack
+- Mục đích tạo đối tượng : Lưu trữ các Channel bên Slack app
+### MessageSlack
 - Mục đích tạo đối tượng : Lưu trữ các message có gửi thông tin yêu cầu Bot về Calendar.
-
 ### MicrosoftCalendar
-- Mục đích tạo đối tượng : Lưu trữ thoong tin các Outlook Calendar
-
+- Mục đích tạo đối tượng : Lưu trữ thong tin các Outlook Calendar cua microsoft
 ### GoogleCalendar
-- Mục đích tạo đối tượng : Lưu trữ thông tin các Google Calendar
-
-### RoomSlack_Calendar
+- Mục đích tạo đối tượng : Lưu trữ thong tin các Google Calendar
+### SlackCalendar
 - Mục đích tạo đối tượng : bảng trung gian lưu trữ thông tin về các liên kết id của Channel, GoogleCalendar, MicrosoftCalendar.
+### MicrosoftAccount
+- Mục đích tạo đối tượng : Luu thong tin ve tai khoan Microsoft.
+### GoogleAccount
+- Mục đích tạo đối tượng : Luu thong tin ve tai khoan Google.
+### MicrosoftAccountCalendar
+- Mục đích tạo đối tượng : Bang trung gian giua bang MicrosoftAccount va MicrosoftCalendar.
+### GoogleAccountCalendar
+- Mục đích tạo đối tượng : Bang trung gian giua bang GoogleAccount va GoogleCalendar.
 
 ***
-## Mối quan hệ giữa các thành phần của dự án Slack - Calendar
+## Mối quan hệ giữa các thành phần của dự án
 
-### Channel với MesageSlack,RoomUserSlack_Calendar
+### Channel
 - Channel có quan hệ 1-n với thành phần MesageSlack
-- Channel có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-
-### MessageSlack với Channel
-- MessageSlack có quan hệ n-1 đối với thành phần Channel
-
-### MicrosoftCalendar với RoomUserSlack_Calendar
-- MicrosoftCalendar có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-
-### GoogleCalendar với RoomUserSlack_Calendar
-- GoogleCalendar có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-
-### RoomSlack_Calendar với GoogleCalendar,MicrosoftCalendar,Channel
-- GoogleCalendar có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-- MicrosoftCalendar có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-- Channel có quan hệ 1-n với thành phần RoomUserSlack_Calendar
-
+- Channel có quan hệ 1-n với thành phần SlackCalendar
+### MessageSlack
+- Channel có quan hệ 1-n với thành phần MesageSlack
+### SlackCalendar
+- Channel có quan hệ 1-n với thành phần SlackCalendar
+- GoogleCalendar có quan hệ 1-n với thành phần SlackCalendar
+- MicrosoftCalendar có quan hệ 1-n với thành phần SlackCalendar.
+### GoogleCalendar
+- GoogleCalendar có quan hệ 1-n với thành phần SlackCalendar.
+- GoogleCalendar có quan hệ 1-n với thành phần GoogleAccountCalendar.
+### MicrosoftCalendar
+- MicrosoftCalendar có quan hệ 1-n với thành phần SlackCalendar.
+- MicrosoftCalendar có quan hệ 1-n với thành phần MicrosoftAccountCalendar.
+### GoogleAccountCalendar
+- GoogleCalendar có quan hệ 1-n với thành phần GoogleAccountCalendar.
+- GoogleAccount có quan hệ 1-n với thành phần GoogleAccountCalendar.
+### MicrosoftAccountCalendar
+- MicrosoftCalendar có quan hệ 1-n với thành phần MicrosoftAccountCalendar.
+- MicrosoftAccount có quan hệ 1-n với thành phần MicrosoftAccountCalendar.
+### GoogleAccount
+- GoogleAccount có quan hệ 1-n với thành phần GoogleAccountCalendar.
+### MicrosoftAccount
+- MicrosoftAccount có quan hệ 1-n với thành phần MicrosoftAccountCalendar.
 ***
 ## Thiết kế cơ sở dữ liệu lưu trữ dữ liệu người dùng.
 
-1. Google Calendar
+1. GoogleCalendar
 Thuộc tính : 
 - `id` string primary key
 - `name` string
 
-2. Outlook Calendar
+2. MicrosoftCalendar
 Thuộc tính : 
 - `id` string primary key
 - `name` string
@@ -66,15 +77,39 @@ Thuộc tính :
 - `type` string
 - `timeSend` datetime
 
-5. RoomUserSlack_Calendar
+5. SlackCalendar
 Thuộc tính : 
-- `id` string primary key
-- `idGGCalendar` string foreign key,
-- `idMSCalendar` string foreign key,
+- `idCalendar` string foreign key,
 - `idChannel` string foreign key,
+- idCalendar + idChannel (Primary key)
+
+6. MicrosoftAccountCalendar
+Thuộc tính : 
+- `idMSCalendar` string foreign key,
+- `idMSAccount` string foreign key,
+- idMSCalendar + idMSAccount (Primary key)
+
+7. GoogleAccountCalendar
+Thuộc tính : 
+- `idGGCalendar` string foreign key,
+- `idGGAccount` string foreign key,
+- idGGCalendar + idGGAccount (Primary key)
+
+8. GoogleAccountCalendar
+Thuộc tính : 
+- `id` string primary key,
+- `name` string,
+- `refreshToken` string
+
+9. MicrosoftAccountCalendar
+Thuộc tính : 
+- `id` string primary key,
+- `name` string,
+- `refreshToken` string
+
 
 Hình minh họa Diagram :
-![Diagram](./image/imageDiagram.png)
+![Diagram](./image/diagram.PNG)
 
 Code Script mysql
 [Link Script](ScriptCreateDB.sql)

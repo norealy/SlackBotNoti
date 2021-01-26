@@ -4,9 +4,9 @@
   "description": "Microservice pipeline",
   "main": "server.js",
   "scripts": {
-    "start": "node slack-google_calendar/index.js SLACK-GOOGLE_CALENDAR ./config/",
-    "dev": "nodemon slack-google_calendar/index.js SLACK-GOOGLE_CALENDAR ./config/",
-    "test": "mocha ./test/slack-google_calendar/*.js SLACK-GOOGLE_CALENDAR ./config/ --exit"
+    "start": "node slack-google/index.js SLACK-GOOGLE ./config/",
+    "dev": "nodemon slack-google/index.js SLACK-GOOGLE ./config/",
+    "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./config/ --exit"
   },
   "dependencies": {
     "axios": "^0.21.1",

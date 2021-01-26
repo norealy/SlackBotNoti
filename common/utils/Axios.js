@@ -1,5 +1,5 @@
 const axios = require('axios');
-const config = () => {
+const config = (function(){
 	//RESPONSE
 	axios.interceptors.response.use(
 		function (response) {
@@ -9,5 +9,5 @@ const config = () => {
 			return Promise.reject(error.response);
 		}
 	)
-}
+})();
 module.exports = config;

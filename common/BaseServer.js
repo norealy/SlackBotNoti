@@ -67,10 +67,10 @@ class BaseServer {
 
 	/**
 	 * Check instance environment variables and initialize the environment object
+	 * @param {object} instanceEnv
 	 * @returns {void}
 	 */
-	configEnv() {
-		const {instanceEnv} = this.config;
+	configEnv(instanceEnv) {
 		const message = "object does not exist in the config file or it is not an object"
 		if(!instanceEnv.server
 			|| typeof instanceEnv.server !== "object"
@@ -138,8 +138,8 @@ class BaseServer {
   }
 
   async init() {
-		this.config.instanceEnv = await this.loadConfig();
-		this.configEnv();
+		let instanceEnv = await this.loadConfig();
+		this.configEnv(instanceEnv);
 
     require('./utils/logger')(this.app, this.instanceId);
 		require('./utils/Axios');

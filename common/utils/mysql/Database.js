@@ -9,7 +9,7 @@ const configDB = {
 		password: Env.getOrFail('MYSQL_DB_PASSWORD'),
 		database: Env.getOrFail('MYSQL_DB_DATABASE'),
 		charset: 'utf8mb4',
-		timezone: Env.get('MYSQL_DB_TZ', 'UTC'),
+		timezone: Env.get('MYSQL_DB_TZ', 'Z'),
 	},
 	debug: Env.get('MYSQL_DB_DEBUG', false),
 	pool: {

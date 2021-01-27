@@ -3,7 +3,7 @@
     "PORT": 5000
   },
 	"chatService": {
-
+		"APP_LEVEL_TOKEN": "xoxb-1646068754818-1649327460835-9kDmhfu0jpQA4GI7eVerD2kj"
 	},
 	"resourceServer": {
 

@@ -9,7 +9,7 @@
 │   ├── BaseServer.js
 │   └── utils              //Utility file storage of the common code
 ├── config                 //config file application environment variables
-├── slack-google_calendar  //Pipeline of Slack and Google calendar
+├── slack-google           //Pipeline of Slack and Google
 ├── scripts                //Various scripts for starting the server
 ├── test                   //Unit test files
 ├── utils                  //Utility file storage of the application
@@ -23,9 +23,9 @@
 ##3. How to start
 ###Slack - Google_calendar
 Start from command line
-- `node slack-google_calendar/index.js SLACK-GOOGLE_CALENDAR ./config/`
-- For `SLACK-GOOGLE_CALENDAR` in the above example, enter the key name described in
- `config/SLACK-GOOGLE_CALENDAR.json` of the bot body. The value corresponding to that key is
+- `node slack-google/index.js SLACK-GOOGLE ./config/`
+- For `SLACK-GOOGLE` in the above example, enter the key name described in
+ `config/SLACK-GOOGLE.json` of the bot body. The value corresponding to that key is
  used to start the server.
 
 ##4. Coding conventions

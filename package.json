@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node slack-google/index.js SLACK-GOOGLE ./config/",
     "dev": "nodemon slack-google/index.js SLACK-GOOGLE ./config/",
-    "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./config/ --exit"
+    "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./config/ --exit",
+    "devms": "nodemon slack-microsft/index.js SLACK-MICROSOFT ./config/"
   },
   "dependencies": {
     "axios": "^0.21.1",

@@ -1,0 +1,11 @@
+{
+  "server": {
+    "PORT": 5100
+  },
+	"chatService": {
+		"APP_LEVEL_TOKEN": "xoxb-1648454437793-1648474035025-gEilCie0vDNdf8IPAvvuqP0d"
+	},
+	"resourceServer": {
+
+	}
+}

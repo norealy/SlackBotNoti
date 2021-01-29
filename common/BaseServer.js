@@ -14,56 +14,56 @@ class BaseServer {
 	 * @param {string} instanceId
 	 * @param {object} opt
 	 */
-  constructor(instanceId, opt) {
-		const args  = instanceId.split("-");
+	constructor(instanceId, opt) {
+		const args = instanceId.split("-");
 
 		this.app = Express();
 		this.instanceId = instanceId;
 		this.chatService = args[0];
 		this.resourceServer = args[1];
 
-    this.config = typeof opt.config === "object" ? opt.config : {};
+		this.config = typeof opt.config === "object" ? opt.config : {};
 
 		this.chatServiceHandler = this.chatServiceHandler.bind(this);
 		this.resourceServerHandler = this.resourceServerHandler.bind(this);
 		this.pushMessageHandler = this.pushMessageHandler.bind(this);
 
-    this.requestHandler = {
+		this.requestHandler = {
 			watchChatService: this.chatServiceHandler,
-      watchResourceServer: this.resourceServerHandler,
-      pushMessage: this.pushMessageHandler,
-    }
-  }
+			watchResourceServer: this.resourceServerHandler,
+			pushMessage: this.pushMessageHandler,
+		}
+	}
 
 	/**
 	 * Read config file from config folder(either depending on the service you want to run)
 	 * @param fileName
 	 * @returns {Promise<unknown>}
 	 */
-  getConfig(fileName) {
-    return new Promise((resolve, reject) => {
-      Fs.readJson(Path.join(this.config.path, fileName), (err, text) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(text);
-        }
-      });
-    });
-  }
+	getConfig(fileName) {
+		return new Promise((resolve, reject) => {
+			Fs.readJson(Path.join(this.config.path, fileName), (err, text) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(text);
+				}
+			});
+		});
+	}
 
 	/**
 	 * Load config from file in config folder(either depending on the service you want to run)
 	 * @return {Promise<unknown>}
 	 */
-  loadConfig() {
-    try{
-      const fileName = Path.join(this.instanceId + '.json');
-      return this.getConfig(fileName)
-    } catch (err) {
+	loadConfig() {
+		try {
+			const fileName = Path.join(this.instanceId + '.json');
+			return this.getConfig(fileName)
+		} catch (err) {
 			throw new Error(`E_LOAD_CONFIG: ${err.message}`)
-    }
-  }
+		}
+	}
 
 	/**
 	 * Check instance environment variables and initialize the environment object
@@ -72,24 +72,24 @@ class BaseServer {
 	 */
 	configEnv(instanceEnv) {
 		const message = "object does not exist in the config file or it is not an object"
-		if(!instanceEnv.server
+		if (!instanceEnv.server
 			|| typeof instanceEnv.server !== "object"
 			|| _.isArray(instanceEnv.server)) {
 			throw new Error(`E_CONFIG_ENVIRONMENT: The server ${message}`);
 		}
-		if(!instanceEnv.chatService
+		if (!instanceEnv.chatService
 			|| typeof instanceEnv.chatService !== "object"
 			|| _.isArray(instanceEnv.chatService)) {
 			throw new Error(`E_CONFIG_ENVIRONMENT: The chatService ${message}`);
 		}
-		if(!instanceEnv.resourceServer
+		if (!instanceEnv.resourceServer
 			|| typeof instanceEnv.resourceServer !== "object"
 			|| _.isArray(instanceEnv.resourceServer)) {
 			throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer ${message}`);
 		}
 		try {
 			Env.setConfig(instanceEnv);
-		} catch (e){
+		} catch (e) {
 			throw e;
 		}
 	}
@@ -108,7 +108,7 @@ class BaseServer {
 					return resolve(1)
 				})
 				.catch((err) => {
-					const code ="E_ACCESS_MYSQL_ERROR";
+					const code = "E_ACCESS_MYSQL_ERROR";
 					const message = err.sqlMessage ? err.sqlMessage : 'Access to mysql database denied';
 					const error = new Error(`${code}: ${message}`);
 					error.code = code;
@@ -117,48 +117,48 @@ class BaseServer {
 		})
 	}
 
-  healthCheckHandler(req, res, next) {
-    try {
-      return res.status(200).send({"pong":"OK"});
-    } catch (e) {
-      return res.status(400);
-    }
-  }
+	healthCheckHandler(req, res, next) {
+		try {
+			return res.status(200).send({ "pong": "OK" });
+		} catch (e) {
+			return res.status(400);
+		}
+	}
 
-  chatServiceHandler(req, res, next) {
-    return res.status(200).send("OK");
-  }
+	chatServiceHandler(req, res, next) {
+		return res.status(200).send("OK");
+	}
 
-  resourceServerHandler(req, res, next) {
-    return res.status(200).send("OK");
-  }
+	resourceServerHandler(req, res, next) {
+		return res.status(200).send("OK");
+	}
 
 	pushMessageHandler(req, res, next) {
-    return res.status(200).send("OK");
-  }
+		return res.status(200).send("OK");
+	}
 
-  async init() {
+	async init() {
 		let instanceEnv = await this.loadConfig();
 		this.configEnv(instanceEnv);
 
-    require('./utils/logger')(this.app, this.instanceId);
+		require('./utils/logger')(this.app, this.instanceId);
 		require('./utils/Axios');
 
 		await this.configMySQL();
 
-    this.app.disable('x-powered-by');
-		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));
+		this.app.disable('x-powered-by');
+		this.app.use(BodyParser.urlencoded({ extended: true, limit: '2mb' }));
 		this.app.use(BodyParser.json({ limit: '2mb' }));
 
-    this.app.get('/health-check', this.healthCheckHandler);
-    this.app.post('/watch/chat-service', this.requestHandler.watchChatService);
-    this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
-    this.app.post('/push/message', this.requestHandler.pushMessage);
+		this.app.get('/health-check', this.healthCheckHandler);
+		this.app.post('/watch/chat-service', this.requestHandler.watchChatService);
+		this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
+		this.app.post('/push/message', this.requestHandler.pushMessage);
 
-    this.app.listen(Env.serverGOF("PORT"), () => {
-      console.log('%s listening at %s', this.instanceId, Env.serverGOF("PORT"));
-    });
-  }
+		this.app.listen(Env.serverGOF("PORT"), () => {
+			console.log('%s listening at %s', this.instanceId, Env.serverGOF("PORT"));
+		});
+	}
 
 }
 

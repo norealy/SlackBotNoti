@@ -42,10 +42,15 @@ class SlackMicrosoft extends BaseServer {
 
 		} else if ( payload.type === 'block_actions') {
 			if (payload.actions[0].action_id === "addMicrosoft") {
-				
+				const options = {
+					method: 'GET',
+					url: `http://localhost:5100/outlook`
+				};
+				const result = await Axios(options);
+				console.log("addMicrosoft")
             }
 			else if (payload.actions[0].action_id === "addGoogle") {
-				
+				console.log("addGoogle")
             }
 		}
 		return res.status(200).send("Watch request handler the Microsoft Outlook Calendar");

@@ -33,7 +33,9 @@ Start from command line
 - File and class names written as UpperCamelCase
 - Variable and function names written as camelCase
 - Global variables and Constants written in UPPERCASE
+- Database Table name written as came_case
 - Limit your lines to 90 characters
+- The line limit for a function is 50
 
 ##5. Rule Git
 - All new features and fix bug must be develop on branch feature/{KEY_ISSUE}
@@ -53,19 +55,15 @@ Start from command line
 * [ ] File and class names written as UpperCamelCase
 * [ ] Variable and function names written as camelCase
 * [ ] Global variables and Constants written in UPPERCASE
+* [ ] Database Table name written as came_case
 * [ ] Limit your lines to 90 characters
+* [ ] The line limit for a function is 50
 * [ ] The merge destination branch is correct (* Same as above)
-* [ ] Check the feature branch deletion settings after merging ("Delete branch
- after merging" check)
+* [ ] Check the feature branch deletion settings after merging ("Delete branch after merging" check)
 *: In principle, the feature branch is deleted after merging.
 * [ ] There are no undetermined specifications.
 * [ ] There is no omission of registration of newly added files
 * [ ] Does not contain irrelevant commits
-* [ ] The title of the pull request should be easy to understand. Especially
- when there are multiple pull requests in one ticket, it is easy to distinguish
- them.
+* [ ] The title of the pull request should be easy to understand. Especially when there are multiple pull requests in one ticket, it is easy to distinguish them.
 * [ ] Check the changes on the "File" tab of the created pull request.
-* [ ] The description comment of the implementation unit (class/method/function
- /variable/table/column, etc.) is appropriate. If the position of the mounting
- unit is changed, the explanation comment should also be revised. Follow the
- official writing style jsdoc as much as possible.
+* [ ] The description comment of the implementation unit (class/method/function /variable/table/column, etc.) is appropriate. If the position of the mounting unit is changed, the explanation comment should also be revised. Follow the official writing style jsdoc as much as possible.

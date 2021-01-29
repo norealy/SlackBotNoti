@@ -4,7 +4,8 @@ exports.up = function(knex) {
         table.string('id_channel').references('id').inTable('channels').notNull();
         table.string('text').nullable();
         table.string('type').nullable();
-        table.dateTime('time_send').nullable();
+        table.timestamp('created_at').defaultTo(knex.fn.now());
+        table.timestamp('updated_at').defaultTo(knex.fn.now());
     });
 };
 

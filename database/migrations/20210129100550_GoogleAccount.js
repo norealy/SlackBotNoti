@@ -1,11 +1,11 @@
 exports.up = function(knex) {
-    return knex.schema.createTable('GoogleAccount', function(t) {
-        t.string('id').primary().notNull();
-        t.string('name').notNull();
-        t.string('refreshToken').notNull();
+    return knex.schema.createTable('google_account', function(table) {
+        table.string('id').primary().notNull();
+        table.string('name').notNull();
+        table.string('refresh_token').notNull();
     });
 };
 
 exports.down = function(knex) {
-    return knex.schema.dropTable('GoogleAccount');
+    return knex.schema.dropTable('google_account');
 };

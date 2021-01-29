@@ -1,11 +1,11 @@
 
 exports.up = function(knex) {
-    return knex.schema.createTable('GoogleCalendar', function(t) {
-        t.string('id').primary().notNull();
-        t.string('name').notNull();
+    return knex.schema.createTable('google_calendar', function(table) {
+        table.string('id').primary().notNull();
+        table.string('name').notNull();
     });
 };
 
 exports.down = function(knex) {
-    return knex.schema.dropTable('GoogleCalendar');
+    return knex.schema.dropTable('google_calendar');
 };

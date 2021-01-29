@@ -1,11 +1,11 @@
 exports.up = function(knex) {
-    return knex.schema.createTable('GoogleAccountCalendar', function(t) {
-        t.string('idGGCalendar').references('id').inTable('GoogleCalendar').notNull();
-        t.string('idGGAccount').references('id').inTable('GoogleAccount').notNull();
-        t.primary(['idGGCalendar', 'idGGAccount']);
+    return knex.schema.createTable('google_account_calendar', function(table) {
+        table.string('id_calendar').references('id').inTable('google_calendar').notNull();
+        table.string('id_account').references('id').inTable('google_account').notNull();
+        table.primary(['id_calendar', 'id_account']);
     });
 };
 
 exports.down = function(knex) {
-    return knex.schema.dropTable('GoogleAccountCalendar');
+    return knex.schema.dropTable('google_account_calendar');
 };

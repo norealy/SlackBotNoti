@@ -82,6 +82,9 @@ module.exports = SlackMicrosoft;
 		},
 	});
 
-	pipeline.app.get('/outlook', Auth.redirectMicrosoft);
+	pipeline.app.get('/auth/microsoft',(req,res,next)=>{
+		console.log("CODE:",req.query.code);
+		next();
+	} ,Auth.sendCode);
 	await pipeline.init();
 })();

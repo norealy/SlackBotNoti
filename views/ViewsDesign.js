@@ -1,3 +1,12 @@
+
+const ENV = require('../utils/Env');
+const stateSecretAzure = ENV.get("AZURE_STATE", 'RANDOMID@@--123');
+const stateAzure = Buffer.from(stateSecretAzure).toString('base64')
+const redirectUrlAzure = ENV.get("AZURE_REDIRECT", "http://localhost:5100/auth/microsoft");
+const scopeAzure = "calendars.readwrite";
+const azureIdAzure = ENV.get("AZURE_ID");
+const urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${azureIdAzure}&response_type=code&redirect_uri=${redirectUrlAzure}&response_mode=query&scope=${scopeAzure}`; //&state=${stateAzure}
+
 const deleteEvent = {
 	"title": {
 		"type": "plain_text",
@@ -234,6 +243,7 @@ const addCalendarToChannel = {
 						"text": "Login Google"
 					},
 					"style": "primary",
+					"url": "https://google.com",
 					"action_id": "addGoogle"
 				},
 				{
@@ -244,6 +254,7 @@ const addCalendarToChannel = {
 						"text": "Login microsoft"
 					},
 					"style": "primary",
+					"url": urlRequestAuthor,
 					"action_id": "addMicrosoft"
 				}
 			]

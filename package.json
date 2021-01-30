@@ -4,7 +4,6 @@
   "description": "Microservice pipeline",
   "main": "server.js",
   "scripts": {
-    "start": "node slack-google/index.js SLACK-GOOGLE ./config/",
     "dev": "nodemon slack-google/index.js SLACK-GOOGLE ./config/",
     "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./config/ --exit",
     "devms": "nodemon slack-microsft/index.js SLACK-MICROSOFT ./config/"

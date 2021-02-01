@@ -4,7 +4,6 @@ const Env = require('../utils/Env');
 const viewsDesign = require('../views/ViewsDesign');
 const tokenBot = Env.getOrFail("TOKEN_BOT")
 const Auth = require('./Auth');
-// const axios = require('axios');
 
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
@@ -13,7 +12,7 @@ class SlackMicrosoft extends BaseServer {
 
 	async chatServiceHandler(req, res, next) {
 		console.log("---body---")
-		console.log(req.body)
+		console.log(req)
 		
 		let payload = req.body.payload;
 		if (typeof payload !== 'undefined') {
@@ -59,7 +58,7 @@ class SlackMicrosoft extends BaseServer {
 	resourceServerHandler(req, res, next) {
 		try {
 			console.log("---resourceServerHandler---");
-
+			console.log(req)
 			const challenge = req.body.challenge;
 			if (challenge) {
 				return res.status(200).send(challenge);
@@ -81,10 +80,9 @@ module.exports = SlackMicrosoft;
 			appRoot: __dirname,
 		},
 	});
-
-	pipeline.app.get('/auth/microsoft',(req,res,next)=>{
-		console.log("CODE:",req.query.code);
-		next();
-	} ,Auth.sendCode);
 	await pipeline.init();
+	pipeline.app.get('/microsoft',Auth.redirectMicrosoft);
+	pipeline.app.get('/auth/microsoft',Auth.sendCode);
+	pipeline.app.post('/code',Auth.getAccessToken);
+
 })();

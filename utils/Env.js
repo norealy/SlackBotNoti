@@ -13,6 +13,9 @@ class Env {
 		this.server = "";
 		this.chatService = "";
 		this.resourceServer = "";
+		this.appRoot = this.get('PWD', null)
+			|| this.get('INIT_CWD', null)
+			|| process.cwd();
 	}
 
 	formatBoolean(value) {

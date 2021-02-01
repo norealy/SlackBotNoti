@@ -100,9 +100,9 @@ class BaseServer {
 	 */
 	configMySQL() {
 		return new Promise((resolve, reject) => {
-			const configMysql = require('./utils/mysql/Database')(Env.getOrFail('PWD'));
+			const configMysql = require('./utils/mysql/Database')(Env.appRoot);
 			const mysql = knex(configMysql);
-			Model.knex(knex);
+			Model.knex(mysql);
 			mysql.raw("SELECT VERSION()")
 				.then(() => {
 					return resolve(1)

@@ -7,6 +7,8 @@ const redirectUrlAzure = ENV.get("AZURE_REDIRECT", `http://localhost:5100/auth/m
 const scopeAzure = "offline_access user.read mail.read calendars.readwrite";
 const azureIdAzure = ENV.get("AZURE_ID");
 const secretAzure = ENV.get("AZURE_SECRET");
+const viewsDesign = require('../views/ViewsDesign');
+const tokenBot = ENV.getOrFail("TOKEN_BOT");
 
 const redirectMicrosoft = (req, res) => {
 	try {
@@ -33,7 +35,7 @@ const sendCode = async (req, res) => {
 	try {
 		const result = await axios(options);
 		console.log("result",result.data)
-		res.send("POst Code ok")
+		res.send("Successful !")
 		return;
 	} catch (error) {
 		res.send("error")
@@ -54,14 +56,14 @@ const getAccessToken = async (req, res) => {
 		client_secret: secretAzure,
 		response_mode: "form_post"
 	};
-	const options = {
+	const optionss = {
 		method: 'POST',
 		headers: { 'content-type': 'application/x-www-form-urlencoded' },
 		data: qs.stringify(data),
 		url: urlGetToken,
 	};
 	try {
-		const result = await axios(options);
+		let result = await axios(optionss);
 		const accessTokenAzure = result.data.access_token;
 		const refreshTokenAzure = result.data.refresh_token;
 		// console.log(result.data)
@@ -72,8 +74,8 @@ const getAccessToken = async (req, res) => {
             url: "https://graph.microsoft.com/v1.0/me/calendars"
         };
         const resultCal = await axios(options1);
-		const allCalendar = resultCal.data;
-		console.log("allCalendar",allCalendar);
+		const allCalendar = resultCal.data.value;
+		// console.log(allCalendar); // array calendar
 
 		const options2 = {
             method: 'GET',
@@ -82,7 +84,22 @@ const getAccessToken = async (req, res) => {
         };
         const resultUser = await axios(options2);
 		const profileUser = resultUser.data;
-		console.log("allCalendar",profileUser);
+		// console.log("Profile user : ",profileUser);
+
+		const data1 = {
+			"channel": "C01JVQ4LHJA",
+			"blocks": viewsDesign.listCalendar(allCalendar)
+		}
+		const options = {
+			method: 'POST',
+			headers: { 'Authorization': `Bearer ${tokenBot}` },
+			data: data1,
+			url: `https://slack.com/api/chat.postMessage`
+		};
+		result = await axios(options);
+		// console.log(result.data)
+
+
 
 		return res.send("");
 	} catch (e) {

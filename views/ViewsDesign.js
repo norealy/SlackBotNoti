@@ -1,4 +1,47 @@
 const urlRequestAuthor = `http://localhost:5100/microsoft`;
+const {arrayCal} = require('../utils/CustomListCalendar');
+const settingMessCal = [
+	{
+		"type": "divider"
+	},
+	{
+		"type": "header",
+		"text": {
+			"type": "plain_text",
+			"text": "System settings calendars",
+			"emoji": true
+		}
+	},
+	{
+		"type": "divider"
+	},
+	{
+		"type": "actions",
+		"elements": [
+			{
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"emoji": true,
+					"text": "Login Google"
+				},
+				"style": "primary",
+				"action_id": "btnGG_login"
+			},
+			{
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"emoji": true,
+					"text": "Login Microsoft"
+				},
+				"style": "primary",
+				"url": "http://localhost:5100/microsoft",
+				"action_id": "btnMS_login"
+			}
+		]
+	}
+]
 
 const deleteEvent = {
 	"title": {
@@ -91,68 +134,43 @@ const listEvent = [
 	}
 ]
 
-const listCalendar = [
-	{
-		"type": "section",
-		"text": {
-			"type": "mrkdwn",
-			"text": "*List calendar*"
-		},
-		"accessory": {
-			"type": "radio_buttons",
-			"initial_option": {
-				"value": "value-0",
-				"text": {
-					"type": "plain_text",
-					"text": "Calendar 1"
-				}
+const listCalendar = (arrCalendar) => {
+	const viewList = arrayCal(arrCalendar);
+	console.log("viewList",viewList);
+	let viewlistCalendar = [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "*List calendar*"
 			},
-			"options": [
-				{
-					"text": {
-						"type": "plain_text",
-						"text": "Calendar 1",
-						"emoji": true
-					},
-					"value": "value-0"
-				},
-				{
-					"text": {
-						"type": "plain_text",
-						"text": "Calendar 2",
-						"emoji": true
-					},
-					"value": "value-1"
-				},
-				{
-					"text": {
-						"type": "plain_text",
-						"text": "Calendar 3",
-						"emoji": true
-					},
-					"value": "value-2"
-				}
-			],
-			"action_id": "radio_buttons-action"
-		}
-	},
-	{
-		"type": "actions",
-		"elements": [
-			{
-				"type": "button",
-				"text": {
-					"type": "plain_text",
-					"emoji": true,
-					"text": "Show Calendar"
-				},
-				"style": "primary",
-				"value": "buttonSubmit",
-				"action_id": "buttonSubmit"
+			"accessory": {
+				"type": "radio_buttons",
+				"initial_option": viewList[0],
+				"options": viewList,
+				"action_id": "radio_select_calendar"
 			}
-		]
-	}
-]
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": true,
+						"text": "Show Calendar"
+					},
+					"style": "primary",
+					"value": "buttonSubmit",
+					"action_id": "buttonSubmit"
+				}
+			]
+		}
+	]
+	return viewlistCalendar;
+}
+
 
 const addCalendarToChannel = {
 	"title": {
@@ -762,5 +780,6 @@ module.exports = {
 	dateEnd,
 	listCalendar,
 	listEvent,
-	deleteEvent
+	deleteEvent,
+	settingMessCal
 }

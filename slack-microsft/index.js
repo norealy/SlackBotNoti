@@ -11,9 +11,8 @@ class SlackMicrosoft extends BaseServer {
 	}
 
 	async chatServiceHandler(req, res, next) {
-		console.log("---body---")
-		console.log(req)
-		
+		console.log("---chatServiceHandler---")
+
 		let payload = req.body.payload;
 		if (typeof payload !== 'undefined') {
 			payload = JSON.parse(payload);
@@ -39,33 +38,46 @@ class SlackMicrosoft extends BaseServer {
 			If you want assistance please enter: /cal --help`);
 			}
 
-		} else if ( payload.type === 'block_actions') {
+		} else if (payload.type === 'block_actions') {
 			if (payload.actions[0].action_id === "addMicrosoft") {
 				const options = {
 					method: 'GET',
-					url: `http://localhost:5100/outlook`
+					url: `http://localhost:5100/microsoft`
 				};
 				const result = await Axios(options);
 				console.log("addMicrosoft")
-            }
+			}
 			else if (payload.actions[0].action_id === "addGoogle") {
 				console.log("addGoogle")
-            }
+			}
 		}
 		return res.status(200).send("Watch request handler the Microsoft Outlook Calendar");
 	}
 
-	resourceServerHandler(req, res, next) {
+	async resourceServerHandler(req, res, next) {
 		try {
-			console.log("---resourceServerHandler---");
-			console.log(req)
+			console.log("======= resource Server Handler =======");
 			const challenge = req.body.challenge;
+			const event = req.body.event;
 			if (challenge) {
 				return res.status(200).send(challenge);
 			}
-
+			else if (event && (event.subtype === 'bot_add' ||(event.subtype === 'channel_join' && event.user===Env.getOrFail("USER_BOT")))) {
+				const options = {
+					method: 'POST',
+					headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${tokenBot}` },
+					data: {
+						"channel": req.body.event.channel,
+						"blocks": viewsDesign.settingMessCal
+					},
+					url: "https://slack.com/api/chat.postMessage",
+				};
+				const result = await Axios(options);
+				console.log("data", result.data);
+			}
 			return res.status(204).send("OK");
 		} catch (e) {
+			console.log(e)
 			return res.status(204).send("ERROR");
 		}
 	}
@@ -81,8 +93,8 @@ module.exports = SlackMicrosoft;
 		},
 	});
 	await pipeline.init();
-	pipeline.app.get('/microsoft',Auth.redirectMicrosoft);
-	pipeline.app.get('/auth/microsoft',Auth.sendCode);
-	pipeline.app.post('/code',Auth.getAccessToken);
+	pipeline.app.get('/microsoft', Auth.redirectMicrosoft);
+	pipeline.app.get('/auth/microsoft', Auth.sendCode);
+	pipeline.app.post('/code', Auth.getAccessToken);
 
 })();

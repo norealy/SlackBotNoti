@@ -35,7 +35,7 @@ class SlackGoogle extends BaseServer {
 				url: `https://slack.com/api/chat.postMessage`
 			}
 			const done = await Axios(option);
-			//console.log(done.data);
+			console.log(done.data);
 		return res.status(200).send("done");
 		}
 			let payload = req.body.payload;
@@ -73,6 +73,7 @@ class SlackGoogle extends BaseServer {
 						url: `https://slack.com/api/views.open`
 					};
 					const result = await Axios(options);
+					console.log(result)
 					return res.status(202).send(`Thank you call BOT-NOTI !
             If you want assistance please enter: /cal --help`);
 				}

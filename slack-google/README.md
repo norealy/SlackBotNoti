@@ -5,14 +5,20 @@
 
 ├── common                 //code module
 
-│   ├── BaseServer.js  // Router (watch-send-code, )
+│   ├── BaseServer.js
 
 
 ├── slack-google           //Pipeline of Slack and Google
 
-│   ├── index.js  // Ro
+│   ├── index.js
 
 ├── test                   //Unit test files
+
+├── views
+
+│   ├── ViewsDesign.js
+
+├── img
 
 ├── .env.example
 
@@ -25,9 +31,9 @@
 ### Luồng OAuth2.0
 
 
-![img](./slack-google/img/uyquyen.PNG)
+![img](./img/uyquyen.PNG)
 
-![text](./slack-google/img/accecess.PNG)
+![text](./img/accecess.PNG)
 
 
 ### Luồng thiết kế Login Google
@@ -300,7 +306,37 @@ YbFcSnRrDn-K6rNnNnWDqDR5-UOak4rcv4eMLo7xiB4L5CGh0EA'
 			//console.log(done.data);
 		return res.status(200).send("done");
   	```
-	+ Img
+	+	Kết Quả
+
+	```
+ 	{
+  ok: true,
+  channel: 'C01L7R9KT8X',
+  ts: '1612260386.000500',
+  message: {
+    bot_id: 'B01KLEPH36V',
+    type: 'message',
+    text: "This content can't be displayed.",
+    user: 'U01KE0ZMHPE',
+    ts: '1612260386.000500',
+    team: 'T01K36QJEHZ',
+    bot_profile: {
+      id: 'B01KLEPH36V',
+      deleted: false,
+      name: 'test',
+      updated: 1611114238,
+      app_id: 'A01JN7DS7QF',
+      icons: [Object],
+      team_id: 'T01K36QJEHZ'
+    },
+    blocks: [ [Object], [Object], [Object], [Object] ]
+  }
+}
+
+
++ Img
+
+![img](./img/addapp.PNG)
 
 - Kiểu 2 khi người dùng chưa đăng nhập nhưng thực hiện việc `list event` thì sẽ bắn ra `views settings` với phương thức `views.open` bắt người dùng phải  login
 
@@ -312,6 +348,7 @@ YbFcSnRrDn-K6rNnNnWDqDR5-UOak4rcv4eMLo7xiB4L5CGh0EA'
 	+ Code
 
 		`Khi người dùng /cal settings`
+
 		```
   		const data = {
 						"trigger_id": req.body.trigger_id,
@@ -328,5 +365,38 @@ YbFcSnRrDn-K6rNnNnWDqDR5-UOak4rcv4eMLo7xiB4L5CGh0EA'
             If you want assistance please enter: /cal --help`);
 				}
   	```
-	+ Img
+
++ Kết quả
+```
+ data: {
+    ok: true,
+    view: {
+      id: 'V01LNK2P9HQ',
+      team_id: 'T01K36QJEHZ',
+      type: 'modal',
+      blocks: [Array],
+      private_metadata: '',
+      callback_id: '',
+      state: [Object],
+      hash: '1612260640.zU7zMdFi',
+      title: [Object],
+      clear_on_close: false,
+      notify_on_close: false,
+      close: [Object],
+      submit: [Object],
+      previous_view_id: null,
+      root_view_id: 'V01LNK2P9HQ',
+      app_id: 'A01JN7DS7QF',
+      external_id: '',
+      app_installed_team_id: 'T01K36QJEHZ',
+      bot_id: 'B01KLEPH36V'
+    }
+  }
+}
+
+```
+
++ Img
+
+![img](./img/settings.PNG)
 

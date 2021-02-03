@@ -1,16 +1,3 @@
-const Env = require('../utils/Env');
-const jwt = require('jsonwebtoken');
-const stateSecretSlack = Env.get("STATE", 'RANDOMID@@--123');
-const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
-const redirectUrlGoogle = Env.get("REDIRECT_URI", "http://localhost:5000/watch-send-code");
-const scopeGoogle = ('https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile');
-const scope =  "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.settings.readonly";
-const GOOGLE_CLIENT_ID = Env.get("GOOGLE_CLIENT_ID");
-const GOOGLE_CLIENT_SECRET =  Env.get("GOOGLE_CLIENT_SECRET");
-const JWT_KEY = Env.get("JWT_KEY")
-const access_type = "offline";
-const response_type = "code";
-
 const deleteEvent = {
 	"title": {
 		"type": "plain_text",
@@ -164,13 +151,7 @@ const listCalendar = [
 		]
 	}
 ]
- const accessToken = jwt.sign({
-	header: {alg: "HS256", typ: "JWT"},
-	payload:{idChenal:"123",idGoogle:"123454"},
-	expiresIn:27000
-},JWT_KEY)
-//&state=${accessToken}
-const urlRequestAuthor = `https://accounts.google.com/signin/oauth?access_type=${access_type}&scope=${scopeGoogle}&response_type=${response_type}&client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrlGoogle}`;// const abc = (req,res)=>{
+
 const addCalendarToChannel = {
 	"title": {
 		"type": "plain_text",
@@ -253,7 +234,6 @@ const addCalendarToChannel = {
 						"text": "Login Google"
 					},
 					"style": "primary",
-					"url": urlRequestAuthor,
 					"action_id": "addGoogle"
 				},
 				{
@@ -942,7 +922,6 @@ const loginGoogle =
 							"text": "Login Google"
 						},
 						"style": "primary",
-						"url": urlRequestAuthor,
 						"action_id": "addGoogle"
 					},
 					{

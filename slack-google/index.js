@@ -4,41 +4,55 @@ const jwt = require('jsonwebtoken');
 const qs = require('qs');
 const Env = require('../utils/Env');
 const viewsDesign = require('../views/ViewsDesign');
-const TOKEN_BOT = Env.get("TOKEN_BOT")
-const stateSecretSlack = Env.get("STATE", 'RANDOMID@@--123');
-const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
-const redirectUrlGoogle = Env.get("REDIRECT_URI", "http://localhost:5000/watch-send-code");
-const GOOGLE_CLIENT_ID = Env.get("GOOGLE_CLIENT_ID");
-const GOOGLE_CLIENT_SECRET = Env.get("GOOGLE_CLIENT_SECRET");
-
+const scopeGoogle = ('https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile');
+const access_type = "offline";
+const response_type = "code";
+const GoogleAccount  = require('../models/GoogleAccount')
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
 	}
 	async chatServiceHandler(req, res, next) {
 		const {challenge = null, event = null} = req.body
+		let payload = req.body.payload;
 		try {
 			let body = "";
-			const challenge = req.body.challenge;
-			if (challenge) {
-				//console.log(challenge);
+			//const challenge = req.body.challenge;
+			if (challenge)  {
+				console.log(challenge);
 				return res.status(200).send(challenge);
 			}
 			else if (event && (event.subtype === 'bot_add' ||(event.subtype === 'channel_join' && event.user===Env.chatServiceGet("USER_BOT")))) {
-			const option = {
+				const option = {
 				method:"POST",
-				headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+				headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 				data:{
 					"channel":event.channel,
 					"blocks": viewsDesign.loginGoogle
 				},
 				url: `https://slack.com/api/chat.postMessage`
 			}
-			const done = await Axios(option);
-			console.log(done.data);
+
+				const idUserSlack = event.inviter;
+				const idChannel = event.channel;
+				const accessToken = jwt.sign({
+					header: {alg: "HS256", typ: "JWT"},
+					payload:{idUserSlack:idUserSlack,idChannel:idChannel},
+					expiresIn:27000
+				},Env.chatServiceGet("JWT_KEY"))
+				console.log(accessToken);
+				// Giải Mã
+				// const verify = 	jwt.verify(accessToken,Env.chatServiceGet("JWT_KEY"))
+				// const found  = verify.payload.idUserSlack;
+				// const found1 = verify.payload.idChannel;
+				// console.log(`${found} + ${found1}`);
+				const urlRequestAuthor = `https://accounts.google.com/signin/oauth?access_type=${access_type}&scope=${scopeGoogle}&response_type=${response_type}&client_id=${Env.chatServiceGet("GOOGLE_CLIENT_ID")}&redirect_uri=${Env.chatServiceGet("REDIRECT_URI")}&state=${accessToken}`;
+				option.data.blocks[3].elements[0].url = urlRequestAuthor
+				//console.log(event);
+				const done = await Axios(option);
+			//	console.log(done)
 		return res.status(200).send("done");
 		}
-			let payload = req.body.payload;
 			let viewsAdd = Object.assign({}, viewsDesign.addEvent);
 			if (typeof payload !== 'undefined') {
 				payload = JSON.parse(payload);
@@ -46,18 +60,18 @@ class SlackGoogle extends BaseServer {
 			if (!req.body.payload) {
 				if (req.body.text.split(" ")[0] === "home") {
 					const data = {
-						"user_id": "U01JW789NJ2",
+						"user_id": req.body.user_id,
 						"trigger_id": req.body.trigger_id,
 						"view": viewsDesign.homeApp
 					}
 					const options = {
 						method: 'POST',
-						headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+						headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 						data: data,
 						url: "https://slack.com/api/views.publish"
 					};
 					const result = await Axios(options);
-					console.log(result);
+				//	console.log(result);
 					return res.status(202).send(`Thank you call BOT-NOTI !
             If you want assistance please enter: /cal --help`);
 				}
@@ -68,26 +82,26 @@ class SlackGoogle extends BaseServer {
 					}
 					const options = {
 						method: 'POST',
-						headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+						headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 						data: data,
 						url: `https://slack.com/api/views.open`
 					};
 					const result = await Axios(options);
-					console.log(result)
+				//	console.log(result)
 					return res.status(202).send(`Thank you call BOT-NOTI !
             If you want assistance please enter: /cal --help`);
 				}
 				else if (req.body.text.split(" ")[0] === "add-event") {
 					viewsAdd.blocks.splice(5, 0, viewsDesign.timeEnd);
 					viewsAdd.blocks.splice(5, 0, viewsDesign.timeStart);
-
+				//	console.log(req.body);
 					const data = {
 						"trigger_id": req.body.trigger_id,
 						"view": viewsAdd
 					}
 					const options = {
 						method: 'POST',
-						headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+						headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 						data: data,
 						url: `https://slack.com/api/views.open`
 					};
@@ -97,7 +111,7 @@ class SlackGoogle extends BaseServer {
             If you want assistance please enter: /cal --help`);
 				}
 				else if (req.body.text.split(" ")[0] === "all") {
-					console.log(req.body);
+				//	console.log(req.body);
 					const data = {
 						"channel": req.body.channel_id,
 						"blocks": viewsDesign.listCalendar
@@ -105,7 +119,7 @@ class SlackGoogle extends BaseServer {
 
 					const options = {
 						method: 'POST',
-						headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+						headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 						data: data,
 						url: `https://slack.com/api/chat.postMessage`
 					};
@@ -128,11 +142,11 @@ class SlackGoogle extends BaseServer {
 					viewsAdd.blocks = payload.view.blocks;
 					url = `https://slack.com/api/views.update`;
 					if (payload.actions[0].selected_options.length > 0) {
-						console.log("all day true")
+					//	console.log("all day true")
 						viewsAdd.blocks.splice(5, 2);
 						viewsAdd.blocks.splice(5, 0, viewsDesign.dateEnd);
 					} else if (payload.actions[0].selected_options.length === 0) {
-						console.log("all day false")
+					//	console.log("all day false")
 						viewsAdd.blocks.splice(5, 1);
 
 						viewsAdd.blocks.splice(5, 0, viewsDesign.timeEnd);
@@ -144,7 +158,7 @@ class SlackGoogle extends BaseServer {
 					}
 
 				} else if (payload.actions[0].action_id === "buttonSubmit") {
-					console.log(payload)
+				//	console.log(payload)
 					data = {
 						"trigger_id": req.body.trigger_id,
 						"channel": payload.channel.id,
@@ -164,7 +178,7 @@ class SlackGoogle extends BaseServer {
 					}
 					url = `https://slack.com/api/views.open`;
 				} else if (payload.actions[0].action_id === 'deleteOK') {
-					console.log(payload)
+			//		console.log(payload)
 					url = `https://slack.com/api/views.open`;
 					data = {
 						"view_id": payload["container"]["view_id"],
@@ -173,7 +187,7 @@ class SlackGoogle extends BaseServer {
 				}
 				// code Home
 				else if (payload.actions[0].action_id === "btnToday") {
-					console.log(payload);
+				//	console.log(payload);
 					data = {
 						"trigger_id": req.body.trigger_id,
 						"channel": payload.channel.id,
@@ -200,7 +214,7 @@ class SlackGoogle extends BaseServer {
 					}
 					url = `https://slack.com/api/views.open`;
 				} else if (payload.actions[0].action_id === "overflow-action") {
-					console.log(payload.actions[0].selected_option);
+				//	console.log(payload.actions[0].selected_option);
 					if (payload.actions[0].selected_option.value === 'value-1') {
 						data = {
 							"trigger_id": payload.trigger_id,
@@ -218,24 +232,23 @@ class SlackGoogle extends BaseServer {
 				const options = {
 					method: 'POST',
 					"user_id": req.body.user_id,
-					//"user_id":"U01JK8PAJ4X",
-					headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+					headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 					data: data,
 					url: url
 				};
 				const result = await Axios(options);
-				console.log(result.data)
+				//console.log(result.data)
 				return res.status(202).send(`Thank you call BOT-NOTI !
             If you want assistance please enter:  /cal --help`);
 			} else if (payload.type === 'view_submission') {
-				console.log("view_submission close !")
+			//	console.log("view_submission close !")
 				const data = {
 					"trigger_id": req.trigger_id,
 					"view": payload.view
 				}
 				const options = {
 					method: 'POST',
-					headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+					headers: {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`},
 					data: data,
 					url: `https://slack.com/api/views.push`
 				};
@@ -251,12 +264,12 @@ class SlackGoogle extends BaseServer {
             List calendar  : /cal all
             If you want assistance please enter:  /cal --help`);
 			}
+
 		} catch (error) {
 			//console.log(error)
 			return res.status(403).send("Error");
 		}
 	}
-
 	resourceServerHandler(req, res, next) {
 		try {
 			return res.status(204).send("OK");
@@ -291,11 +304,11 @@ class SlackGoogle extends BaseServer {
 			const code  = req.body.code
 			const urlGetToken = "https://oauth2.googleapis.com/token";
 			let data1 = {
-				client_id: GOOGLE_CLIENT_ID,
-				client_secret: GOOGLE_CLIENT_SECRET,
+				client_id: Env.chatServiceGet("GOOGLE_CLIENT_ID"),
+				client_secret: Env.chatServiceGet("GOOGLE_CLIENT_SECRET"),
 				code: code,
 				grant_type: "authorization_code",
-				redirect_uri: redirectUrlGoogle,
+				redirect_uri: Env.chatServiceGet("REDIRECT_URI"),
 			};
 			const options = {
 				method: 'POST',
@@ -304,13 +317,35 @@ class SlackGoogle extends BaseServer {
 				url: urlGetToken,
 			};
 			const result = await Axios(options);
-			console.log(result.data);
+			//console.log(result.data);
 			const accessTokenGoogle = result.data.access_token;
-			console.log(accessTokenGoogle)
+			//console.log(accessTokenGoogle)
+			const options1 = {
+				method:"GET",
+				headers: {'Authorization': `Bearer ${accessTokenGoogle}` },
+				url: "https://www.googleapis.com/oauth2/v3/userinfo",
+			}
+			const result1 = await Axios(options1);
+			//console.log(result1.data);
+				GoogleAccount.query()
+					.insert({
+						id: result1.data.sub,
+						name: result1.data.name,
+						refresh_token: result.data.refresh_token,
+						created_at: null,
+						updated_at: null,
+					})
+					.then((data) => {
+						//console.log('Thanh Cong');
+						return 1;
+					})
+					.catch((err) => {
+						console.log(err);
+					return 0;
+					});
 			return res.status(200).send("OK");
-			//return res.status(200).send("Post Code ok");
 		} catch (error) {
-			console.log(error)
+		//	console.log(error)
 			return res.status(403).send(error);
 		}
 	}
@@ -326,25 +361,9 @@ class SlackGoogle extends BaseServer {
 			return res.status(200).send(result.data);
 		}
 		catch (error) {
-			console.log(error)
+			//console.log(error)
 			return res.status(403).send(error);
 		}
-}
-async getInfo(req,res,next){
-	try {
-		const accessToken  = req.header('x-auth-token');
-		const options = {
-			method:"GET",
-			headers: {'Authorization': `Bearer ${accessToken}` },
-			url: "https://www.googleapis.com/oauth2/v3/userinfo",
-		}
-		const result = await Axios(options);
-		return res.status(200).send(result.data);
-	}
-	catch (error) {
-		console.log(error)
-		return res.status(403).send(error);
-	}
 }
 }
 module.exports = SlackGoogle;

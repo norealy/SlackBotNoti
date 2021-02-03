@@ -29,7 +29,6 @@ class BaseServer {
 		this.sendCode = this.sendCode.bind(this);
 		this.setAccessToken = this.setAccessToken.bind(this);
 		this.getListCalendar = this.getListCalendar.bind(this);
-		this.getInfo = this.getInfo.bind(this);
 		this.resourceServerHandler = this.resourceServerHandler.bind(this);
 		this.pushMessageHandler = this.pushMessageHandler.bind(this);
 
@@ -39,7 +38,6 @@ class BaseServer {
 			watchSetAccessToken: this.setAccessToken,
       watchResourceServer: this.resourceServerHandler,
 			watchGetListCalendar: this.getListCalendar,
-			watchGetInfo :this.getInfo,
       pushMessage: this.pushMessageHandler,
     }
   }
@@ -169,9 +167,6 @@ sendCode(req,res, next){
 	getListCalendar(req,res,next){
 		return res.status(200).send("OK")
 	}
-	getInfo(req,res,next){
-		return res.status(200).send("OK")
-	}
   resourceServerHandler(req, res, next) {
     return res.status(200).send("OK");
   }
@@ -199,7 +194,6 @@ sendCode(req,res, next){
     this.app.get('/watch-send-code',this.requestHandler.watchSendCode)
 		this.app.post('/watch-set-access-token', this.requestHandler.watchSetAccessToken);
     this.app.get('/watch-get-list-calendar',this.requestHandler.watchGetListCalendar);
-    this.app.get('/watch-get-info',this.requestHandler.watchGetInfo);
     this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
     this.app.post('/push/message', this.requestHandler.pushMessage);
     this.app.listen(Env.serverGOF("PORT"), () => {

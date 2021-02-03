@@ -3,12 +3,14 @@ const jwt = require('jsonwebtoken');
 const stateSecretSlack = Env.get("STATE", 'RANDOMID@@--123');
 const stateSlack = Buffer.from(stateSecretSlack).toString('base64')
 const redirectUrlGoogle = Env.get("REDIRECT_URI", "http://localhost:5000/watch-send-code");
-const scopeGoogle = "https://www.googleapis.com/auth/calendar.readonly";
+const scopeGoogle = ('https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile');
+const scope =  "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.settings.readonly";
 const GOOGLE_CLIENT_ID = Env.get("GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET =  Env.get("GOOGLE_CLIENT_SECRET");
 const JWT_KEY = Env.get("JWT_KEY")
-const access_type = "online";
+const access_type = "offline";
 const response_type = "code";
+
 const deleteEvent = {
 	"title": {
 		"type": "plain_text",
@@ -167,7 +169,8 @@ const listCalendar = [
 	payload:{idChenal:"123",idGoogle:"123454"},
 	expiresIn:27000
 },JWT_KEY)
-const urlRequestAuthor = `https://accounts.google.com/signin/oauth?access_type=${access_type}&scope=${scopeGoogle}&response_type=${response_type}&client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrlGoogle}&state=${accessToken}`;// const abc = (req,res)=>{
+//&state=${accessToken}
+const urlRequestAuthor = `https://accounts.google.com/signin/oauth?access_type=${access_type}&scope=${scopeGoogle}&response_type=${response_type}&client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrlGoogle}`;// const abc = (req,res)=>{
 const addCalendarToChannel = {
 	"title": {
 		"type": "plain_text",
@@ -912,6 +915,49 @@ const viewEvent = {
 		}
 	]
 }
+const loginGoogle =
+	 [
+			{
+				"type": "divider"
+			},
+			{
+				"type": "divider"
+			},
+			{
+				"type": "header",
+				"text": {
+					"type": "plain_text",
+					"text": "System settings calendars",
+					"emoji": true
+				}
+			},
+			{
+				"type": "actions",
+				"elements": [
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"emoji": true,
+							"text": "Login Google"
+						},
+						"style": "primary",
+						"url": urlRequestAuthor,
+						"action_id": "addGoogle"
+					},
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"emoji": true,
+							"text": "Login microsoft"
+						},
+						"style": "primary",
+						"action_id": "addMicrosoft"
+					}
+				]
+			}
+		]
 module.exports = {
 	addCalendarToChannel,
 	addEvent,
@@ -923,5 +969,6 @@ module.exports = {
 	listEvent,
 	deleteEvent,
 	homeApp,
-	viewEvent
+	viewEvent,
+	loginGoogle
 }

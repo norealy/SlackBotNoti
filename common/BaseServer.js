@@ -7,6 +7,7 @@ const Fs = require('fs-extra');
 const BodyParser = require('body-parser');
 const _ = require("lodash");
 const Env = require('../utils/Env');
+const Redis = require('../utils/redis');
 
 class BaseServer {
 	/**
@@ -100,9 +101,9 @@ class BaseServer {
 	 */
 	configMySQL() {
 		return new Promise((resolve, reject) => {
-			const configMysql = require('./utils/mysql/Database')(Env.getOrFail('PWD'));
+			const configMysql = require('./utils/mysql/Database')(Env.appRoot);
 			const mysql = knex(configMysql);
-			Model.knex(knex);
+			Model.knex(mysql);
 			mysql.raw("SELECT VERSION()")
 				.then(() => {
 					return resolve(1)
@@ -114,6 +115,29 @@ class BaseServer {
 					error.code = code;
 					reject(error)
 				})
+		})
+	}
+
+	configRedis(){
+		return new Promise((resolve, reject) => {
+			const connectSuccess = () => {
+				console.log("redis connect success");
+				resolve(1)
+			};
+
+			const connectError = (e) => {
+				const err = new Error(`E_CONNECT_REDIS: ${e.message}`);
+				err.code = 'E_CONNECT_REDIS';
+				Redis.close(connectSuccess, connectError);
+				reject(err)
+			};
+
+			const option = {
+				host: Env.getOrFail("REDIS_HOST"),
+				port: Env.getOrFail("REDIS_PORT"),
+			};
+
+			Redis.setConfig(option, connectSuccess, connectError);
 		})
 	}
 
@@ -145,6 +169,7 @@ class BaseServer {
 		require('./utils/Axios');
 
 		await this.configMySQL();
+		await this.configRedis();
 
     this.app.disable('x-powered-by');
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));

@@ -86,9 +86,9 @@ class Env {
 
 		if (_.isUndefined(val)) {
 			const CODE = "E_MISSING_ENV_KEY";
-			const err = new Error(`${CODE}: Make sure to define environment variable ${key} of server.`);
-			err.code = CODE;
-			throw err
+		//	const err = new Error(`${CODE}: Make sure to define environment variable ${key} of server.`);
+			//err.code = CODE;
+			//throw err
 		}
 
 		return this.formatBoolean(val)

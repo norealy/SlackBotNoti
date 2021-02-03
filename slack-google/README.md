@@ -280,6 +280,53 @@ Lgg22tEHmE4o1mZ-noAz1PQi02oQMO0roj8by1aV5iTN8zqVsx8dNCzkZGVJarpSFt-mTX3I2g36ecVB
 YbFcSnRrDn-K6rNnNnWDqDR5-UOak4rcv4eMLo7xiB4L5CGh0EA'
 }
 
-
 ```
+### 3 kiểu login trên slack
+
+- Kiểu 1 khi người dùng `add App` trên slack và 1 `channel` cụ thể, thì sẽ thực hiện `postMessage` gửi về `channel` link đăng nhập
+
+	+ Code
+		```
+  	const option = {
+				method:"POST",
+				headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+				data:{
+					"channel":event.channel,
+					"blocks": viewsDesign.loginGoogle
+				},
+				url: `https://slack.com/api/chat.postMessage`
+			}
+			const done = await Axios(option);
+			//console.log(done.data);
+		return res.status(200).send("done");
+  	```
+	+ Img
+
+- Kiểu 2 khi người dùng chưa đăng nhập nhưng thực hiện việc `list event` thì sẽ bắn ra `views settings` với phương thức `views.open` bắt người dùng phải  login
+
+	+ Code
+	+ Img
+
+- Kiểu 3 khi trong `channel` cụ thể người dùng sẽ dùng câu lệnh `/cal setting` hoặc khi ở `Home app` thực hiện việc login cũng sẽ bắn ra 1 `view settings` bắt người dùng login
+
+	+ Code
+
+		`Khi người dùng /cal settings`
+		```
+  		const data = {
+						"trigger_id": req.body.trigger_id,
+						"view": viewsDesign.addCalendarToChannel
+					}
+					const options = {
+						method: 'POST',
+						headers: {'Authorization': `Bearer ${TOKEN_BOT}`},
+						data: data,
+						url: `https://slack.com/api/views.open`
+					};
+					const result = await Axios(options);
+					return res.status(202).send(`Thank you call BOT-NOTI !
+            If you want assistance please enter: /cal --help`);
+				}
+  	```
+	+ Img
 

@@ -26,14 +26,6 @@ class Env {
 		return value
 	}
 
-	formatBoolean(value) {
-		if(/^true$/.test(value))
-			return true;
-		if(/^false$/.test(value))
-			return false;
-		return value
-	}
-
 	/**
 	 * Get value for a given key from the `process.env`
 	 * object.

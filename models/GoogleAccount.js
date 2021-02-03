@@ -1,9 +1,8 @@
-const Model = require('../baseModel');
-class MicrosoftAccount extends Model {
+const {Model} = require('objection')
+class GoogleAccount extends Model {
     static get tableName() {
-        return 'microsoft_account';
+        return 'google_account';
     }
-
     /* idColumn */
     static get idColumn() {
         return 'id';
@@ -26,4 +25,4 @@ class MicrosoftAccount extends Model {
 
 }
 
-module.exports = MicrosoftAccount
+module.exports = GoogleAccount

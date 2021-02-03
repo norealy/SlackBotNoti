@@ -1,4 +1,4 @@
-const Model = require('../baseModel');
+const {Model} = require('objection')
 const Channels = require('./Channels');
 
 class MessageSlack extends Model {

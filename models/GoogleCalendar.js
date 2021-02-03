@@ -1,4 +1,4 @@
-const Model = require('../baseModel');
+const {Model} = require('objection')
 class GoogleCalendar extends Model {
     static get tableName() {
         return 'google_calendar';

@@ -1,4 +1,4 @@
-const ChannelsCalendar = require('../../database/models/ChannelsCalendar');
+const ChannelsCalendar = require('../../models/ChannelsCalendar');
 const { assert, expect } = require('chai');
 
 describe('======= ChannelsCalendar =======', function () {
@@ -24,35 +24,104 @@ describe('======= ChannelsCalendar =======', function () {
         });
 
         it('ADD ChannelsCalendar id EXIST', function (done) {
-            done();
+            ChannelsCalendar
+                .query()
+                .insert({
+                    id_calendar: 'id_calendar4',
+                    id_channel: 'id_channel1',
+                    watch: true,
+                    created_at: null,
+                    updated_at: null
+                })
+                .then((data) => {
+                    const error = new Error(" TEST Add channel fail");
+                    done(error);
+                })
+                .catch((error) => {
+                    const { nativeError } = error
+                    assert.equal(nativeError.code, 'ER_DUP_ENTRY');
+                    assert.equal(nativeError.errno, '1062');
+                    assert.equal(nativeError.sqlState, '23000');
+                    done(nativeError.sqlMessage);
+                });
         });
-
-        describe('======= UPDATE ChannelsCalendar =======', function () {
-            it('UPDATE ChannelsCalendar TRUE', function (done) {
-                const channelsCalendar = ChannelsCalendar
-                    .query()
-                    .findOne({
-                        id_calendar: 'id_calendar4',
-                        id_channel: 'id_channel1'
-                    }).then((channelsCal) => {
-                        channelsCal.$query().patchAndFetch({
-                            watch: false
-                        })
-                            .then((data) => {
-                                assert.isNotFalse(data.watch, 'FailOk');
-                                done();
-                            })
-                            .catch(done);
+    });
+    describe('======= UPDATE ChannelsCalendar =======', function () {
+        it('UPDATE ChannelsCalendar TRUE', function (done) {
+            ChannelsCalendar
+                .query()
+                .findOne({
+                    id_calendar: 'id_calendar4',
+                    id_channel: 'id_channel1'
+                }).then((channelsCal) => {
+                    channelsCal.$query().patchAndFetch({
+                        watch: false
                     })
-
-
-            });
-
-            it('UPDATE ChannelsCalendar ID DONT EXIST', function (done) {
-                done();
-            });
-
+                        .then((data) => {
+                            assert.typeOf(data, 'object');
+                            assert.equal(data.id_channel, 'id_channel1');
+                            assert.property(data, 'id_calendar');
+                            assert.property(data, 'id_channel');
+                            assert.isNotFalse(data.watch, 'ok');
+                            done();
+                        })
+                        .catch((error) => {
+                            done("Test fail")
+                        });
+                }).catch((error) => {
+                    done("Test fail")
+                })
         });
+
+        it('UPDATE ChannelsCalendar ID DONT EXIST', function (done) {
+            ChannelsCalendar
+                .query()
+                .findOne({
+                    id_calendar: 'id_calendar55',
+                    id_channel: 'id_channel1'
+                }).then((channelsCal) => {
+                    channelsCal.$query().patchAndFetch({
+                        watch: "false"
+                    })
+                        .then((data) => {
+                            done("Test fail")
+                        })
+                        .catch((error) => {
+                            done("Test fail")
+                        });
+                }).catch((error) => {
+                    assert.typeOf(error, 'object');
+                    done();
+                })
+        });
+
+        it('UPDATE ChannelsCalendar id_channel DONT EXIST', function (done) {
+            ChannelsCalendar
+                .query()
+                .findOne({
+                    id_calendar: 'id_calendar4',
+                    id_channel: 'id_channel1'
+                }).then((channelsCal) => {
+                    channelsCal.$query().patchAndFetch({
+                        id_channel: 'id_channel55',
+                        watch: false
+                    })
+                        .then((data) => {
+                            done("Test fail")
+                        })
+                        .catch((error) => {
+                            const { nativeError } = error
+                            assert.equal(nativeError.code, 'ER_NO_REFERENCED_ROW_2');
+                            assert.equal(nativeError.errno, '1452');
+                            assert.equal(nativeError.sqlState, '23000');
+                            assert.equal(nativeError.sqlMessage, "Cannot add or update a child row: a foreign key constraint fails (`testbotnoti`.`channels_calendar`, CONSTRAINT `channels_calendar_id_channel_foreign` FOREIGN KEY (`id_channel`) REFERENCES `channels` (`id`))");
+                            done(" ChannelsCalendar id_channel DONT EXIST");
+                        });
+                }).catch((error) => {
+                    done("Test fail")
+                })
+        });
+
     });
 
     describe('======= DELETE ChannelsCalendar =======', function () {
@@ -70,13 +139,28 @@ describe('======= ChannelsCalendar =======', function () {
                     done();
                 })
                 .catch(done);
-
         });
-
         it('DELETE ChannelsCalendar ID DONT EXIST', function (done) {
-            done();
+            ChannelsCalendar.query()
+                .delete()
+                .where({
+                    id_calendar: 'id_calendar45',
+                    id_channel: 'id_channel1'
+                })
+                .then((data) => {
+                    console.log(data);
+                    if (data == 0) {
+                        const err = new Error("DELETE ChannelsCalendar NOT FOUND  ");
+                        done(err);
+                    } else {
+                        done("TEST FAIL");
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                    done("TEST FAIL");
+                });
         });
 
     });
-
 });

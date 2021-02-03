@@ -1,4 +1,4 @@
-const Model = require('../baseModel')
+const {Model} = require('objection')
 class Channels extends Model {
 
     /* tableName */

@@ -1,11 +1,12 @@
-const Model = require('../baseModel');
-const GoogleCalendar = require('./GoogleCalendar');
-const GoogleAccount = require('./GoogleAccount');
+const {Model} = require('objection')
+const MicrosoftCalendar = require('./MicrosoftCalendar');
+const MicrosoftAccount = require('./MicrosoftAccount');
 
-class GoogleAccountCalendar extends Model {
+class MicrosoftAccountCalendar extends Model {
     static get tableName() {
-        return 'google_account_calendar';
+        return 'microsoft_account_calendar';
     }
+
     /* idColumn */
     static get idColumn() {
         return ['id_calendar', 'id_account'];
@@ -23,27 +24,27 @@ class GoogleAccountCalendar extends Model {
             }
         };
     }
+
     static get relationMappings() {
         return {
-            googleCal: {
+            microsoftCal: {
                 relation: Model.BelongsToOneRelation,
-                modelClass: GoogleCalendar,
+                modelClass: MicrosoftCalendar,
                 join: {
-                    from: 'google_account_calendar.id_calendar',
-                    to: 'google_calendar.id'
+                    from: 'microsoft_account_calendar.id_calendar',
+                    to: 'microsoft_calendar.id'
                 }
             },
-            googleAcc: {
+            microsoftAcc: {
                 relation: Model.BelongsToOneRelation,
-                modelClass: GoogleAccount,
+                modelClass: MicrosoftAccount,
                 join: {
-                    from: 'google_account_calendar.id_account',
-                    to: 'google_account.id'
+                    from: 'microsoft_account_calendar.id_account',
+                    to: 'microsoft_account.id'
                 }
             }
         }
     }
-
 }
 
-module.exports = GoogleAccountCalendar
+module.exports = MicrosoftAccountCalendar

@@ -1,4 +1,4 @@
-const MicrosoftAccount = require('../../database/models/MicrosoftAccount');
+const MicrosoftAccount = require('../../models/MicrosoftAccount');
 const { assert, expect } = require('chai');
 
 describe('======= MicrosoftAccount =======', function () {
@@ -21,11 +21,31 @@ describe('======= MicrosoftAccount =======', function () {
                     assert.property(data, 'refresh_token');
                     done();
                 })
-                .catch(done);
+                .catch((err) => {
+                    done("Test fail")
+                });
         });
 
         it('ADD MicrosoftAccount id EXIST', function (done) {
-            done();
+            MicrosoftAccount
+                .query()
+                .insert({
+                    id: 'id_ms4',
+                    name: 'xdatgd',
+                    refresh_token: 'refresh_token',
+                    created_at: null,
+                    updated_at: null
+                })
+                .then((data) => {
+                    done("Test fail");
+                })
+                .catch((err) => {
+                    const { nativeError } = error
+                    assert.equal(nativeError.code, 'ER_DUP_ENTRY');
+                    assert.equal(nativeError.errno, '1062');
+                    assert.equal(nativeError.sqlState, '23000');
+                    done(nativeError.sqlMessage);
+                });
         });
 
         describe('======= UPDATE MicrosoftAccount =======', function () {
@@ -39,11 +59,21 @@ describe('======= MicrosoftAccount =======', function () {
                         assert.property(data, 'name');
                         done();
                     })
-                    .catch(done);
+                    .catch((err) => {
+                        done("Test fail")
+                    });
             });
 
             it('UPDATE MicrosoftAccount ID DONT EXIST', function (done) {
-                done();
+                const msAcc = { id: 'id_ms4000', name: 'name123444',refresh_token:"refresh_token1"};
+                MicrosoftAccount.query().updateAndFetchById('id_ms4000', msAcc)
+                .then((data) => {
+                    assert.typeOf(data, 'undefined');
+                    done("Not found id");
+                })
+                .catch((err) => {
+                    done("Test fail")
+                });
             });
 
         });
@@ -55,16 +85,34 @@ describe('======= MicrosoftAccount =======', function () {
             MicrosoftAccount.query()
                 .deleteById('id_ms4')
                 .then((data) => {
-                    console.log(data)
-                    assert.typeOf(data, 'number');
-                    done();
+                    if (data > 0) {
+                        assert.typeOf(data, 'number');
+                        done();
+                    } else {
+                        done("TEST FAIL");
+                    }
                 })
-                .catch(done);
+                .catch((err) => {
+                    done("TEST FAIL");
+                });
 
         });
 
-        it('DELETE Google Account ID DONT EXIST', function (done) {
-            done();
+        it('DELETE MicrosoftAccount ID DONT EXIST', function (done) {
+            
+            MicrosoftAccount.query()
+                .deleteById('id_ms4')
+                .then((data) => {
+                    if (data == 0) {
+                        const err = new Error("DELETE MicrosoftAccount NOT FOUND  ");
+                        done(err);
+                    } else {
+                        done("TEST FAIL");
+                    }
+                })
+                .catch((err) => {
+                    done("TEST FAIL");
+                });
         });
 
     });

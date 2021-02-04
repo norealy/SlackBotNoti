@@ -8,6 +8,8 @@ const BodyParser = require('body-parser');
 const _ = require("lodash");
 const Env = require('../utils/Env');
 const Redis = require('../utils/redis');
+const Mongo = require('../utils/mongo');
+const LogModel = require('../models/mongo/LogModel');
 
 class BaseServer {
 	/**
@@ -101,7 +103,7 @@ class BaseServer {
 	 */
 	configMySQL() {
 		return new Promise((resolve, reject) => {
-			const configMysql = require('./utils/mysql/Database')(Env.appRoot);
+			const configMysql = require('../config/MySQL')(Env.appRoot);
 			const mysql = knex(configMysql);
 			Model.knex(mysql);
 			mysql.raw("SELECT VERSION()")
@@ -165,8 +167,11 @@ class BaseServer {
 		let instanceEnv = await this.loadConfig();
 		this.configEnv(instanceEnv);
 
-    require('./utils/logger')(this.app, this.instanceId);
-		require('./utils/Axios');
+    if(this.resourceServer === "WRAPPER" || /dev/.test(Env.get("NODE_ENV", "dev"))){
+    	const mongoDB = await Mongo();
+			const logModel = LogModel(mongoDB);
+    	require('../utils/logger')(this.app, this.instanceId, logModel)
+    }
 
 		await this.configMySQL();
 		await this.configRedis();

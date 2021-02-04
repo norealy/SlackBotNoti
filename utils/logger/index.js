@@ -1,21 +1,11 @@
-const Log = require('./LogModel');
-const Env = require('../../../utils/Env');
+const logger = (app, personality, logModel) => {
 
-const logger = (app, personality) => {
-
-  const log = (request, response, errorMessage, requestStart, body) => {
+  const log = (request, response, errorMessage, requestStart) => {
     const {headers, httpVersion, method, url} = request;
     const {statusCode} = response;
     const processingTime = new Date() - requestStart;
 
-    if(Env.get('LOG_DEBUG', false)){
-    	const reqStartISO = new Date(requestStart).toISOString();
-			console.log(`${reqStartISO} ${personality} ${method} ${url} ${httpVersion} ${statusCode} ${processingTime}`);
-			console.log(`request headers: ${JSON.stringify(headers)}`);
-			console.log(`request body: ${JSON.stringify(body)}`);
-		}
-
-		const newLog = new Log({
+		const newLog = new logModel({
 			headers: JSON.stringify(headers),
 			requestStart,
 			personality,

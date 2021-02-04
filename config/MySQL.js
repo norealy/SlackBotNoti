@@ -1,4 +1,4 @@
-const Env = require('../../../utils/Env');
+const Env = require('../utils/Env');
 
 const configDB = {
 	client: 'mysql2',

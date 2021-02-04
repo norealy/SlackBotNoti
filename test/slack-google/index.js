@@ -1,7 +1,7 @@
 let chai = require('chai');
 let chaiHttp = require('chai-http');
 const assert = chai.assert;
-const SlackGoogle = require('../../slack-google/index');
+const SlackGoogle = require('../../slack/slack-google/index');
 chai.use(chaiHttp);
 
 describe('======= Slack and Google =======', function () {

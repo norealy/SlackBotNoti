@@ -1,6 +1,4 @@
-const BaseServer = require('../common/BaseServer');
-const Axios = require('axios');
-const Env = require('../utils/Env');
+const BaseServer = require('../../common/BaseServer');
 
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {

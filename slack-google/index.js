@@ -3,7 +3,7 @@ const Axios = require('axios');
 const jwt = require('jsonwebtoken');
 const qs = require('qs');
 const Env = require('../utils/Env');
-const viewsDesign = require('../views/ViewsDesign');
+const viewsDesign = require('./views/ViewsDesign');
 const scopeGoogle = ('https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile');
 const access_type = "offline";
 const response_type = "code";
@@ -19,7 +19,7 @@ class SlackGoogle extends BaseServer {
 			let body = "";
 			//const challenge = req.body.challenge;
 			if (challenge)  {
-				console.log(challenge);
+				//console.log(challenge);
 				return res.status(200).send(challenge);
 			}
 			else if (event && (event.subtype === 'bot_add' ||(event.subtype === 'channel_join' && event.user===Env.chatServiceGet("USER_BOT")))) {
@@ -40,7 +40,7 @@ class SlackGoogle extends BaseServer {
 					payload:{idUserSlack:idUserSlack,idChannel:idChannel},
 					expiresIn:27000
 				},Env.chatServiceGet("JWT_KEY"))
-				console.log(accessToken);
+				//console.log(accessToken);
 				// Giải Mã
 				// const verify = 	jwt.verify(accessToken,Env.chatServiceGet("JWT_KEY"))
 				// const found  = verify.payload.idUserSlack;
@@ -264,7 +264,6 @@ class SlackGoogle extends BaseServer {
             List calendar  : /cal all
             If you want assistance please enter:  /cal --help`);
 			}
-
 		} catch (error) {
 			//console.log(error)
 			return res.status(403).send("Error");

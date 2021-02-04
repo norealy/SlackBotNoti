@@ -357,7 +357,6 @@ class SlackGoogle extends BaseServer {
 		}
 	}
 }
-
 module.exports = SlackGoogle;
 
 (async function () {

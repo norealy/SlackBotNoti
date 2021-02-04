@@ -1,21 +1,17 @@
 {
   "server": {
-    "PORT": 5000
+    "PORT": 5000,
+		"JWT_KEY" : "tuanna99qn",
+		"JWT_DURATION": 27000
   },
 	"chatService": {
-		"APP_LEVEL_TOKEN": "xoxb-1646068754818-1649327460835-9kDmhfu0jpQA4GI7eVerD2kj",
-		"USER_BOT": "U01KE0ZMHPE",
-		"CLIENT_ID": "1649228626611.1634251891831",
-		"REDIRECT_URI": "http://localhost:5000/watch-send-code",
-		"CLIENT_SECRET": "26c1d2f5a7fd0ea212782ac64341b183",
-		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I",
-		"GOOGLE_CLIENT_ID": "965847660652-07ds1iaq4fqdeai5ovemmbjlposcerbs.apps.googleusercontent.com",
-		"STATE": "Ramdom_xyz--321",
-		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
-		"JWT_KEY" : "tuanna99qn"
 
+		"USER_BOT": "U01KE0ZMHPE",
+		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I"
 	},
 	"resourceServer": {
-
+		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
+		"GOOGLE_CLIENT_ID": "965847660652-07ds1iaq4fqdeai5ovemmbjlposcerbs.apps.googleusercontent.com",
+		"REDIRECT_URI": "http://localhost:5000/watch-send-code"
 	}
 }

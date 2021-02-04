@@ -26,18 +26,12 @@ class BaseServer {
     this.config = typeof opt.config === "object" ? opt.config : {};
 
 		this.chatServiceHandler = this.chatServiceHandler.bind(this);
-		this.sendCode = this.sendCode.bind(this);
-		this.setAccessToken = this.setAccessToken.bind(this);
-		this.getListCalendar = this.getListCalendar.bind(this);
 		this.resourceServerHandler = this.resourceServerHandler.bind(this);
 		this.pushMessageHandler = this.pushMessageHandler.bind(this);
 
     this.requestHandler = {
 			watchChatService: this.chatServiceHandler,
-			watchSendCode: this.sendCode,
-			watchSetAccessToken: this.setAccessToken,
       watchResourceServer: this.resourceServerHandler,
-			watchGetListCalendar: this.getListCalendar,
       pushMessage: this.pushMessageHandler,
     }
   }
@@ -158,15 +152,6 @@ class BaseServer {
   chatServiceHandler(req, res, next) {
     return res.status(200).send("OK");
   }
-sendCode(req,res, next){
-		return res.status(200).send("OK")
-}
-	setAccessToken(req,res, next){
-		return res.status(200).send("OK")
-	}
-	getListCalendar(req,res,next){
-		return res.status(200).send("OK")
-	}
   resourceServerHandler(req, res, next) {
     return res.status(200).send("OK");
   }
@@ -191,9 +176,6 @@ sendCode(req,res, next){
 
     this.app.get('/health-check', this.healthCheckHandler);
     this.app.post('/watch/chat-service', this.requestHandler.watchChatService);
-    this.app.get('/watch-send-code',this.requestHandler.watchSendCode)
-		this.app.post('/watch-set-access-token', this.requestHandler.watchSetAccessToken);
-    this.app.get('/watch-get-list-calendar',this.requestHandler.watchGetListCalendar);
     this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
     this.app.post('/push/message', this.requestHandler.pushMessage);
     this.app.listen(Env.serverGOF("PORT"), () => {

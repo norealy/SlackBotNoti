@@ -1,0 +1,36 @@
+{
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "Event",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Close",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*Triển Khai dự án mới*"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "1:00PM-2:00PM"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "_phòng họp số 1_"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "27-02-2021"
+				}
+			]
+		}
+	]
+}

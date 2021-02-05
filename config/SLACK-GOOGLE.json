@@ -5,13 +5,15 @@
 		"JWT_DURATION": 27000
   },
 	"chatService": {
-
 		"USER_BOT": "U01KE0ZMHPE",
 		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I"
 	},
 	"resourceServer": {
 		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
 		"GOOGLE_CLIENT_ID": "965847660652-07ds1iaq4fqdeai5ovemmbjlposcerbs.apps.googleusercontent.com",
-		"REDIRECT_URI": "http://localhost:5000/watch-send-code"
+		"REDIRECT_URI": "http://localhost:5000/watch-send-code",
+		"SCOPE_GOOGLE": "https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile",
+		"RESPONSE_TYPE": "code",
+		"ACCESE_TYPE": "offline"
 	}
 }

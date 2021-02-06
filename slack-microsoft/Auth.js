@@ -5,7 +5,6 @@ const { decodeJWS } = require("./Jws");
 const Template = require("./views/Template");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
-const { customArrCal } = require("./CustomListCalendar");
 /**
  *
  * @param {*} code
@@ -215,7 +214,10 @@ const getAccessToken = async (req, res) => {
 		await sendMessageListCalendarToChannel(idChannel, allCalendar);
 
 		return res.send("Successful !");
-	} catch (e) {}
+	} catch (e) {
+    // console.log(e)
+    return res.send("Login Error !");
+  }
 };
 
 module.exports = {

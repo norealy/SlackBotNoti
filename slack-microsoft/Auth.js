@@ -6,7 +6,11 @@ const Template = require("./views/Template");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
 const { customArrCal } = require("./CustomListCalendar");
-
+/**
+ *
+ * @param {*} code
+ * @param {*} state
+ */
 const getToken = (code, state) => {
 	return new Promise((resolve, reject) => {
 		const urlGetToken =
@@ -32,7 +36,10 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
-
+/**
+ *
+ * @param {*} accessTokenAzure
+ */
 const getListCalendar = (accessTokenAzure) => {
 	return new Promise((resolve, reject) => {
 		const options1 = {
@@ -45,7 +52,10 @@ const getListCalendar = (accessTokenAzure) => {
 			.catch((error) => reject(error));
 	});
 };
-
+/**
+ *
+ * @param {*} accessTokenAzure
+ */
 const getProfileUser = (accessTokenAzure) => {
 	return new Promise((resolve, reject) => {
 		const options = {
@@ -58,18 +68,21 @@ const getProfileUser = (accessTokenAzure) => {
 			.catch((err) => reject(err));
 	});
 };
-
+/**
+ *
+ * @param {*} idChannel
+ * @param {*} allCalendar
+ */
 const sendMessageListCalendarToChannel = (idChannel, allCalendar) => {
 	return new Promise((resolve, reject) => {
-
-    let arrCal = customArrCal(allCalendar);
+		let arrCal = customArrCal(allCalendar);
 
 		const data = {
 			channel: idChannel,
-			blocks : Template().listCalendar
-    };
-    data.blocks[0].accessory.initial_option = arrCal[0];
-    data.blocks[0].accessory.options = arrCal;
+			blocks: Template().listCalendar,
+		};
+		data.blocks[0].accessory.initial_option = arrCal[0];
+		data.blocks[0].accessory.options = arrCal;
 		const tokenBot = ENV.chatServiceGet("TOKEN_BOT");
 		const options = {
 			method: "POST",
@@ -82,7 +95,11 @@ const sendMessageListCalendarToChannel = (idChannel, allCalendar) => {
 			.catch((err) => reject(err));
 	});
 };
-
+/**
+ *
+ * @param {*} profileUser
+ * @param {*} refreshTokenAzure
+ */
 const saveUserProfile = (profileUser, refreshTokenAzure) => {
 	return new Promise((resolve, reject) => {
 		const account = {
@@ -100,34 +117,43 @@ const saveUserProfile = (profileUser, refreshTokenAzure) => {
 						.insert(account)
 						.then((res) => resolve(res))
 						.catch((err) => reject(err));
-        }
-        resolve();
+				}
+				resolve();
 			})
 			.catch((err) => {
 				return reject(err);
 			});
 	});
 };
-
+/**
+ *
+ * @param {*} allCalendar
+ */
+const customFormatArrayCal = (allCalendar) => {
+	const arrayCal = [];
+	allCalendar.forEach((item) => {
+		const cal = {
+			id: item.id,
+			name: item.name,
+			address_owner: item.owner.address,
+			created_at: null,
+		};
+		arrayCal.push(cal);
+	});
+	return arrayCal;
+};
+/**
+ *
+ * @param {*} allCalendar
+ */
 const saveListCalendar = (allCalendar) => {
 	return new Promise((resolve, reject) => {
-		const arrayCal = [];
-		allCalendar.forEach((item) => {
-			const cal = {
-				id: item.id,
-				name: item.name,
-				address_owner: item.owner.address,
-				created_at: null,
-			};
-			arrayCal.push(cal);
-		});
-
+		const arrayCal = customFormatArrayCal(allCalendar);
 		if (!arrayCal) return reject();
 		arrayCal.forEach(async (item) => {
 			MicrosoftCalendar.query()
 				.findOne({ id: item.id, address_owner: item.address_owner })
 				.then((acc) => {
-					console.log("======= Account =======: ", acc);
 					MicrosoftCalendar.query()
 						.insert(item)
 						.then((res) => console.log(res)) // Doan nay k resovle vi con nhieu cai de luu
@@ -138,23 +164,14 @@ const saveListCalendar = (allCalendar) => {
 		resolve();
 	});
 };
-
+/**
+ *
+ * @param {*} req
+ * @param {*} res
+ */
 const getAccessToken = async (req, res) => {
-  const { code, state } = req.body;
-  console.log(req.body)
+	const { code, state } = req.query;
 	try {
-		// Thuc hien lay access va refresh token
-
-	} catch (e) {
-		console.log(e);
-		return res.send("ERROR");
-	}
-};
-
-const sendCode = async (req, res) => {
-	// console.log("query : ",req.query);
-	const {code, state} = req.query;
-	try{
 		const tokens = await getToken(code, state);
 		const accessTokenAzure = tokens.access_token;
 		const refreshTokenAzure = tokens.refresh_token;
@@ -178,13 +195,10 @@ const sendCode = async (req, res) => {
 		// Thuc hien gửi danh sách calendar về channel add App
 		await sendMessageListCalendarToChannel(idChannel, allCalendar);
 
-		return res.send("arrayCal");
-	} catch (e){
-
-	}
+		return res.send("Successful !");
+	} catch (e) {}
 };
 
 module.exports = {
-	sendCode,
 	getAccessToken,
 };

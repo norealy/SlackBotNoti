@@ -2,18 +2,19 @@ const BaseServer = require("../common/BaseServer");
 const Env = require("../utils/Env");
 const Template = require("./views/Template");
 const Auth = require("./Auth");
-const { sendMessageLogin } = require("./HandlerResourceServer");
-const { handlerSettingsMessage } = require("./HandlerChatService");
+const { sendMessageLogin,handlerSettingsMessage } = require("./HandlerChatService");
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
 		this.microsoftAccess = this.microsoftAccess.bind(this);
 		this.authAccess = Auth.getAccessToken.bind(this);
-		this.microsoftSendCode = this.microsoftSendCode.bind(this);
-		this.authSendCode = Auth.sendCode.bind(this);
 		this.template = Template();
 	}
-
+/**
+ *
+ * @param {*} event
+ * @param {*} tokenBot
+ */
 	handlerEvent(event, tokenBot) {
 		const {subtype, user} = event;
 		const {loginResource} = this.template
@@ -22,7 +23,10 @@ class SlackMicrosoft extends BaseServer {
 			return sendMessageLogin(event, loginResource, tokenBot);
 
 	}
-
+/**
+ *
+ * @param {*} payload
+ */
 	handlerPayload(payload) {
 		payload = JSON.parse(payload);
 		if (payload.type === "block_actions") {
@@ -31,7 +35,11 @@ class SlackMicrosoft extends BaseServer {
 			}
 		}
 	}
-
+/**
+ *
+ * @param {*} body
+ * @param {*} tokenBot
+ */
 	handlerCommand(body, tokenBot) {
 		let text = body.text.trim()
 		const {systemSetting} = this.template
@@ -45,26 +53,24 @@ class SlackMicrosoft extends BaseServer {
 	}
 
 	async chatServiceHandler(req, res, next) {
+    console.log("======= chat Service Handler =======");
 		let {payload=null, challenge=null, event=null, command=null} = req.body
 		try {
 			const tokenBot = Env.chatServiceGet("TOKEN_BOT");
 
 			if (event){
 				await this.handlerEvent(event, tokenBot)
-				return res.status(200).send("OK");
 			}
 
-			if (payload) {
+			else if (payload) {
 				this.handlerPayload(payload);
-				return res.status(200).send("OK");
 			}
 
-			if(command && /^\/cal$/.test(command)){
+			else if(command && /^\/cal$/.test(command)){
 				await this.handlerCommand(req.body, tokenBot)
-				return res.status(200).send("OK");
 			}
 
-			if (challenge) {
+			else if (challenge) {
 				return res.status(200).send(challenge);
 			}
 
@@ -79,10 +85,8 @@ class SlackMicrosoft extends BaseServer {
 
 	async resourceServerHandler(req, res, next) {
 		try {
+      console.log("======= resource Server Handler =======");
 			const tokenBot = Env.chatServiceGet("TOKEN_BOT");
-			console.log("======= resource Server Handler =======");
-			const challenge = req.body.challenge;
-			const event = req.body.event;
 
 		} catch (e) {
 			console.log(e);
@@ -92,9 +96,6 @@ class SlackMicrosoft extends BaseServer {
 
 	microsoftAccess(req, res, next) {
 		this.authAccess(req, res, next);
-	}
-	microsoftSendCode(req, res, next) {
-		this.authSendCode(req, res, next);
 	}
 }
 
@@ -109,6 +110,5 @@ module.exports = SlackMicrosoft;
 	});
 	await Template().init();
 	await pipeline.init();
-	pipeline.app.get("/auth/microsoft", pipeline.microsoftSendCode);
-	// pipeline.app.post("/auth/code", pipeline.microsoftAccess);
+	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
 })();

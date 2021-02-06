@@ -38,7 +38,6 @@ class TemplateSlack {
 	async init() {
 		try {
 			let pathFile = Env.appRoot + '/slack-microsoft/views'
-			console.log("Path File : ",pathFile);
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`)
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`)
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`)

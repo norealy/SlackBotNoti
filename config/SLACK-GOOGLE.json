@@ -15,6 +15,7 @@
 		"BOT_ADD": "bot_add",
 		"APP_JOIN": "app_conversation_join",
 		"CHANNEL_JOIN": "channel_join"
+
 	},
 	"resourceServer": {
 		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
@@ -24,6 +25,10 @@
 		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
 		"RESPONSE_TYPE": "code",
 		"ACCESS_TYPE": "offline",
-		"API_OAUTH": "https://accounts.google.com/signin/oauth"
+		"URL_API": "https://www.googleapis.com/",
+		"API_USER_INFO": "oauth2/v3/userinfo",
+		"API_lIST_CALENDAR": "calendar/v3/users/me/calendarLis",
+		"API_TOKEN": "token"
+
 	}
 }

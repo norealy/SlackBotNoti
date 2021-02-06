@@ -8,6 +8,7 @@ const GoogleCalendar = require('../models/GoogleCalendar')
 const getToken = (code,state) =>{
 	return new Promise((resolve, reject) => {
 		const urlGetToken = "https://oauth2.googleapis.com/token";
+	//	const urlGetToken = Env.resourceServerGet("URL_API") + Env.resourceServerGet("API_TOKEN")
 		let data = {
 			client_id: Env.resourceServerGet("GOOGLE_CLIENT_ID"),
 			client_secret: Env.resourceServerGet("GOOGLE_CLIENT_SECRET"),
@@ -33,6 +34,7 @@ const getListCalendar = (accessTokenGoogle)=>{
 			method: "GET",
 			headers: {'Authorization': `Bearer ${accessTokenGoogle}`},
 			url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+			//url: Env.resourceServerGet("URL_API") + Env.resourceServerGet("API_lIST_CALENDAR")
 		}
 		Axios(options)
 			.then((res) => resolve(res.data))
@@ -45,6 +47,7 @@ const getProfile = (accessTokenGoogle)=>{
 			method: "GET",
 			headers: {'Authorization': `Bearer ${accessTokenGoogle}`},
 			url: "https://www.googleapis.com/oauth2/v3/userinfo",
+		//	url: Env.resourceServerGet("URL_API") + Env.resourceServerGet("API_USER_INFO")
 		}
 		Axios(options)
 			.then((res) => resolve(res.data))
@@ -66,7 +69,7 @@ const saveUserProfile = (profileUser,refreshTokenGoogle)=>{
 				if(!user){
 					GoogleAccount.query()
 						.insert(account)
-						.then((res) => resolve(res))
+						.then((res) => resolve())
 						.catch((err) => reject(err));
 				}
 				resolve();
@@ -92,10 +95,9 @@ const saveListCalendar = (allCalendar) =>{
 			GoogleCalendar.query()
 				.findOne({id:item.id})
 				.then((calendar)=>{
-					//console.log("======= Account =======: ", calendar)
 					GoogleCalendar.query()
 						.insert(item)
-						.then((res)=>{console.log(res)})
+						.then((res)=>{})
 						.catch((err) => reject(err));
 				})
 				.catch((err) => reject(err));
@@ -105,7 +107,6 @@ const saveListCalendar = (allCalendar) =>{
 }
 const getAccessToken = async (req,res) =>{
 	const { code, state } = req.body;
-	console.log(req.body)
 	try {
 		const tokens = await getToken(code,state);
 		const accessTokenGoogle = tokens.access_token;
@@ -113,14 +114,11 @@ const getAccessToken = async (req,res) =>{
 		const listAllCalendar = await getListCalendar(accessTokenGoogle);
 		const allCalendar = listAllCalendar.items;
 		const profileUser = await getProfile(accessTokenGoogle);
-		//console.log(listAllCalendar);
-		//console.log(profileUser);
 		await  saveUserProfile(profileUser,refreshTokenGoogle);
 		await saveListCalendar(allCalendar)
 		return res.send("arrayCal");
 	}
 	catch (err) {
-		console.log(err);
 		return res.send("ERROR");
 	}
 }
@@ -142,7 +140,6 @@ const sendCode  = async (req,res)=>{
 		await Axios(options);
 		return res.status(200).send('oke');
 	} catch (err) {
-		console.log(err);
 		return res.status(403).send("Error");
 	}
 }

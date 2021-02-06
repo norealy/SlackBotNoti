@@ -2,6 +2,11 @@ const Env = require('../utils/Env');
 const Jwt = require('jsonwebtoken');
 const Axios = require('axios');
 
+/**
+ * Cấu hình đường dẫn redirect login google
+ * @param accessToken
+ * @returns {url}
+ */
 const configUrlAuth = (accessToken) => {
 	let url = Env.resourceServerGOF('API_OAUTH')
 	url += `?access_type=${Env.resourceServerGet("ACCESS_TYPE")}`
@@ -14,10 +19,10 @@ const configUrlAuth = (accessToken) => {
 	return url
 }
 /**
- *
+ * Thực hiện JWT để người dùng biết login từ channel và người gửi
  * @param uid
  * @param channel
- * @returns {*}
+ * @returns {accessToken}
  */
 const createJwt = (uid, channel) => {
 	const header = {alg: "HS256", typ: "JWT"}
@@ -27,10 +32,10 @@ const createJwt = (uid, channel) => {
 	return Jwt.sign({header, payload, expiresIn}, key)
 }
 /**
- *
+ * Thực thi việc requestLogin gửi về một Post Message
  * @param event
  * @param loginResource
- * @returns {AxiosPromise | *}
+ * @returns {Promise }
  */
 const requestPostLogin = (event, loginResource) => {
 	const option = {method: "POST"}
@@ -46,27 +51,10 @@ const requestPostLogin = (event, loginResource) => {
 	return Axios(option);
 }
 /**
- *
- * @param body
- * @param viewsAdd
- * @returns {AxiosPromise | *}
- */
-const requestAddEvent = (body,viewsAdd)=>{
-	const option = {method: "POST"}
-	option.url = Env.chatServiceGOF('API_POST_VIEW_OPEN')
-	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`}
-	const {trigger_id} = body;
-	option.data = {
-		"trigger_id": trigger_id,
-		"view": viewsAdd
-	}
-	return Axios(option);
-}
-/**
- *
+ * Trả về 1 View Settings
  * @param body
  * @param systemSetting
- * @returns {AxiosPromise | *}
+ * @returns {Promise}
  */
 const requestSettings = (body,systemSetting)=>{
 	const option = {method: "POST"}
@@ -83,10 +71,10 @@ const requestSettings = (body,systemSetting)=>{
 	return Axios(option);
 }
 /**
- *
+ * Thực hiện việc insert view home page
  * @param body
  * @param homePage
- * @returns {AxiosPromise | *}
+ * @returns {Promise}
  */
 const requestHome = (body,homePage)=>{
 	const option = {method: "POST"}
@@ -100,57 +88,13 @@ const requestHome = (body,homePage)=>{
 	}
 	return Axios(option);
 }
+
 /**
- *
- * @param body
- * @param listCalendar
- * @returns {AxiosPromise | *}
+ *  khi người dùng thực hiện click vào button login google ở home view
+ * @param payload
+ * @param systemSetting
+ * @returns {Promise}
  */
-const requestAllCalendar = (body,listCalendar)=>{
-	const option = {method: "POST"}
-	option.url = Env.chatServiceGOF('API_POST_MESSAGE')
-	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`}
-	const {channel_id} = body;
-	option.data = {
-		"channel": channel_id,
-		"blocks": listCalendar,
-	}
-	return Axios(option);
-}
-
-const requestListEvent = (body,listEvent, payload)=>{
-	const option = {method: "POST"};
-	option.url = Env.chatServiceGOF('API_POST_MESSAGE')
-	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`};
-	const {trigger_id} = body;
-	option.data = {
-		"trigger_id": trigger_id,
-		"channel": payload.channel.id,
-		"blocks": listEvent
-	}
-	return Axios(option);
-}
-const requestButtonDelete = (deleteEvent,payload) =>{
-	const option = {method: "POST"};
-	option.url = Env.chatServiceGOF('API_POST_VIEW_PUSH')
-	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`};
-	option.data = {
-		"trigger_id": payload.trigger_id,
-		"view": deleteEvent
-	}
-	return Axios(option);
-}
-const requestButtonUpdate = (editEvent,payload) =>{
-	const option = {method: "POST"};
-	option.url = Env.chatServiceGOF('API_POST_VIEW_OPEN')
-	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("TOKEN_BOT")}`};
-	option.data = {
-		"trigger_id": payload.trigger_id,
-		"view": editEvent
-	}
-	return Axios(option);
-}
-
 const requestButtonSettings = (payload,systemSetting,) =>{
 	const option = {method: "POST"};
 	option.url = Env.chatServiceGOF('API_POST_VIEW_OPEN')
@@ -167,12 +111,7 @@ const requestButtonSettings = (payload,systemSetting,) =>{
 
 module.exports = {
 	requestPostLogin,
-	requestAddEvent,
-	requestSettings,
-	requestHome,
-	requestAllCalendar,
-	requestListEvent,
-	requestButtonUpdate,
-	requestButtonDelete,
-	requestButtonSettings,
+		requestSettings,
+		requestHome,
+		requestButtonSettings,
 }

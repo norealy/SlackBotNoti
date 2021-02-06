@@ -2,7 +2,7 @@ const BaseServer = require('../common/BaseServer');
 const Env = require('../utils/Env');
 const Template = require('./views/Template');
 const auth = require('./auth');
-const {requestPostLogin,requestAddEvent,requestSettings,requestHome,requestAllCalendar,requestListEvent,requestButtonDelete,requestButtonUpdate,requestButtonSettings} = require('./ChatService');
+const {requestPostLogin,requestSettings,requestHome,requestButtonSettings} = require('./ChatService');
 
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
@@ -11,11 +11,10 @@ class SlackGoogle extends BaseServer {
 		this.getAccessToken = this.getAccessToken.bind(this)
 		this.template = Template();
 	}
-
 	/**
 	 *
 	 * @param event
-	 * @returns {Promise<unknown>|*}
+	 * @returns {Promise}
 	 */
 	handlerEvent (event) {
 		const {subtype, user} = event
@@ -33,43 +32,30 @@ class SlackGoogle extends BaseServer {
 				return promise
 		}
 	}
-	async handlerBodyText(body){
+	/**
+	 *
+	 * @param body
+	 * @returns {Promise}
+	 */
+	 handlerBodyText(body){
 		 const chat = body.text.split(" ")[0];
-		let viewsAdd = this.template.addEvent;
-
 		 if(chat === "home"){
-
 			 return requestHome(body , this.template.homePage);
 		 }
-		 else if(chat === "add-event"){
-			 viewsAdd.blocks.splice(5, 0, Template().eventTimeEnd);
-			 viewsAdd.blocks.splice(5, 0, Template().eventTimeStart);
-
-			 return requestAddEvent(body,viewsAdd);
-		 }
 		 else if(chat === 'settings'){
-
 			 return requestSettings(body,this.template.systemSetting);
 		 }
-
-		 else if(chat==='all'){
-			 return requestAllCalendar(body, this.template.listCalendar);
-		 }
 	}
+	/**
+	 *
+	 * @param body
+	 * @param payload
+	 * @returns {Promise}
+	 */
 	handlerPayLoad(body,payload){
 		payload = JSON.parse(payload);
-
 		if(payload.type === 'block_actions'){
-			 if(payload.actions[0].action_id==='buttonSubmit') {
-				return requestListEvent( body, this.template.listEvent, payload)
-			}
-			else if(payload.actions[0].action_id === "buttonDelete"){
-			return requestButtonDelete(this.template.deleteEvent,payload)
-			}
-			else if(payload.actions[0].action_id === "buttonUpdate"){
-				return requestButtonUpdate(this.template.editEvent,payload)
-			}
-			else if(payload.actions[0].action_id === "btnSettings"){
+			 if(payload.actions[0].action_id === "btnSettings"){
 				return requestButtonSettings(payload,this.template.systemSetting);
 			}
 		}
@@ -81,7 +67,6 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send(challenge);
 			}
 			if(event){
-				console.log(event);
 				await this.handlerEvent(event)
 				return res.status(200).send("OK");
 			}
@@ -96,7 +81,6 @@ class SlackGoogle extends BaseServer {
 				 return res.status(200).send("OK");
 			}
 		} catch (error) {
-			console.log(error)
 			return res.status(403).send("Error");
 		}
 	}

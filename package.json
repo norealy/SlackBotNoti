@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node slack-google/index.js SLACK-GOOGLE ./config/",
     "dev": "nodemon slack-google/index.js SLACK-GOOGLE ./config/",
-    "devms": "nodemon slack-microsoft/index.js SLACK-MICROSOFT ./config/",
     "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./config/ --exit"
   },
   "dependencies": {
@@ -16,14 +15,12 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "fs-extra": "^9.0.1",
-    "jws": "^4.0.0",
     "knex": "^0.21.16",
     "lodash": "^4.17.20",
     "mongodb": "^3.6.3",
     "mongoose": "^5.11.12",
     "mysql2": "^2.2.5",
     "objection": "^2.2.7",
-    "qs": "^6.7.0",
     "redis": "^3.0.2"
   },
   "devDependencies": {

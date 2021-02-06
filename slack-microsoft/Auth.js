@@ -2,9 +2,10 @@ const qs = require("qs");
 const axios = require("axios");
 const ENV = require("../utils/Env");
 const { decodeJWS } = require("../utils/Jws");
-const viewsDesign = require("../views/ViewsDesign");
+const Template = require("./views/Template");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
+const { customArrCal } = require("./CustomListCalendar");
 
 const getToken = (code, state) => {
 	return new Promise((resolve, reject) => {
@@ -60,15 +61,20 @@ const getProfileUser = (accessTokenAzure) => {
 
 const sendMessageListCalendarToChannel = (idChannel, allCalendar) => {
 	return new Promise((resolve, reject) => {
-		const data1 = {
+
+    let arrCal = customArrCal(allCalendar);
+
+		const data = {
 			channel: idChannel,
-			blocks: viewsDesign.listCalendar(allCalendar),
-		};
+			blocks : Template().listCalendar
+    };
+    data.blocks[0].accessory.initial_option = arrCal[0];
+    data.blocks[0].accessory.options = arrCal;
 		const tokenBot = ENV.chatServiceGet("TOKEN_BOT");
 		const options = {
 			method: "POST",
 			headers: { Authorization: `Bearer ${tokenBot}` },
-			data: data1,
+			data: data,
 			url: `https://slack.com/api/chat.postMessage`,
 		};
 		axios(options)
@@ -185,7 +191,6 @@ const sendCode = async (req, res) => {
 	};
 	try {
 		const result = await axios(options);
-		// console.log("result", result.data);
 		res.send("Successful !");
 		return;
 	} catch (error) {

@@ -1,5 +1,5 @@
 
-module.exports.arrayCal = (arr) => {
+module.exports.customArrCal = (arr) => {
     try {
         const viewArr = [];
         arr.forEach(item => {

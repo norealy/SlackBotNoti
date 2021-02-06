@@ -2,7 +2,7 @@ const BaseServer = require("../common/BaseServer");
 const Axios = require("axios");
 const Env = require("../utils/Env");
 const { redirectMicrosoft } = require("./CreateUrlAuthor");
-const viewsDesign = require("../views/ViewsDesign");
+const Template = require("./views/Template");
 const Auth = require("./Auth");
 
 class SlackMicrosoft extends BaseServer {
@@ -12,6 +12,7 @@ class SlackMicrosoft extends BaseServer {
     this.authAccess = Auth.getAccessToken.bind(this);
     this.microsoftSendCode = this.microsoftSendCode.bind(this);
     this.authSendCode = Auth.sendCode.bind(this);
+    this.template = Template();
 	}
 
 	async chatServiceHandler(req, res, next) {
@@ -29,14 +30,16 @@ class SlackMicrosoft extends BaseServer {
         console.log(req.body)
 				const data = {
 					trigger_id: req.body.trigger_id,
-					view: viewsDesign.addCalendarToChannel,
+					view: Template().systemSetting
 				};
+        console.log(Template().systemSetting)
 				const options = {
 					method: "POST",
 					headers: { Authorization: `Bearer ${tokenBot}` },
 					data: data,
 					url: `https://slack.com/api/views.open`,
         };
+        console.log("View : ",data.view)
         options.data.view.blocks[3].elements[1].url = redirectMicrosoft(
 					req.body.channel,
 					req.body.trigger_id.split('.')[0]
@@ -80,7 +83,7 @@ class SlackMicrosoft extends BaseServer {
 					},
 					data: {
 						channel: event.channel,
-						blocks: viewsDesign.settingMessCal,
+						blocks: Template().loginResource
 					},
 					url: "https://slack.com/api/chat.postMessage",
 				};
@@ -115,7 +118,8 @@ module.exports = SlackMicrosoft;
 			appRoot: __dirname,
 		},
 	});
-	await pipeline.init();
+  await Template().init();
+  await pipeline.init();
 	pipeline.app.get("/auth/microsoft", pipeline.microsoftSendCode);
 	pipeline.app.post("/auth/code", pipeline.microsoftAccess);
 })();

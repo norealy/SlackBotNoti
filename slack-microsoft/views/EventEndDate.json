@@ -1,0 +1,17 @@
+{
+	"type": "section",
+	"text": {
+		"type": "mrkdwn",
+		"text": "Date end of the event all day "
+	},
+	"accessory": {
+		"type": "datepicker",
+		"initial_date": "2021-02-18",
+		"placeholder": {
+			"type": "plain_text",
+			"text": "Date event at ",
+			"emoji": true
+		},
+		"action_id": "datepicker-action1"
+	}
+}

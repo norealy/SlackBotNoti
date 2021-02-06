@@ -1,0 +1,41 @@
+[
+	{
+		"type": "divider"
+	},
+	{
+		"type": "divider"
+	},
+	{
+		"type": "header",
+		"text": {
+			"type": "plain_text",
+			"text": "System settings calendars",
+			"emoji": true
+		}
+	},
+	{
+		"type": "actions",
+		"elements": [
+			{
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"emoji": true,
+					"text": "Login Google"
+				},
+				"style": "primary",
+				"action_id": "addGoogle"
+			},
+			{
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"emoji": true,
+					"text": "Login microsoft"
+				},
+				"style": "primary",
+				"action_id": "addMicrosoft"
+			}
+		]
+	}
+]

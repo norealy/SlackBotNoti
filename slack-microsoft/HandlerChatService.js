@@ -1,7 +1,8 @@
 const Axios = require("axios");
 const EncodeJws = require("./Jws");
-const ENV = require('../utils/Env');
-const scopeAzure = "offline_access%20user.read%20mail.read%20calendars.readwrite";
+const ENV = require("../utils/Env");
+const scopeAzure =
+	"offline_access%20user.read%20mail.read%20calendars.readwrite";
 /**
  *
  * @param {*} idChannel
@@ -9,8 +10,11 @@ const scopeAzure = "offline_access%20user.read%20mail.read%20calendars.readwrite
  */
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
-    const stateAzure = EncodeJws.createJWS(idChannel, idUser);
-    let urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${ENV.resourceServerGet("AZURE_ID")}&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
+		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
+		let urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?`
+    urlRequestAuthor += `client_id=${ENV.resourceServerGet("AZURE_ID")}`;
+		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}`
+    urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
 		return urlRequestAuthor;
 	} catch (error) {
 		return "error";
@@ -36,8 +40,8 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 				blocks: viewLoginResource,
 			},
 			url: "https://slack.com/api/chat.postMessage",
-    };
-    const {channel,inviter} = event
+		};
+		const { channel, inviter } = event;
 		options.data.blocks[3].elements[1].url = redirectMicrosoft(
 			channel,
 			inviter
@@ -69,8 +73,8 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 			headers: { Authorization: `Bearer ${tokenBot}` },
 			data: data,
 			url: `https://slack.com/api/views.open`,
-    };
-    const {channel_id,user_id} = body
+		};
+		const { channel_id, user_id } = body;
 		options.data.view.blocks[3].elements[1].url = redirectMicrosoft(
 			channel_id,
 			user_id
@@ -84,6 +88,6 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 };
 
 module.exports = {
-  handlerSettingsMessage,
-  sendMessageLogin
+	handlerSettingsMessage,
+	sendMessageLogin,
 };

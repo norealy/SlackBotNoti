@@ -1,7 +1,7 @@
 const qs = require("qs");
 const axios = require("axios");
 const ENV = require("../utils/Env");
-const { decodeJWS } = require("../utils/Jws");
+const { decodeJWS } = require("./Jws");
 const Template = require("./views/Template");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
@@ -144,10 +144,21 @@ const getAccessToken = async (req, res) => {
   console.log(req.body)
 	try {
 		// Thuc hien lay access va refresh token
+
+	} catch (e) {
+		console.log(e);
+		return res.send("ERROR");
+	}
+};
+
+const sendCode = async (req, res) => {
+	// console.log("query : ",req.query);
+	const {code, state} = req.query;
+	try{
 		const tokens = await getToken(code, state);
 		const accessTokenAzure = tokens.access_token;
 		const refreshTokenAzure = tokens.refresh_token;
-    console.log(refreshTokenAzure)
+
 		// Thuc hien lay tai nguyen list calendars
 		const allData = await getListCalendar(accessTokenAzure);
 		const allCalendar = allData.value;
@@ -156,7 +167,7 @@ const getAccessToken = async (req, res) => {
 		const profileUser = await getProfileUser(accessTokenAzure);
 
 		// Thuc hien lay giai ma jwt lay ra idChannel idMessage
-		const { idChannel, idMessage } = await decodeJWS(state);
+		const { idChannel, idUser } = await decodeJWS(state);
 
 		// Thêm đối tượng microsoftAccount và bảng microsoft_account
 		await saveUserProfile(profileUser, refreshTokenAzure);
@@ -168,34 +179,8 @@ const getAccessToken = async (req, res) => {
 		await sendMessageListCalendarToChannel(idChannel, allCalendar);
 
 		return res.send("arrayCal");
-	} catch (e) {
-		console.log(e);
-		return res.send("ERROR");
-	}
-};
+	} catch (e){
 
-const sendCode = async (req, res) => {
-	// console.log("query : ",req.query);
-	const code = req.query.code;
-	const state = req.query.state;
-	const url = `http://localhost:${ENV.serverGet("PORT")}/auth/code`;
-	const data = {
-		code,
-		state,
-	};
-	const options = {
-		method: "POST",
-		headers: { "content-type": "application/json" },
-		data: data,
-		url: url,
-	};
-	try {
-		const result = await axios(options);
-		res.send("Successful !");
-		return;
-	} catch (error) {
-		res.send("error");
-		return;
 	}
 };
 

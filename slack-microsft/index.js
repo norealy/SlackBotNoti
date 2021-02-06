@@ -44,7 +44,7 @@ class SlackMicrosoft extends BaseServer {
 					method: 'GET',
 					url: `http://localhost:5100/microsoft`
 				};
-				await Axios(options);
+				const result = await Axios(options);
 				console.log("addMicrosoft")
 			}
 			else if (payload.actions[0].action_id === "addGoogle") {

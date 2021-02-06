@@ -66,7 +66,6 @@ const getAccessToken = async (req, res) => {
 		let result = await axios(optionss);
 		const accessTokenAzure = result.data.access_token;
 		const refreshTokenAzure = result.data.refresh_token;
-		// console.log(result.data)
 
 		const options1 = {
             method: 'GET',
@@ -75,7 +74,7 @@ const getAccessToken = async (req, res) => {
         };
         const resultCal = await axios(options1);
 		const allCalendar = resultCal.data.value;
-		// console.log(allCalendar); // array calendar
+
 
 		const options2 = {
             method: 'GET',
@@ -84,7 +83,7 @@ const getAccessToken = async (req, res) => {
         };
         const resultUser = await axios(options2);
 		const profileUser = resultUser.data;
-		// console.log("Profile user : ",profileUser);
+		console.log("Profile user : ",profileUser);
 
 		const data1 = {
 			"channel": "C01JVQ4LHJA",
@@ -97,7 +96,25 @@ const getAccessToken = async (req, res) => {
 			url: `https://slack.com/api/chat.postMessage`
 		};
 		result = await axios(options);
-		// console.log(result.data)
+
+		const microsoftAccount = {
+			id:resultUser.data.id,
+			name:resultUser.data.displayName,
+			refresh_token:refreshTokenAzure,
+			created_at:null,
+			updated_at:null
+		}
+
+		const arrayCal = [];
+		allCalendar.forEach(item => {
+			const cal = {
+				id:item.id,
+				name:item.name,
+				address_owner:item.owner.address,
+				created_at:null
+			}
+			arrayCal.push(cal);
+		});
 
 
 

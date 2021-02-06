@@ -1,4 +1,4 @@
-const { arrayCal } = require("../utils/CustomListCalendar");
+const { arrayCal } = require("../slack-microsft/CustomListCalendar");
 const settingMessCal = [
 	{
 		type: "divider",
@@ -251,7 +251,6 @@ const addCalendarToChannel = {
 						text: "Login Google",
 					},
 					style: "primary",
-					url: "https://google.com",
 					action_id: "addGoogle",
 				},
 				{

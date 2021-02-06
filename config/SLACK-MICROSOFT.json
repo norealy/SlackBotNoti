@@ -15,6 +15,7 @@
 		"ALG": "HS512",
 		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
 		"AZURE_REDIRECT": "http://localhost:5100/auth/microsoft",
-		"AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ"
+    "AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
+    "SCOPE": "offline_access user.read mail.read calendars.readwrite"
 	}
 }

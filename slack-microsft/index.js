@@ -1,7 +1,7 @@
 const BaseServer = require("../common/BaseServer");
 const Axios = require("axios");
 const Env = require("../utils/Env");
-const { redirectMicrosoft } = require("../utils/CreateUrlAuthor");
+const { redirectMicrosoft } = require("./CreateUrlAuthor");
 const viewsDesign = require("../views/ViewsDesign");
 const Auth = require("./Auth");
 
@@ -25,6 +25,8 @@ class SlackMicrosoft extends BaseServer {
 
 		if (!req.body.payload) {
 			if (req.body.text.split(" ")[0] === "settings") {
+
+        console.log(req.body)
 				const data = {
 					trigger_id: req.body.trigger_id,
 					view: viewsDesign.addCalendarToChannel,
@@ -34,7 +36,11 @@ class SlackMicrosoft extends BaseServer {
 					headers: { Authorization: `Bearer ${tokenBot}` },
 					data: data,
 					url: `https://slack.com/api/views.open`,
-				};
+        };
+        options.data.view.blocks[3].elements[1].url = redirectMicrosoft(
+					req.body.channel,
+					req.body.trigger_id.split('.')[0]
+				);
 				const result = await Axios(options);
 				console.log(result.data);
 
@@ -78,7 +84,7 @@ class SlackMicrosoft extends BaseServer {
 					},
 					url: "https://slack.com/api/chat.postMessage",
 				};
-				options.data.blocks[3].elements[1].url = await redirectMicrosoft(
+				options.data.blocks[3].elements[1].url = redirectMicrosoft(
 					event.channel,
 					req.body.event_id
 				);

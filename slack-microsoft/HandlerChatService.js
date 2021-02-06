@@ -11,9 +11,9 @@ const scopeAzure =
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
-		let urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?`
+		let urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?`;
     urlRequestAuthor += `client_id=${ENV.resourceServerGet("AZURE_ID")}`;
-		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}`
+		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}`;
     urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
 		return urlRequestAuthor;
 	} catch (error) {

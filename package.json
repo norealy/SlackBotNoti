@@ -21,6 +21,7 @@
     "mongoose": "^5.11.12",
     "mysql2": "^2.2.5",
     "objection": "^2.2.7",
+    "qs": "^6.7.0",
     "redis": "^3.0.2"
   },
   "devDependencies": {

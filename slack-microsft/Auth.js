@@ -2,11 +2,13 @@ const qs = require('qs');
 const axios = require('axios');
 const ENV = require('../utils/Env');
 const stateSecretAzure = ENV.get("AZURE_STATE", 'RANDOMID@@--123');
-const stateAzure = Buffer.from(stateSecretAzure).toString('base64')
-const redirectUrlAzure = ENV.get("AZURE_REDIRECT", "http://localhost:5100/auth/microsoft");
-const scopeAzure = "calendars.readwrite";
+const stateAzure = Buffer.from(stateSecretAzure).toString('base64');
+const redirectUrlAzure = ENV.get("AZURE_REDIRECT", `http://localhost:5100/auth/microsoft`);
+const scopeAzure = "offline_access user.read mail.read calendars.readwrite";
 const azureIdAzure = ENV.get("AZURE_ID");
 const secretAzure = ENV.get("AZURE_SECRET");
+const viewsDesign = require('../views/ViewsDesign');
+const tokenBot = ENV.getOrFail("TOKEN_BOT");
 
 const redirectMicrosoft = (req, res) => {
 	try {
@@ -20,28 +22,30 @@ const redirectMicrosoft = (req, res) => {
 const sendCode = async (req, res) => {
 	const code = req.query.code;
 	console.log("Code :", code)
-	const uri = "http://localhost:5100/auth/code";
+	const url = "http://localhost:5100/code";
 	const data = {
 		code: code
 	};
-	const options1 = {
+	const options = {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		data: JSON.stringify(data),
-		url: uri,
+		url: url,
 	};
 	try {
-        await axios(options1);
-        res.cookie('accessTokenAzure', "EwBwA8l6BAAU6k7+XVQzkGyMv7VHB/h4cHbJYRAAAXWd0KCkiL691GHxQbtb7vRTEOSX5pw0URU1Y0TGuXr2SBhpyuNfuQceC7eWEo/bWrsqpF5V0nRVK91uWZfeTznhAklzkywPqIePI3ZLtNXK7D8wBe8fx5nUjPOqKOg4tesxP/Tc3Jtfl35z18nZzGfuLMV2bwYDun4vYKY6Dfopj32tmGetCk4gHNXgY2OrB+8bfH0wE2ryDQLgav02uS6N2BGtXNVqmytkXdefYOCZbNIEHlKN8N/22PS3ofBKh1KpVM2SHxDfk0IL/8mCMgxFMhg50+24f0qVf1lR/xNvTVgXeJi2NwukR9x4FECEaq2xnYzdJHzqF+ekuMMB5UADZgAACDasySjAiq/YQAIiCOYIC4Ku0yOihQG0H8fYKHsF0K/gfAIqo8w7tkC6C/dDpaRKeySIOK/YEa5DshnnxRLrSV0UTDzRYvzNYD5nEvCxJlusw4YUp8EuxQTS8rQ2YmBcLo+WpCMdliNyPjiQ4EPn7BzeZEGnvlFQ7CktMDIsETDFb5Dw5cYPLdsKHEuRUR7TkgIfhL7etrdDw1VnoFbZBWE6nAJiSS1sLJbOgtEFb/U1fpaco9DArSosgN7KGd3p0v3trjgpBkK/CGXga7eOWeu2EdgMdoIto0/lnPoDljvyA9OeLoCEPn3jyvX5d6BpjIKgEcf7orOz5611HK4+icQq4HTLo7K/EcoT5I/tw0ylp23GULETVQNTnnX74uHYBMDFO9XVENgfifCF4Zoyhd/zuS1ksj456Gknc+bMMXjzvDBKpWNrqcFLzJk6T0T9n024YS+CsFvcqVyIx0IsjWyz3zujvmX3fwuC5AN4cH3/rpbQsWTP4CLbMfmk7K9bRuRUDlzqFqXrBKS76Y8nA3TinLDt83PAyQ79RtFjlXqd33eGrfzwVelnk1ynWLdkpwFHRN2BCRKBYDQ94sCII10j7QjsuKERU5Abinm0PqBDS06fYnQ9M2JsTkLh0aNwww2Lc4dHug9SCs5BzcUBAlAFi9xuecb43yEwFO7ZlJxrnNbOBAyDWhsEmPui0oRJUiPHt/WKcswLUqLYnJBJRR1KjoFqkYr3G8jlZzlZtEIHAOBIcy4Izk5dDpU6JJGRg3uUMd6dNi3ypa94Ag==");
-		return res.status(200).send("Post Code ok");
+		const result = await axios(options);
+		console.log("result",result.data)
+		res.send("Successful !")
+		return;
 	} catch (error) {
-		return res.status(403).send("Error");
+		res.send("error")
+		return;
 	}
 };
 
-const setAccessTokenToCookie = async (req, res) => {
+const getAccessToken = async (req, res) => {
+	console.log(req.path)
 	const code = req.body.code;
-	console.log(stateAzure);
 	const urlGetToken = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 	let data = {
 		client_id: azureIdAzure,
@@ -52,26 +56,60 @@ const setAccessTokenToCookie = async (req, res) => {
 		client_secret: secretAzure,
 		response_mode: "form_post"
 	};
-	const options = {
+	const optionss = {
 		method: 'POST',
 		headers: { 'content-type': 'application/x-www-form-urlencoded' },
 		data: qs.stringify(data),
 		url: urlGetToken,
 	};
 	try {
-		const result = await axios(options);
+		let result = await axios(optionss);
 		const accessTokenAzure = result.data.access_token;
-		console.log(accessTokenAzure)
-		
-		return res.status(200).send("Done");
+		const refreshTokenAzure = result.data.refresh_token;
+		// console.log(result.data)
+
+		const options1 = {
+            method: 'GET',
+            headers: {'Authorization': `Bearer ${accessTokenAzure}` },
+            url: "https://graph.microsoft.com/v1.0/me/calendars"
+        };
+        const resultCal = await axios(options1);
+		const allCalendar = resultCal.data.value;
+		// console.log(allCalendar); // array calendar
+
+		const options2 = {
+            method: 'GET',
+            headers: {'Authorization': `Bearer ${accessTokenAzure}` },
+            url: "https://graph.microsoft.com/v1.0/me"
+        };
+        const resultUser = await axios(options2);
+		const profileUser = resultUser.data;
+		// console.log("Profile user : ",profileUser);
+
+		const data1 = {
+			"channel": "C01JVQ4LHJA",
+			"blocks": viewsDesign.listCalendar(allCalendar)
+		}
+		const options = {
+			method: 'POST',
+			headers: { 'Authorization': `Bearer ${tokenBot}` },
+			data: data1,
+			url: `https://slack.com/api/chat.postMessage`
+		};
+		result = await axios(options);
+		// console.log(result.data)
+
+
+
+		return res.send("");
 	} catch (e) {
-		console.log("Error")
-		return res.status(403).send("Error")
+		console.log(e)
+		return res.send(e)
 	}
 };
 
 module.exports = {
     redirectMicrosoft,
     sendCode,
-    setAccessTokenToCookie
+    getAccessToken
 }

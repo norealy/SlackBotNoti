@@ -5,7 +5,7 @@ const Axios = require('axios');
 /**
  * Cấu hình đường dẫn redirect login google
  * @param accessToken
- * @returns {url}
+ * @returns {string} url
  */
 const configUrlAuth = (accessToken) => {
 	let url = Env.resourceServerGOF('API_OAUTH')
@@ -20,9 +20,9 @@ const configUrlAuth = (accessToken) => {
 }
 /**
  * Thực hiện JWT để người dùng biết login từ channel và người gửi
- * @param uid
- * @param channel
- * @returns {accessToken}
+ * @param {string} uid
+ * @param  {string} channel
+ * @returns{string} accessToken
  */
 const createJwt = (uid, channel) => {
 	const header = {alg: "HS256", typ: "JWT"}
@@ -33,8 +33,8 @@ const createJwt = (uid, channel) => {
 }
 /**
  * Thực thi việc requestLogin gửi về một Post Message
- * @param event
- * @param loginResource
+ * @param {object} event
+ * @param {view} loginResource
  * @returns {Promise }
  */
 const requestPostLogin = (event, loginResource) => {
@@ -50,10 +50,11 @@ const requestPostLogin = (event, loginResource) => {
 	}
 	return Axios(option);
 }
+
 /**
  * Trả về 1 View Settings
- * @param body
- * @param systemSetting
+ * @param{object} body
+ * @param {view} systemSetting
  * @returns {Promise}
  */
 const requestSettings = (body,systemSetting)=>{
@@ -73,7 +74,7 @@ const requestSettings = (body,systemSetting)=>{
 /**
  * Thực hiện việc insert view home page
  * @param body
- * @param homePage
+ * @param  {view} homePage
  * @returns {Promise}
  */
 const requestHome = (body,homePage)=>{
@@ -91,8 +92,8 @@ const requestHome = (body,homePage)=>{
 
 /**
  *  khi người dùng thực hiện click vào button login google ở home view
- * @param payload
- * @param systemSetting
+ * @param  {object} payload
+ * @param {view} systemSetting
  * @returns {Promise}
  */
 const requestButtonSettings = (payload,systemSetting,) =>{

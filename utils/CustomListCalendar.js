@@ -11,10 +11,8 @@ module.exports.arrayCal = (arr) => {
                 },
                 "value": item.id
             }
-            console.log(item)
             viewArr.push(viewItem);
         });
-        console.log(viewArr);
         return viewArr;
     } catch (error) {
         return error;

@@ -6,14 +6,24 @@
   },
 	"chatService": {
 		"USER_BOT": "U01KE0ZMHPE",
-		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I"
+		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I",
+		"API_POST_MESSAGE": "https://slack.com/api/chat.postMessage",
+		"API_POST_VIEW_PUBLISH": "https://slack.com/api/views.publish",
+		"API_POST_VIEW_OPEN": "https://slack.com/api/views.open",
+		"API_POST_VIEW_UPDATE": "https://slack.com/api/views.update",
+		"API_POST_VIEW_PUSH": "https://slack.com/api/views.push",
+		"BOT_ADD": "bot_add",
+		"APP_JOIN": "app_conversation_join",
+		"CHANNEL_JOIN": "channel_join"
 	},
 	"resourceServer": {
 		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
 		"GOOGLE_CLIENT_ID": "965847660652-07ds1iaq4fqdeai5ovemmbjlposcerbs.apps.googleusercontent.com",
 		"REDIRECT_URI": "http://localhost:5000/watch-send-code",
-		"SCOPE_GOOGLE": "https://www.googleapis.com/auth/calendar.readonly+https://www.googleapis.com/auth/userinfo.profile",
+		"SCOPE_CALENDAR_READONLY": "https://www.googleapis.com/auth/calendar.readonly",
+		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
 		"RESPONSE_TYPE": "code",
-		"ACCESE_TYPE": "offline"
+		"ACCESS_TYPE": "offline",
+		"API_OAUTH": "https://accounts.google.com/signin/oauth"
 	}
 }

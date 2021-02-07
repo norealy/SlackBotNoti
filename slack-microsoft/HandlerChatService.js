@@ -1,18 +1,18 @@
 const Axios = require("axios");
 const EncodeJws = require("./Jws");
 const ENV = require("../utils/Env");
-const scopeAzure =
-	"offline_access%20user.read%20mail.read%20calendars.readwrite";
 /**
- *
- * @param {*} idChannel
- * @param {*} idUser
+ * Tao url request author
+ * @param {string} idChannel
+ * @param {string} idUser
+ * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
+    const scopeAzure = ENV.resourceServerGet("URL_SCOPE");
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
-		let urlRequestAuthor = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?`;
-    urlRequestAuthor += `client_id=${ENV.resourceServerGet("AZURE_ID")}`;
+		let urlRequestAuthor = `${ENV.resourceServerGet("URL_API_AUTH")}${ENV.resourceServerGet("URL_API_AUTHOR")}`;
+    urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
 		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}`;
     urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
 		return urlRequestAuthor;
@@ -22,10 +22,11 @@ const redirectMicrosoft = (idChannel, idUser) => {
 };
 
 /**
- *
- * @param {*} event
- * @param {*} viewLoginResource
- * @param {*} tokenBot
+ * Xu ly gui tin nhan yeu cau login
+ * @param {object} event
+ * @param {view} viewLoginResource
+ * @param {string} tokenBot
+ * @returns {Promise}
  */
 const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 	return new Promise((resolve, reject) => {
@@ -39,7 +40,7 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 				channel: event.channel,
 				blocks: viewLoginResource,
 			},
-			url: "https://slack.com/api/chat.postMessage",
+			url: ENV.chatServiceGet("URL_SLACK_API")+ENV.chatServiceGet("MESSAGE_CHAT"),
 		};
 		const { channel, inviter } = event;
 		options.data.blocks[3].elements[1].url = redirectMicrosoft(
@@ -57,10 +58,11 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 };
 
 /**
- *
- * @param {*} viewSystemSetting
- * @param {*} body
- * @param {*} tokenBot
+ * Xu ly nguoi dung goi den settings
+ * @param {object} viewSystemSetting
+ * @param {object} body
+ * @param {string} tokenBot
+ * @returns {Promise}
  */
 const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 	return new Promise((resolve, reject) => {
@@ -72,7 +74,7 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 			method: "POST",
 			headers: { Authorization: `Bearer ${tokenBot}` },
 			data: data,
-			url: `https://slack.com/api/views.open`,
+			url: ENV.chatServiceGet("URL_SLACK_API")+ENV.chatServiceGet("VIEW_OPEN"),
 		};
 		const { channel_id, user_id } = body;
 		options.data.view.blocks[3].elements[1].url = redirectMicrosoft(

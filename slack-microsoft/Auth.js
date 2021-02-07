@@ -2,18 +2,16 @@ const qs = require("qs");
 const axios = require("axios");
 const ENV = require("../utils/Env");
 const { decodeJWS } = require("./Jws");
-const Template = require("./views/Template");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
 /**
- *
- * @param {*} code
- * @param {*} state
+ * Lay tai nguyen tokens
+ * @param {string} code
+ * @param {string} state
+ * @returns {Promise}
  */
 const getToken = (code, state) => {
 	return new Promise((resolve, reject) => {
-		const urlGetToken =
-			"https://login.microsoftonline.com/common/oauth2/v2.0/token";
 		let data = {
 			client_id: ENV.resourceServerGet("AZURE_ID"),
 			scope: ENV.resourceServerGOF("SCOPE"),
@@ -28,7 +26,7 @@ const getToken = (code, state) => {
 			method: "POST",
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 			data: qs.stringify(data),
-			url: urlGetToken,
+			url: ENV.resourceServerGet("URL_API_AUTH")+ENV.resourceServerGet("URL_API_TOKEN"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
@@ -36,15 +34,16 @@ const getToken = (code, state) => {
 	});
 };
 /**
- *
- * @param {*} accessTokenAzure
+ * Lay tai nguyen  danh sach calendar
+ * @param {string} accessTokenAzure
+ * @returns {Promise}
  */
 const getListCalendar = (accessTokenAzure) => {
 	return new Promise((resolve, reject) => {
 		const options1 = {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
-			url: "https://graph.microsoft.com/v1.0/me/calendars",
+			url: ENV.resourceServerGet("URL_API")+ENV.resourceServerGet("URL_API_CALENDARS"),
 		};
 		axios(options1)
 			.then((res) => resolve(res.data))
@@ -52,15 +51,16 @@ const getListCalendar = (accessTokenAzure) => {
 	});
 };
 /**
- *
- * @param {*} accessTokenAzure
+ * Lay tai nguyen thong tin ve user Profile
+ * @param {string} accessTokenAzure
+ * @returns {Promise}
  */
 const getProfileUser = (accessTokenAzure) => {
 	return new Promise((resolve, reject) => {
 		const options = {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
-			url: "https://graph.microsoft.com/v1.0/me",
+			url: ENV.resourceServerGet("URL_API")+ENV.resourceServerGet("URL_API_USER"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
@@ -68,55 +68,10 @@ const getProfileUser = (accessTokenAzure) => {
 	});
 };
 /**
- *
- * @param {*} arrayCalendar
- */
-const customArrCal = (arr) => {
-	const viewArr = [];
-	arr.forEach((item) => {
-		const viewItem = {
-			text: {
-				type: "plain_text",
-				text: item.name,
-				emoji: true,
-			},
-			value: item.id,
-		};
-		viewArr.push(viewItem);
-	});
-	return viewArr;
-};
-/**
- *
- * @param {*} idChannel
- * @param {*} allCalendar
- */
-const sendMessageListCalendarToChannel = (idChannel, allCalendar) => {
-	return new Promise((resolve, reject) => {
-		let arrCal = customArrCal(allCalendar);
-
-		const data = {
-			channel: idChannel,
-			blocks: Template().listCalendar,
-		};
-		data.blocks[0].accessory.initial_option = arrCal[0];
-		data.blocks[0].accessory.options = arrCal;
-		const tokenBot = ENV.chatServiceGet("TOKEN_BOT");
-		const options = {
-			method: "POST",
-			headers: { Authorization: `Bearer ${tokenBot}` },
-			data: data,
-			url: `https://slack.com/api/chat.postMessage`,
-		};
-		axios(options)
-			.then((res) => resolve(res.data))
-			.catch((err) => reject(err));
-	});
-};
-/**
- *
- * @param {*} profileUser
- * @param {*} refreshTokenAzure
+ * Luu thong tin vao database
+ * @param {object} profileUser
+ * @param {string} refreshTokenAzure
+ * @returns {Promise}
  */
 const saveUserProfile = (profileUser, refreshTokenAzure) => {
 	return new Promise((resolve, reject) => {
@@ -144,8 +99,9 @@ const saveUserProfile = (profileUser, refreshTokenAzure) => {
 	});
 };
 /**
- *
- * @param {*} allCalendar
+ *  Xu ly dua array calendar ve dang
+ * @param {Array} allCalendar
+ * @returns {Array} array Calendar
  */
 const customFormatArrayCal = (allCalendar) => {
 	const arrayCal = [];
@@ -161,8 +117,9 @@ const customFormatArrayCal = (allCalendar) => {
 	return arrayCal;
 };
 /**
- *
- * @param {*} allCalendar
+ *  Luu array calendar vao database
+ * @param {Array} allCalendar
+ * @returns {Promise}
  */
 const saveListCalendar = (allCalendar) => {
 	return new Promise((resolve, reject) => {
@@ -171,10 +128,10 @@ const saveListCalendar = (allCalendar) => {
 		arrayCal.forEach(async (item) => {
 			MicrosoftCalendar.query()
 				.findOne({ id: item.id, address_owner: item.address_owner })
-				.then((acc) => {
+				.then(() => {
 					MicrosoftCalendar.query()
 						.insert(item)
-						.then((res) => console.log(res)) // Doan nay k resovle vi con nhieu cai de luu
+						.then(res)
 						.catch((err) => reject(err));
 				})
 				.catch((err) => reject(err));
@@ -182,11 +139,7 @@ const saveListCalendar = (allCalendar) => {
 		resolve();
 	});
 };
-/**
- *
- * @param {*} req
- * @param {*} res
- */
+
 const getAccessToken = async (req, res) => {
 	const { code, state } = req.query;
 	try {
@@ -201,23 +154,16 @@ const getAccessToken = async (req, res) => {
 		// Thuc hien lay tai nguyen user profile
 		const profileUser = await getProfileUser(accessTokenAzure);
 
-		// Thuc hien lay giai ma jwt lay ra idChannel idMessage
-		const { idChannel, idUser } = await decodeJWS(state);
-
 		// Thêm đối tượng microsoftAccount và bảng microsoft_account
 		await saveUserProfile(profileUser, refreshTokenAzure);
 
 		// Thêm list calendar vào bảng microsoft_calendar
 		await saveListCalendar(allCalendar);
 
-		// Thuc hien gửi danh sách calendar về channel add App
-		await sendMessageListCalendarToChannel(idChannel, allCalendar);
-
 		return res.send("Successful !");
 	} catch (e) {
-    // console.log(e)
-    return res.send("Login Error !");
-  }
+		return res.send("Login Error !");
+	}
 };
 
 module.exports = {

@@ -6,7 +6,10 @@
 		"TOKEN_BOT": "xoxb-1646068754818-1721978657154-x0ytndIf2oIHnm5HVpUdih6Q",
 		"USER_BOT": "U01M7USKB4J",
 		"CLIENT_ID": "1646068754818.1718889057333",
-		"CLIENT_SECRET": "d5d893f5cae24a6a78c0994003a09960"
+    "CLIENT_SECRET": "d5d893f5cae24a6a78c0994003a09960",
+    "URL_SLACK_API":"https://slack.com/api/",
+    "VIEW_OPEN":"views.open",
+    "MESSAGE_CHAT":"chat.postMessage"
 	},
 	"resourceServer": {
     "SECRET_STATE": "KZ*wfG\\^#:n&xF@x+haR<@VaC6RpA",
@@ -15,6 +18,13 @@
 		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
 		"AZURE_REDIRECT": "http://localhost:5100/auth/microsoft",
     "AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
-    "SCOPE": "offline_access user.read mail.read calendars.readwrite"
-	}
+    "SCOPE": "offline_access user.read mail.read calendars.readwrite",
+    "URL_API_AUTH":"https://login.microsoftonline.com/common/oauth2",
+    "URL_API_TOKEN":"/v2.0/token",
+    "URL_API_AUTHOR":"/v2.0/authorize",
+    "URL_API":"https://graph.microsoft.com",
+    "URL_API_CALENDARS":"/v1.0/me/calendars",
+    "URL_API_USER":"/v1.0/me",
+    "URL_SCOPE":"offline_access%20user.read%20mail.read%20calendars.readwrite"
+  }
 }

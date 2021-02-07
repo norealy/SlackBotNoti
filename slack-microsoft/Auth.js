@@ -1,9 +1,11 @@
 const qs = require("qs");
 const axios = require("axios");
-const ENV = require("../utils/Env");
+const Env = require("../utils/Env");
 const { decodeJWS } = require("./Jws");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
+const Channels = require("../models/Channels");
+
 /**
  * Lay tai nguyen tokens
  * @param {string} code
@@ -13,12 +15,12 @@ const MicrosoftCalendar = require("../models/MicrosoftCalendar");
 const getToken = (code, state) => {
 	return new Promise((resolve, reject) => {
 		let data = {
-			client_id: ENV.resourceServerGet("AZURE_ID"),
-			scope: ENV.resourceServerGOF("SCOPE"),
+			client_id: Env.resourceServerGet("AZURE_ID"),
+			scope: Env.resourceServerGOF("SCOPE"),
 			code,
-			redirect_uri: ENV.resourceServerGet("AZURE_REDIRECT"),
+			redirect_uri: Env.resourceServerGet("AZURE_REDIRECT"),
 			grant_type: "authorization_code",
-			client_secret: ENV.resourceServerGet("AZURE_SECRET"),
+			client_secret: Env.resourceServerGet("AZURE_SECRET"),
 			response_mode: "form_post",
 			state,
 		};
@@ -26,7 +28,9 @@ const getToken = (code, state) => {
 			method: "POST",
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 			data: qs.stringify(data),
-			url: ENV.resourceServerGet("URL_API_AUTH")+ENV.resourceServerGet("URL_API_TOKEN"),
+			url:
+				Env.resourceServerGet("URL_API_AUTH") +
+				Env.resourceServerGet("URL_API_TOKEN"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
@@ -43,7 +47,9 @@ const getListCalendar = (accessTokenAzure) => {
 		const options1 = {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
-			url: ENV.resourceServerGet("URL_API")+ENV.resourceServerGet("URL_API_CALENDARS"),
+			url:
+				Env.resourceServerGet("URL_API") +
+				Env.resourceServerGet("URL_API_CALENDARS"),
 		};
 		axios(options1)
 			.then((res) => resolve(res.data))
@@ -60,7 +66,9 @@ const getProfileUser = (accessTokenAzure) => {
 		const options = {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
-			url: ENV.resourceServerGet("URL_API")+ENV.resourceServerGet("URL_API_USER"),
+			url:
+				Env.resourceServerGet("URL_API") +
+				Env.resourceServerGet("URL_API_USER"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
@@ -140,6 +148,44 @@ const saveListCalendar = (allCalendar) => {
 	});
 };
 
+/**
+ * Lay ra thong tin ve channel thong qua id channel
+ * @param {string} idChannel
+ * @returns {Promise}
+ */
+const getNameChannel = (idChannel) => {
+	const tokenBot = Env.chatServiceGOF("TOKEN_BOT");
+	const options = {
+		method: "POST",
+		headers: { Authorization: `Bearer ${tokenBot}` },
+		data: {
+			channel: idChannel,
+		},
+		url: `${Env.chatServiceGet(
+			"URL_SLACK_API"
+		)}conversations.info?channel=${idChannel}`,
+	};
+	return axios(options);
+};
+/**
+ * Luu thong tin channel vao database
+ * @param {string} idChannel
+ * @returns {Promise}
+ */
+const saveInfoChannel = async (idChannel) => {
+	const promise = new Promise((resolve) => resolve());
+	const dataChannel = await getNameChannel(idChannel);
+	if (!dataChannel) return promise;
+	const result = await Channels.query().findById(idChannel);
+	if (result) return promise;
+	const channel = {
+		id: idChannel,
+		name: dataChannel.data.channel.name,
+		created_at: null,
+	};
+	return Channels.query().insert(channel);
+};
+
 const getAccessToken = async (req, res) => {
 	const { code, state } = req.query;
 	try {
@@ -159,6 +205,12 @@ const getAccessToken = async (req, res) => {
 
 		// Thêm list calendar vào bảng microsoft_calendar
 		await saveListCalendar(allCalendar);
+
+		// Lay Decode jwt de lay ra data
+		const { idChannel, idUser } = await decodeJWS(state);
+
+		// Thêm channelvào bảng channels
+		await saveInfoChannel(idChannel);
 
 		return res.send("Successful !");
 	} catch (e) {

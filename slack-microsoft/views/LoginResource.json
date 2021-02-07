@@ -3,9 +3,6 @@
 		"type": "divider"
 	},
 	{
-		"type": "divider"
-	},
-	{
 		"type": "header",
 		"text": {
 			"type": "plain_text",

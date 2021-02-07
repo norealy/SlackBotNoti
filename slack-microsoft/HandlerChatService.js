@@ -9,12 +9,16 @@ const ENV = require("../utils/Env");
  */
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
-    const scopeAzure = ENV.resourceServerGet("URL_SCOPE");
+		const scopeAzure = ENV.resourceServerGet("URL_SCOPE");
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
-		let urlRequestAuthor = `${ENV.resourceServerGet("URL_API_AUTH")}${ENV.resourceServerGet("URL_API_AUTHOR")}`;
-    urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
-		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet("AZURE_REDIRECT")}`;
-    urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
+		let urlRequestAuthor = `${ENV.resourceServerGet(
+			"URL_API_AUTH"
+		)}${ENV.resourceServerGet("URL_API_AUTHOR")}`;
+		urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
+		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
+			"AZURE_REDIRECT"
+		)}`;
+		urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
 		return urlRequestAuthor;
 	} catch (error) {
 		return "error";
@@ -40,10 +44,12 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 				channel: event.channel,
 				blocks: viewLoginResource,
 			},
-			url: ENV.chatServiceGet("URL_SLACK_API")+ENV.chatServiceGet("MESSAGE_CHAT"),
+			url:
+				ENV.chatServiceGet("URL_SLACK_API") +
+				ENV.chatServiceGet("MESSAGE_CHAT"),
 		};
 		const { channel, inviter } = event;
-		options.data.blocks[3].elements[1].url = redirectMicrosoft(
+		options.data.blocks[2].elements[1].url = redirectMicrosoft(
 			channel,
 			inviter
 		);
@@ -74,7 +80,8 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 			method: "POST",
 			headers: { Authorization: `Bearer ${tokenBot}` },
 			data: data,
-			url: ENV.chatServiceGet("URL_SLACK_API")+ENV.chatServiceGet("VIEW_OPEN"),
+			url:
+				ENV.chatServiceGet("URL_SLACK_API") + ENV.chatServiceGet("VIEW_OPEN"),
 		};
 		const { channel_id, user_id } = body;
 		options.data.view.blocks[3].elements[1].url = redirectMicrosoft(

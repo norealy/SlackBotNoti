@@ -18,13 +18,13 @@
 		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
 		"AZURE_REDIRECT": "http://localhost:5100/auth/microsoft",
     "AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
-    "SCOPE": "offline_access user.read mail.read calendars.readwrite",
+    "SCOPE": "offline_access user.read calendars.readwrite",
     "URL_API_AUTH":"https://login.microsoftonline.com/common/oauth2",
     "URL_API_TOKEN":"/v2.0/token",
     "URL_API_AUTHOR":"/v2.0/authorize",
     "URL_API":"https://graph.microsoft.com",
     "URL_API_CALENDARS":"/v1.0/me/calendars",
     "URL_API_USER":"/v1.0/me",
-    "URL_SCOPE":"offline_access%20user.read%20mail.read%20calendars.readwrite"
+    "URL_SCOPE":"offline_access%20user.read%20calendars.readwrite"
   }
 }

@@ -179,8 +179,8 @@ const saveInfoChannel = async (idChannel) => {
 };
 /**
  * Lưu IdCalendar với idAccount vào db
- * @param idCalendars
- * @param idAccount
+ * @param {String} idCalendars
+ * @param {String} idAccount
  * @returns {Promise}
  * @constructor
  */
@@ -201,8 +201,8 @@ const SaveGoogleAccountCalendar = async (idCalendars,idAccount)=>{
 }
 /**
  * Lưu IdCalendar với idChannel vào db
- * @param idCalendars
- * @param idChannel
+ * @param {String} idCalendars
+ * @param {String}idChannel
  * @returns {Promise}
  * @constructor
  */

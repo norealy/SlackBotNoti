@@ -139,7 +139,7 @@ const saveListCalendar = (allCalendar) => {
 				.then(() => {
 					MicrosoftCalendar.query()
 						.insert(item)
-						.then(res)
+						.then()
 						.catch((err) => reject(err));
 				})
 				.catch((err) => reject(err));
@@ -214,6 +214,7 @@ const getAccessToken = async (req, res) => {
 
 		return res.send("Successful !");
 	} catch (e) {
+    console.log(e);
 		return res.send("Login Error !");
 	}
 };

@@ -102,7 +102,7 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 		const account = {
 			id: profileUser.sub,
 			name: profileUser.name,
-			refresh_token: refreshTokenGoogle, // loi do cai nay null ne =))
+			refresh_token: refreshTokenGoogle,
 			created_at: null,
 			updated_at: null,
 		};

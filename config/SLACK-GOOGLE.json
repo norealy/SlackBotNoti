@@ -1,11 +1,35 @@
 {
-  "server": {
-    "PORT": 5000
-  },
+	"server": {
+		"PORT": 5000,
+		"JWT_KEY" : "tuanna99qn",
+		"JWT_DURATION": 27000
+	},
 	"chatService": {
-		"APP_LEVEL_TOKEN": "xoxb-1646068754818-1649327460835-9kDmhfu0jpQA4GI7eVerD2kj"
+		"USER_BOT": "U01KE0ZMHPE",
+		"TOKEN_BOT": "xoxb-1649228626611-1660033731796-3ylpAM208auItytFVjzcH92I",
+		"API_POST_MESSAGE": "https://slack.com/api/chat.postMessage",
+		"API_POST_VIEW_PUBLISH": "https://slack.com/api/views.publish",
+		"API_POST_VIEW_OPEN": "https://slack.com/api/views.open",
+		"API_POST_VIEW_UPDATE": "https://slack.com/api/views.update",
+		"API_POST_VIEW_PUSH": "https://slack.com/api/views.push",
+		"BOT_ADD": "bot_add",
+		"APP_JOIN": "app_conversation_join",
+		"CHANNEL_JOIN": "channel_join",
+		"URL_SLACK_API": "https://slack.com/api"
 	},
 	"resourceServer": {
-
+		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",
+		"GOOGLE_CLIENT_ID": "965847660652-07ds1iaq4fqdeai5ovemmbjlposcerbs.apps.googleusercontent.com",
+		"REDIRECT_URI": "http://localhost:5000/watch-send-code",
+		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar",
+		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
+		"RESPONSE_TYPE": "code",
+		"ACCESS_TYPE": "offline",
+		"URL_API": "https://www.googleapis.com/",
+		"URL_API_OAUTH":"https://oauth2.googleapis.com/",
+		"API_USER_INFO": "oauth2/v3/userinfo",
+		"API_lIST_CALENDAR": "calendar/v3/users/me/calendarList",
+		"API_TOKEN": "token",
+		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth"
 	}
 }

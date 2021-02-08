@@ -1,0 +1,40 @@
+{
+	"title": {
+		"type": "plain_text",
+		"text": "BOT NOTI CALENDARS",
+		"emoji": true
+	},
+	"type": "modal",
+	"close": {
+		"type": "plain_text",
+		"text": "Close",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": true,
+						"text": "YES"
+					},
+					"style": "primary",
+					"action_id": "buttonUpdate"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": true,
+						"text": "NO !"
+					},
+					"style": "danger",
+					"action_id": "buttonDelete"
+				}
+			]
+		}
+	]
+}

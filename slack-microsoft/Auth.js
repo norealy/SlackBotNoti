@@ -4,7 +4,9 @@ const Env = require("../utils/Env");
 const { decodeJWS } = require("./Jws");
 const MicrosoftAccount = require("../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../models/MicrosoftCalendar");
+const MicrosoftAccountCalendar = require("../models/MicrosoftAccountCalendar");
 const Channels = require("../models/Channels");
+const ChannelsCalendar = require("../models/ChannelsCalendar");
 
 /**
  * Lay tai nguyen tokens
@@ -92,8 +94,8 @@ const saveUserProfile = (profileUser, refreshTokenAzure) => {
 		};
 		MicrosoftAccount.query()
 			.findById(account.id)
-			.then((user) => {
-				if (!user) {
+			.then((data) => {
+				if (!data) {
 					MicrosoftAccount.query()
 						.insert(account)
 						.then((res) => resolve(res))
@@ -133,14 +135,16 @@ const saveListCalendar = (allCalendar) => {
 	return new Promise((resolve, reject) => {
 		const arrayCal = customFormatArrayCal(allCalendar);
 		if (!arrayCal) return reject();
-		arrayCal.forEach(async (item) => {
+		arrayCal.forEach((item) => {
 			MicrosoftCalendar.query()
 				.findOne({ id: item.id, address_owner: item.address_owner })
-				.then(() => {
-					MicrosoftCalendar.query()
-						.insert(item)
-						.then()
-						.catch((err) => reject(err));
+				.then((data) => {
+					if (!data) {
+						MicrosoftCalendar.query()
+							.insert(item)
+							.then()
+							.catch((err) => reject(err));
+					}
 				})
 				.catch((err) => reject(err));
 		});
@@ -185,6 +189,100 @@ const saveInfoChannel = async (idChannel) => {
 	};
 	return Channels.query().insert(channel);
 };
+/**
+ * Đưa về định dạng giống với bảng microsoft_account_calendar
+ * @param {string} idAccount
+ * @param {Array} arrCalendar
+ * @returns {Array}
+ */
+const customFormatMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
+	const arrayAccCal = [];
+	arrCalendar.forEach((item) => {
+		const msAccCal = {
+			id_calendar: item.id,
+			id_account: idAccount,
+			created_at: null,
+		};
+		arrayAccCal.push(msAccCal);
+	});
+	return arrayAccCal;
+};
+/**
+ * Luu thong tin MicrosoftAccountCalendar vao database
+ * @param {string} idAccount
+ * @param {Array} arrCalendar
+ * @returns {Promise}
+ */
+const saveMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
+	return new Promise((resolve, reject) => {
+		const arrayAccCal = customFormatMicrosoftAccountCalendar(
+			idAccount,
+			arrCalendar
+		);
+		if (!arrayAccCal) return reject();
+		arrayAccCal.forEach((item) => {
+			MicrosoftAccountCalendar.query()
+				.findOne({ id_account: idAccount, id_calendar: item.id_calendar })
+				.then((data) => {
+					if (!data) {
+						MicrosoftAccountCalendar.query()
+							.insert(item)
+							.then()
+							.catch((err) => reject(err));
+					}
+				})
+				.catch((err) => reject(err));
+		});
+		resolve();
+	});
+};
+/**
+ * Đưa về định dạng giống với bảng channels_calendar
+ * @param {string} idChannel
+ * @param {Array} arrCalendar
+ * @returns {Array}
+ */
+const customFormatChannelsCalendar = (idChannel, arrCalendar) => {
+	const arrayChannelCal = [];
+	arrCalendar.forEach((item) => {
+		const msChenCal = {
+			id_calendar: item.id,
+			id_channel: idChannel,
+			watch: true,
+			created_at: null,
+			updated_at: null,
+		};
+		arrayChannelCal.push(msChenCal);
+	});
+	return arrayChannelCal;
+};
+/**
+ * Luu thong tin saveChannelsCalendar vao database
+ * @param {string} idChannel
+ * @param {Array} arrCalendar
+ * @returns {Promise}
+ */
+const saveChannelsCalendar = (idChannel, arrCalendar) => {
+	return new Promise((resolve, reject) => {
+		const arrayChanCal = customFormatChannelsCalendar(idChannel, arrCalendar);
+		console.log(arrayChanCal);
+		if (!arrayChanCal) return reject();
+		arrayChanCal.forEach((item) => {
+			ChannelsCalendar.query()
+				.findOne({ id_channel: idChannel, id_calendar: item.id_calendar })
+				.then((data) => {
+					if (!data) {
+						ChannelsCalendar.query()
+							.insert(item)
+							.then()
+							.catch((err) => reject(err));
+					}
+				})
+				.catch((err) => reject(err));
+		});
+		resolve();
+	});
+};
 
 const getAccessToken = async (req, res) => {
 	const { code, state } = req.query;
@@ -206,15 +304,21 @@ const getAccessToken = async (req, res) => {
 		// Thêm list calendar vào bảng microsoft_calendar
 		await saveListCalendar(allCalendar);
 
+		// Luu  vào bảng microsoft_account_calendar
+		await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
+
 		// Lay Decode jwt de lay ra data
 		const { idChannel, idUser } = await decodeJWS(state);
 
 		// Thêm channelvào bảng channels
 		await saveInfoChannel(idChannel);
 
+		//  Luu channels calendar vào bảng channels_calendar
+		await saveChannelsCalendar(idChannel, allCalendar);
+
 		return res.send("Successful !");
 	} catch (e) {
-    console.log(e);
+		console.log(e);
 		return res.send("Login Error !");
 	}
 };

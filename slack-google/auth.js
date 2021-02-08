@@ -108,16 +108,12 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 		};
 		GoogleAccount.query()
 			.findById(account.id)
-			.then((user) => {
-				if (!user) {
+			.then((data) => {
+				if (!data) {
 					GoogleAccount.query()
 						.insert(account)
-						.then((res) =>{
-							resolve(res)
-						})
-						.catch((err) =>{
-							reject(err)
-						});
+						.then((res) => resolve(res))
+						.catch((err) => reject(err));
 				}
 				resolve();
 			})
@@ -185,7 +181,6 @@ const saveInfoChannel = async (idChannel) => {
  * @constructor
  */
 const SaveGoogleAccountCalendar = async (idCalendars,idAccount)=>{
-
 	return	GoogleAccountCalendar.transaction( async trx => {
 		let values = []
 		for ( let idx in idCalendars) {
@@ -247,7 +242,6 @@ const getAccessToken = async (req, res) => {
 		await SaveChannelsCalendar(idCalendars,idChannel)
 		return res.send("Oke");
 	} catch (err) {
-		console.log(err);
 		return res.send("ERROR");
 	}
 };

@@ -1,0 +1,143 @@
+{
+	"title": {
+		"type": "plain_text",
+		"text": "BOT NOTI CALENDARS ",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit",
+		"emoji": true
+	},
+	"type": "modal",
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "System settings calendars",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "plain_text",
+					"text": "Google Account :",
+					"emoji": true
+				},
+				{
+					"type": "plain_text",
+					"text": "Microsoft Account :",
+					"emoji": true
+				}
+			]
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "plain_text",
+					"text": "xdatgd@gmail.com",
+					"emoji": true
+				},
+				{
+					"type": "plain_text",
+					"text": "tuanna99qn@outlook.com",
+					"emoji": true
+				},
+				{
+					"type": "plain_text",
+					"text": "googledemo1@gmail.com",
+					"emoji": true
+				},
+				{
+					"type": "plain_text",
+					"text": "microsoftdemo1@outlook.com",
+					"emoji": true
+				},
+				{
+					"type": "plain_text",
+					"text": "googledemo2@gmail.com",
+					"emoji": true
+				}
+			]
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": true,
+						"text": "Login Google"
+					},
+					"style": "primary",
+					"action_id": "addGoogle"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": true,
+						"text": "Login microsoft"
+					},
+					"style": "primary",
+					"action_id": "addMicrosoft"
+				}
+			]
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "checkboxes",
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Calendar1",
+							"emoji": true
+						},
+						"value": "value-0"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Calendar2",
+							"emoji": true
+						},
+						"value": "value-1"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Calendar3",
+							"emoji": true
+						},
+						"value": "value-2"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Calendar4",
+							"emoji": true
+						},
+						"value": "value-3"
+					}
+				]
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "List calendars :",
+				"emoji": true
+			}
+		}
+	]
+}

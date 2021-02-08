@@ -265,7 +265,6 @@ const customFormatChannelsCalendar = (idChannel, arrCalendar) => {
 const saveChannelsCalendar = (idChannel, arrCalendar) => {
 	return new Promise((resolve, reject) => {
 		const arrayChanCal = customFormatChannelsCalendar(idChannel, arrCalendar);
-		console.log(arrayChanCal);
 		if (!arrayChanCal) return reject();
 		arrayChanCal.forEach((item) => {
 			ChannelsCalendar.query()
@@ -318,7 +317,6 @@ const getAccessToken = async (req, res) => {
 
 		return res.send("Successful !");
 	} catch (e) {
-		console.log(e);
 		return res.send("Login Error !");
 	}
 };

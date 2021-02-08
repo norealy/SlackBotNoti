@@ -14,7 +14,8 @@
 		"API_POST_VIEW_PUSH": "https://slack.com/api/views.push",
 		"BOT_ADD": "bot_add",
 		"APP_JOIN": "app_conversation_join",
-		"CHANNEL_JOIN": "channel_join"
+		"CHANNEL_JOIN": "channel_join",
+		"URL_SLACK_API": "https://slack.com/api/"
 	},
 	"resourceServer": {
 		"GOOGLE_CLIENT_SECRET": "HIJGBJr0FhNutg67zGDATNQ1",

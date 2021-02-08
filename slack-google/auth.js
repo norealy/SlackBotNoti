@@ -1,9 +1,12 @@
 const Axios = require("axios");
 const qs = require("qs");
 const Env = require("../utils/Env");
+const ChatService = require('./ChatService');
 const GoogleAccount = require("../models/GoogleAccount");
 const GoogleCalendar = require("../models/GoogleCalendar");
-
+const Channels = require("../models/Channels");
+const GoogleAccountCalendar = require("../models/GoogleAccountCalendar");
+const ChannelsCalendar = require("../models/ChannelsCalendar")
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -71,6 +74,23 @@ const getProfile = (accessTokenGoogle) => {
 			.catch((err) => reject(err));
 	});
 };
+
+const getIdChannel = (idChannel)=>{
+	const data = {
+		channel: idChannel,
+	};
+	return new Promise((resolve, reject) => {
+		const options = {
+			method: "GET",
+			headers: { Authorization: `Bearer ${Env.chatServiceGOF("TOKEN_BOT")}` },
+			data:qs.stringify(data),
+			url: `${Env.chatServiceGOF("URL_SLACK_API")}conversations.info?channel=${idChannel}`
+		};
+		Axios(options)
+			.then((res) => resolve(res.data))
+			.catch((err) => reject(err));
+	});
+}
 /**
  * Lưu profile end  refreshTokenGoogle
  * @param  {object} profileUser
@@ -82,7 +102,7 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 		const account = {
 			id: profileUser.sub,
 			name: profileUser.name,
-			refresh_token: refreshTokenGoogle,
+			refresh_token: refreshTokenGoogle, // loi do cai nay null ne =))
 			created_at: null,
 			updated_at: null,
 		};
@@ -92,8 +112,12 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 				if (!user) {
 					GoogleAccount.query()
 						.insert(account)
-						.then((res) => resolve(res))
-						.catch((err) => reject(err));
+						.then((res) =>{
+							resolve(res)
+						})
+						.catch((err) =>{
+							reject(err)
+						});
 				}
 				resolve();
 			})
@@ -102,6 +126,7 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 			});
 	});
 };
+
 /**
  * Lưu list calendar
  * @param {Array} allCalendar
@@ -110,7 +135,7 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
 
 const saveListCalendar = (allCalendar) => {
 	return new Promise((resolve, reject) => {
-		const arrayCalenDar = [];
+		const arrayCalenDar = []
 		allCalendar.forEach((item) => {
 			const calendar = {
 				id: item.id,
@@ -134,7 +159,70 @@ const saveListCalendar = (allCalendar) => {
 		resolve();
 	});
 };
+/**
+ * Luu thong tin channel vao database
+ * @param {string} idChannel
+ * @returns {Promise}
+ */
+const saveInfoChannel = async (idChannel) => {
+	const promise = new Promise((resolve) => resolve());
+	const dataChannel = await getIdChannel(idChannel);
+	if (!dataChannel) return promise;
+	const result = await Channels.query().findById(idChannel);
+	if (result) return promise;
+	const channel = {
+		id: idChannel,
+		name: dataChannel.channel.name,
+		created_at: null,
+	};
+	return Channels.query().insert(channel);
+};
+/**
+ * Lưu IdCalendar với idAccount vào db
+ * @param idCalendars
+ * @param idAccount
+ * @returns {Promise}
+ * @constructor
+ */
+const SaveGoogleAccountCalendar = async (idCalendars,idAccount)=>{
 
+	return	GoogleAccountCalendar.transaction( async trx => {
+		let values = []
+		for ( let idx in idCalendars) {
+			const googleAccountCalendar = {
+				id_calendar: idCalendars[idx],
+				id_account: idAccount,
+				created_at: null,
+			};
+			values.push(googleAccountCalendar)
+		}
+		await trx.insert(values).into(GoogleAccountCalendar.tableName).onConflict(["id_calendar","id_account" ]).merge();
+	})
+}
+/**
+ * Lưu IdCalendar với idChannel vào db
+ * @param idCalendars
+ * @param idChannel
+ * @returns {Promise}
+ * @constructor
+ */
+const SaveChannelsCalendar = async (idCalendars,idChannel)=>{
+
+	return	ChannelsCalendar.transaction( async trx => {
+		let values = []
+		for ( let idx in idCalendars) {
+			const ChannelsCalendar = {
+				id_calendar: idCalendars[idx],
+				id_channel: idChannel,
+				watch:true,
+				created_at: null,
+				updated_at: null,
+			};
+			values.push(ChannelsCalendar)
+		}
+		await trx.insert(values).into(ChannelsCalendar.tableName).onConflict(["id_calendar","id_channel" ]).merge();
+	})
+}
 const getAccessToken = async (req, res) => {
 	const { code, state } = req.query;
 	try {
@@ -144,14 +232,25 @@ const getAccessToken = async (req, res) => {
 		const listAllCalendar = await getListCalendar(accessTokenGoogle);
 		const allCalendar = listAllCalendar.items;
 		const profileUser = await getProfile(accessTokenGoogle);
+		const idAccount = profileUser.sub
 		await saveUserProfile(profileUser, refreshTokenGoogle);
 		await saveListCalendar(allCalendar);
+		const {idChannel, idUser} = await ChatService.decode(state)
+		await saveInfoChannel(idChannel)
+		// xử lí mảng để lưu
+		let idCalendars = []
+		for (let calendar of listAllCalendar.items){
+			idCalendars.push(calendar.id )
+		}
+		// profileUser +  listAllCalendar
+		await SaveGoogleAccountCalendar(idCalendars, idAccount)
+		await SaveChannelsCalendar(idCalendars,idChannel)
 		return res.send("Oke");
 	} catch (err) {
+		console.log(err);
 		return res.send("ERROR");
 	}
 };
-
 module.exports = {
 	getAccessToken,
 };

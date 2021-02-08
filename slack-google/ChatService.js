@@ -31,6 +31,19 @@ const createJwt = (uid, channel) => {
 	const key = Env.serverGOF("JWT_KEY")
 	return Jwt.sign({header, payload, expiresIn}, key)
 }
+const decode = async (token)=>{
+	const key = Env.serverGOF("JWT_KEY")
+	const verified = await Jwt.verify(
+		token,
+		key
+	)
+	if(!verified){
+		return false
+	}
+	const decode = Jwt.decode(token)
+	const data = decode.payload
+	return data;
+}
 /**
  * Thực thi việc requestLogin gửi về một Post Message
  * @param {object} event
@@ -115,4 +128,5 @@ module.exports = {
 		requestSettings,
 		requestHome,
 		requestButtonSettings,
+		decode,
 }

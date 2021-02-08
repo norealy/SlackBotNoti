@@ -9,12 +9,12 @@ const Axios = require('axios');
  */
 const configUrlAuth = (accessToken) => {
 	let url = Env.resourceServerGOF('API_OAUTH')
-	url += `?access_type=${Env.resourceServerGet("ACCESS_TYPE")}`
-	url += `&scope=${Env.resourceServerGet("SCOPE_CALENDAR_READONLY")}`
-	url += `+${Env.resourceServerGet("SCOPE_USER_INFO")}`
-	url += `&response_type=${Env.resourceServerGet("RESPONSE_TYPE")}`
-	url += `&client_id=${Env.resourceServerGet("GOOGLE_CLIENT_ID")}`
-	url += `&redirect_uri=${Env.resourceServerGet("REDIRECT_URI")}`
+	url += `?scope=${Env.resourceServerGOF("SCOPE_CALENDAR")}`
+	url += `+${Env.resourceServerGOF("SCOPE_USER_INFO")}`
+	url += `&access_type=${Env.resourceServerGOF("ACCESS_TYPE")}`
+	url += `&response_type=${Env.resourceServerGOF("RESPONSE_TYPE")}`
+	url += `&client_id=${Env.resourceServerGOF("GOOGLE_CLIENT_ID")}`
+	url += `&redirect_uri=${Env.resourceServerGOF("REDIRECT_URI")}`
 	url += `&state=${accessToken}`;
 	return url
 }
@@ -125,8 +125,8 @@ const requestButtonSettings = (payload,systemSetting,) =>{
 
 module.exports = {
 	requestPostLogin,
-		requestSettings,
-		requestHome,
-		requestButtonSettings,
-		decode,
+	requestSettings,
+	requestHome,
+	requestButtonSettings,
+	decode,
 }

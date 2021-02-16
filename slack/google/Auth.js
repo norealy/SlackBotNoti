@@ -1,12 +1,12 @@
 const Axios = require("axios");
 const qs = require("qs");
-const Env = require("../utils/Env");
-const ChatService = require('./ChatService');
-const GoogleAccount = require("../models/GoogleAccount");
-const GoogleCalendar = require("../models/GoogleCalendar");
-const Channels = require("../models/Channels");
-const GoogleAccountCalendar = require("../models/GoogleAccountCalendar");
-const ChannelsCalendar = require("../models/ChannelsCalendar")
+const Env = require("../../utils/Env");
+const GoogleAccount = require("../../models/GoogleAccount");
+const GoogleCalendar = require("../../models/GoogleCalendar");
+const Channels = require("../../models/Channels");
+const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
+const ChannelsCalendar = require("../../models/ChannelsCalendar");
+
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -15,13 +15,13 @@ const ChannelsCalendar = require("../models/ChannelsCalendar")
  */
 const getToken = (code, state) => {
 	return new Promise((resolve, reject) => {
-		let url = Env.resourceServerGet("URL_API_OAUTH");
+		let url = Env.resourceServerGet("API_URL_OAUTH");
 		url += `${Env.resourceServerGet("API_TOKEN")}`;
 		let data = {
-			client_id: Env.resourceServerGet("GOOGLE_CLIENT_ID"),
-			client_secret: Env.resourceServerGet("GOOGLE_CLIENT_SECRET"),
+			client_id: Env.resourceServerGet("CLIENT_ID"),
+			client_secret: Env.resourceServerGet("CLIENT_SECRET"),
 			code,
-			grant_type: "authorization_code",
+			grant_type: Env.resourceServerGet("GRANT_TYPE"),
 			redirect_uri: Env.resourceServerGet("REDIRECT_URI"),
 			state,
 		};
@@ -29,39 +29,41 @@ const getToken = (code, state) => {
 			method: "POST",
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 			data: qs.stringify(data),
-			url: url,
+			url,
 		};
 		Axios(options)
 			.then((res) => resolve(res.data))
 			.catch((err) => reject(err));
 	});
 };
+
 /**
  * Thông qua accessToken để list ra calendar
  * @param{string} accessTokenGoogle
  * @returns {Promise}
  */
 const getListCalendar = (accessTokenGoogle) => {
-	let url = Env.resourceServerGet("URL_API");
+	let url = Env.resourceServerGet("API_URL");
 	url += `${Env.resourceServerGet("API_lIST_CALENDAR")}`;
 	return new Promise((resolve, reject) => {
 		const options = {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenGoogle}` },
-			url: url,
+			url,
 		};
 		Axios(options)
 			.then((res) => resolve(res.data))
 			.catch((error) => reject(error));
 	});
 };
+
 /**
  * accessToken để lấy ra info
  * @param {string} accessTokenGoogle
  * @returns {Promise}
  */
 const getProfile = (accessTokenGoogle) => {
-	let url = Env.resourceServerGet("URL_API");
+	let url = Env.resourceServerGet("API_URL");
 	url += `${Env.resourceServerGet("API_USER_INFO")}`;
 	return new Promise((resolve, reject) => {
 		const options = {
@@ -75,22 +77,28 @@ const getProfile = (accessTokenGoogle) => {
 	});
 };
 
-const getIdChannel = (idChannel)=>{
-	const data = {
-		channel: idChannel,
-	};
+/**
+ *
+ * @param idChannel
+ * @return {Promise<unknown>}
+ */
+const getInfoChannel = (idChannel)=>{
 	return new Promise((resolve, reject) => {
+		let url = Env.chatServiceGOF("API_URL");
+		url += Env.chatServiceGOF("API_CHANNEL_INFO");
+		url += idChannel;
 		const options = {
 			method: "GET",
-			headers: { Authorization: `Bearer ${Env.chatServiceGOF("TOKEN_BOT")}` },
-			data:qs.stringify(data),
-			url: `${Env.chatServiceGOF("URL_SLACK_API")}/conversations.info?channel=${idChannel}`
+			headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+			data:qs.stringify({channel: idChannel}),
+			url,
 		};
 		Axios(options)
 			.then((res) => resolve(res.data))
 			.catch((err) => reject(err));
 	});
-}
+};
+
 /**
  * Lưu profile end  refreshTokenGoogle
  * @param  {object} profileUser
@@ -111,7 +119,6 @@ const saveUserProfile = (profileUser, refreshTokenGoogle) => {
  * @param {Array} listCalendar
  * @returns {Promise}
  */
-
 const saveListCalendar = async (listCalendar) => {
 	if (!listCalendar) return null;
 	for (let i = 0, length = listCalendar.length; i < length; i++) {
@@ -124,6 +131,7 @@ const saveListCalendar = async (listCalendar) => {
 			})
 	}
 };
+
 /**
  * Luu thong tin channel vao database
  * @param {object} channel
@@ -135,9 +143,10 @@ const saveInfoChannel = (channel) => {
 		name: channel.name,
 	});
 };
+
 /**
  * Lưu IdCalendar với idAccount vào db
- * @param {String} idCalendars
+ * @param {array} idCalendars
  * @param {String} idAccount
  * @returns {Promise}
  * @constructor
@@ -160,10 +169,11 @@ const SaveGoogleAccountCalendar = (idCalendars,idAccount)=>{
 			throw e
 		}
 	})
-}
+};
+
 /**
  * Lưu IdCalendar với idChannel vào db
- * @param {String} idCalendars
+ * @param {array} idCalendars
  * @param {String}idChannel
  * @returns {Promise}
  * @constructor
@@ -171,7 +181,7 @@ const SaveGoogleAccountCalendar = (idCalendars,idAccount)=>{
 const SaveChannelsCalendar = async (idCalendars,idChannel)=>{
 	return	ChannelsCalendar.transaction( async trx => {
 		try {
-			let values = []
+			let values = [];
 			for (let idx in idCalendars) {
 				const ChannelsCalendar = {
 					id_calendar: idCalendars[idx],
@@ -188,47 +198,16 @@ const SaveChannelsCalendar = async (idCalendars,idChannel)=>{
 			throw e
 		}
 	})
-}
-const getAccessToken = async (req, res) => {
-	const { code, state } = req.query;
-	try {
-		const tokens = await getToken(code, state);
-		const accessTokenGoogle = tokens.access_token;
-		const refreshTokenGoogle = tokens.refresh_token;
-
-		// Xử lý profile user google
-		const profileUser = await getProfile(accessTokenGoogle);
-		const user = await GoogleAccount.query().findById(profileUser.sub);
-		if(!user){
-			await saveUserProfile(profileUser, refreshTokenGoogle);
-		}
-
-		// Xử lý danh sách calendar
-		const calendars = await getListCalendar(accessTokenGoogle);
-		const listCalendar = calendars.items;
-		await saveListCalendar(listCalendar);
-
-		// Xử lý channel slack
-		const {idChannel, idUser} = await ChatService.decode(state);
-		let channel = await Channels.query().findById(idChannel);
-		if(!channel){
-			channel = await getIdChannel(idChannel);
-			await saveInfoChannel(channel.channel)
-		}
-
-		// xử lí mảng để lưu
-		let idCalendars = []
-		for (let calendar of listCalendar){
-			idCalendars.push(calendar.id )
-		}
-		// profileUser +  listAllCalendar
-		await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
-		await SaveChannelsCalendar(idCalendars, idChannel);
-		return res.send("Oke");
-	} catch (err) {
-		return res.send("ERROR");
-	}
 };
+
 module.exports = {
-	getAccessToken,
+	getToken,
+	getListCalendar,
+	getProfile,
+	getInfoChannel,
+	saveUserProfile,
+	saveInfoChannel,
+	saveListCalendar,
+	SaveGoogleAccountCalendar,
+	SaveChannelsCalendar,
 };

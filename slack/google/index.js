@@ -1,18 +1,33 @@
-const BaseServer = require("../common/BaseServer");
-const Env = require("../utils/Env");
-const Template = require("./views/Template");
-const auth = require("./Auth");
+const BaseServer = require("../../common/BaseServer");
+const Env = require("../../utils/Env");
+const Template = require("../views/Template");
+const Channels = require("../../models/Channels");
+const GoogleAccount = require("../../models/GoogleAccount");
+
+const {
+	getToken,
+	getListCalendar,
+	getProfile,
+	getInfoChannel,
+	saveUserProfile,
+	saveInfoChannel,
+	saveListCalendar,
+	SaveGoogleAccountCalendar,
+	SaveChannelsCalendar,
+} = require("./Auth");
+
 const {
 	requestPostLogin,
 	requestSettings,
 	requestHome,
 	requestButtonSettings,
+	decode,
 } = require("./ChatService");
 
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
-		this.getAccessToken = this.getAccessToken.bind(this);
+		this.authGoogle = this.authGoogle.bind(this);
 		this.template = Template();
 	}
 
@@ -24,14 +39,15 @@ class SlackGoogle extends BaseServer {
 	 */
 	handlerEvent(event) {
 		const { subtype, user } = event;
-		const botId = Env.chatServiceGOF("USER_BOT");
+		const botId = Env.chatServiceGOF("BOT_USER");
 		const { loginResource } = this.template;
 		const promise = new Promise((resolve) => resolve(event));
+		const type = Env.chatServiceGOF("TYPE");
 		switch (subtype) {
-			case Env.chatServiceGOF("BOT_ADD"):
+			case type.BOT_ADD:
 				return requestPostLogin(event, loginResource);
-			case Env.chatServiceGOF("APP_JOIN"):
-			case Env.chatServiceGOF("CHANNEL_JOIN"):
+			case type.APP_JOIM:
+			case type.CHANNEL_JOIN:
 				if (user === botId) return requestPostLogin(event, loginResource);
 				return promise;
 			default:
@@ -70,6 +86,7 @@ class SlackGoogle extends BaseServer {
 			}
 		}
 	}
+
 	async chatServiceHandler(req, res, next) {
 		let {
 			challenge = null,
@@ -96,9 +113,50 @@ class SlackGoogle extends BaseServer {
 			return res.status(403).send("Error");
 		}
 	}
-	async getAccessToken(req, res) {
-		auth.getAccessToken(req, res);
+
+	async authGoogle(req, res) {
+		const { code, state } = req.query;
+		try {
+			const tokens = await getToken(code, state);
+			const accessTokenGoogle = tokens.access_token;
+			const refreshTokenGoogle = tokens.refresh_token;
+
+			// Xử lý profile user google
+			const profileUser = await getProfile(accessTokenGoogle);
+			const user = await GoogleAccount.query().findById(profileUser.sub);
+			if(!user){
+				await saveUserProfile(profileUser, refreshTokenGoogle);
+			}
+
+			// Xử lý danh sách calendar
+			const calendars = await getListCalendar(accessTokenGoogle);
+			const listCalendar = calendars.items;
+			await saveListCalendar(listCalendar);
+
+			// Xử lý channel slack
+			const {idChannel, idUser} = await decode(state);
+			let channel = await Channels.query().findById(idChannel);
+			if(!channel){
+				channel = await getInfoChannel(idChannel);
+				await saveInfoChannel(channel.channel)
+			}
+
+			// xử lí mảng để lưu
+			let idCalendars = [];
+			for (let calendar of listCalendar){
+				idCalendars.push(calendar.id )
+			}
+
+			// profileUser +  listAllCalendar
+			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
+			await SaveChannelsCalendar(idCalendars, idChannel);
+
+			return res.send("Oke");
+		} catch (err) {
+			return res.send("ERROR");
+		}
 	}
+
 	resourceServerHandler(req, res, next) {
 		try {
 			return res.status(204).send("OK");
@@ -117,5 +175,5 @@ module.exports = SlackGoogle;
 	});
 	await Template().init();
 	await pipeline.init();
-	pipeline.app.get("/watch-send-code", pipeline.getAccessToken);
+	pipeline.app.get("/auth/google", pipeline.authGoogle);
 })();

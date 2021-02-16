@@ -1,4 +1,4 @@
-const Env = require("../utils/Env");
+const Env = require("../../utils/Env");
 const jws = require("jws");
 /**
  * Tao jwt
@@ -8,11 +8,11 @@ const jws = require("jws");
  */
 const createJWS = (idChannel, idUser) => {
 	const iat = Math.floor(new Date());
-	const exp = iat + Env.resourceServerGet("DURATION_STATE");
+	const exp = iat + (Env.getOrFail("JWT_DURATION")/100);
 	const jwsEncode = jws.sign({
-		header: { alg: Env.resourceServerGet("ALG"), typ: "JWT" },
+		header: { alg: Env.getOrFail("JWT_ALG"), typ: "JWT" },
 		payload: { idChannel, idUser, iat, exp },
-		secret: Env.resourceServerGet("SECRET_STATE"),
+		secret: Env.getOrFail("JWT_KEY"),
 	});
 	return jwsEncode;
 };
@@ -24,8 +24,8 @@ const createJWS = (idChannel, idUser) => {
 const decodeJWS = async (jwsToken) => {
 	const verified = await jws.verify(
 		jwsToken,
-		Env.resourceServerGet("ALG"),
-		Env.resourceServerGet("SECRET_STATE")
+		Env.getOrFail("JWT_ALG"),
+		Env.getOrFail("JWT_KEY")
 	);
 	if (!verified) return false;
 	const jwsData = jws.decode(jwsToken);

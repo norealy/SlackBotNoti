@@ -1,6 +1,7 @@
 const Axios = require("axios");
 const EncodeJws = require("./Jws");
-const ENV = require("../utils/Env");
+const ENV = require("../../utils/Env");
+
 /**
  * Tao url request author
  * @param {string} idChannel
@@ -9,16 +10,16 @@ const ENV = require("../utils/Env");
  */
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
-		const scopeAzure = ENV.resourceServerGet("URL_SCOPE");
+		const scopeAzure = ENV.resourceServerGet("SCOPE");
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
 		let urlRequestAuthor = `${ENV.resourceServerGet(
-			"URL_API_AUTH"
-		)}${ENV.resourceServerGet("URL_API_AUTHOR")}`;
+			"API_URL_AUTH"
+		)}${ENV.resourceServerGet("API_AUTHOR")}`;
 		urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
 		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
 			"AZURE_REDIRECT"
 		)}`;
-		urlRequestAuthor += `&response_mode=query&scope=${scopeAzure}&state=${stateAzure}`;
+		urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
 		return urlRequestAuthor;
 	} catch (error) {
 		return "error";
@@ -45,8 +46,8 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 				blocks: viewLoginResource,
 			},
 			url:
-				ENV.chatServiceGet("URL_SLACK_API") +
-				ENV.chatServiceGet("MESSAGE_CHAT"),
+				ENV.chatServiceGet("API_URL") +
+				ENV.chatServiceGet("API_POST_MESSAGE"),
 		};
 		const { channel, inviter } = event;
 		options.data.blocks[2].elements[1].url = redirectMicrosoft(
@@ -81,7 +82,7 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 			headers: { Authorization: `Bearer ${tokenBot}` },
 			data: data,
 			url:
-				ENV.chatServiceGet("URL_SLACK_API") + ENV.chatServiceGet("VIEW_OPEN"),
+				ENV.chatServiceGet("API_URL") + ENV.chatServiceGet("API_VIEW_OPEN"),
 		};
 		const { channel_id, user_id } = body;
 		options.data.view.blocks[3].elements[1].url = redirectMicrosoft(

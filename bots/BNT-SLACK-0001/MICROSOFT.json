@@ -1,0 +1,17 @@
+{
+	"server": {
+		"PORT": 5002
+	},
+	"resourceServer": {
+		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
+		"AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
+		"AZURE_REDIRECT": "http://localhost:5002/auth/microsoft",
+		"SCOPE": "offline_access user.read calendars.readwrite",
+		"API_URL_AUTH":"https://login.microsoftonline.com/common/oauth2",
+		"API_TOKEN":"/v2.0/token",
+		"API_AUTHOR":"/v2.0/authorize",
+		"GRAPH_URL":"https://graph.microsoft.com",
+		"GRAPH_CALENDARS":"/v1.0/me/calendars",
+		"GRAPH_USER":"/v1.0/me"
+	}
+}

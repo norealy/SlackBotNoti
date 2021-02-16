@@ -4,10 +4,11 @@
   "description": "Microservice pipeline",
   "main": "server.js",
   "scripts": {
-    "start": "node slack/slack-google/index.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/",
-    "devGoogle": "nodemon slack/slack-google/index.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/",
-    "devWrapper": "nodemon slack/slack-wrapper/index.js SLACK-WRAPPER ./bots/BNT-SLACK-0001/",
-    "test": "mocha ./test/slack-google/*.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/ --exit"
+    "start": "node slack/google/index.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/",
+    "devSGG": "nodemon slack/google/index.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/",
+    "devSMC": "nodemon slack/microsoft/index.js SLACK-MICROSOFT ./bots/BNT-SLACK-0001/",
+    "devSWP": "nodemon slack/wrapper/index.js SLACK-WRAPPER ./bots/BNT-SLACK-0001/",
+    "test": "mocha ./test/slack/google/*.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/ --exit"
   },
   "dependencies": {
     "axios": "^0.21.1",

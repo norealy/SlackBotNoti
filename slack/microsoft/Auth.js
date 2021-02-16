@@ -1,12 +1,11 @@
 const qs = require("qs");
 const axios = require("axios");
-const Env = require("../utils/Env");
-const { decodeJWS } = require("./Jws");
-const MicrosoftAccount = require("../models/MicrosoftAccount");
-const MicrosoftCalendar = require("../models/MicrosoftCalendar");
-const MicrosoftAccountCalendar = require("../models/MicrosoftAccountCalendar");
-const Channels = require("../models/Channels");
-const ChannelsCalendar = require("../models/ChannelsCalendar");
+const Env = require("../../utils/Env");
+const MicrosoftAccount = require("../../models/MicrosoftAccount");
+const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
+const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
+const Channels = require("../../models/Channels");
+const ChannelsCalendar = require("../../models/ChannelsCalendar");
 
 /**
  * Lay tai nguyen tokens
@@ -31,14 +30,15 @@ const getToken = (code, state) => {
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 			data: qs.stringify(data),
 			url:
-				Env.resourceServerGet("URL_API_AUTH") +
-				Env.resourceServerGet("URL_API_TOKEN"),
+				Env.resourceServerGet("API_URL_AUTH") +
+				Env.resourceServerGet("API_TOKEN"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
 			.catch((err) => reject(err));
 	});
 };
+
 /**
  * Lay tai nguyen  danh sach calendar
  * @param {string} accessTokenAzure
@@ -50,14 +50,15 @@ const getListCalendar = (accessTokenAzure) => {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
 			url:
-				Env.resourceServerGet("URL_API") +
-				Env.resourceServerGet("URL_API_CALENDARS"),
+				Env.resourceServerGet("GRAPH_URL") +
+				Env.resourceServerGet("GRAPH_CALENDARS"),
 		};
 		axios(options1)
 			.then((res) => resolve(res.data))
 			.catch((error) => reject(error));
 	});
 };
+
 /**
  * Lay tai nguyen thong tin ve user Profile
  * @param {string} accessTokenAzure
@@ -69,14 +70,15 @@ const getProfileUser = (accessTokenAzure) => {
 			method: "GET",
 			headers: { Authorization: `Bearer ${accessTokenAzure}` },
 			url:
-				Env.resourceServerGet("URL_API") +
-				Env.resourceServerGet("URL_API_USER"),
+				Env.resourceServerGet("GRAPH_URL") +
+				Env.resourceServerGet("GRAPH_USER"),
 		};
 		axios(options)
 			.then((res) => resolve(res.data))
 			.catch((err) => reject(err));
 	});
 };
+
 /**
  * Luu thong tin vao database
  * @param {object} profileUser
@@ -108,6 +110,7 @@ const saveUserProfile = (profileUser, refreshTokenAzure) => {
 			});
 	});
 };
+
 /**
  *  Xu ly dua array calendar ve dang
  * @param {Array} allCalendar
@@ -126,6 +129,7 @@ const customFormatArrayCal = (allCalendar) => {
 	});
 	return arrayCal;
 };
+
 /**
  *  Luu array calendar vao database
  * @param {Array} allCalendar
@@ -158,19 +162,20 @@ const saveListCalendar = (allCalendar) => {
  * @returns {Promise}
  */
 const getNameChannel = (idChannel) => {
-	const tokenBot = Env.chatServiceGOF("TOKEN_BOT");
+	let url = Env.chatServiceGOF('API_URL');
+	url += Env.chatServiceGOF('API_CHANNEL_INFO');
+	url += idChannel;
 	const options = {
 		method: "POST",
-		headers: { Authorization: `Bearer ${tokenBot}` },
+		headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
 		data: {
 			channel: idChannel,
 		},
-		url: `${Env.chatServiceGet(
-			"URL_SLACK_API"
-		)}conversations.info?channel=${idChannel}`,
+		url,
 	};
 	return axios(options);
 };
+
 /**
  * Luu thong tin channel vao database
  * @param {string} idChannel
@@ -189,6 +194,7 @@ const saveInfoChannel = async (idChannel) => {
 	};
 	return Channels.query().insert(channel);
 };
+
 /**
  * Đưa về định dạng giống với bảng microsoft_account_calendar
  * @param {string} idAccount
@@ -207,6 +213,7 @@ const customFormatMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
 	});
 	return arrayAccCal;
 };
+
 /**
  * Luu thong tin MicrosoftAccountCalendar vao database
  * @param {string} idAccount
@@ -236,6 +243,7 @@ const saveMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
 		resolve();
 	});
 };
+
 /**
  * Đưa về định dạng giống với bảng channels_calendar
  * @param {string} idChannel
@@ -256,6 +264,7 @@ const customFormatChannelsCalendar = (idChannel, arrCalendar) => {
 	});
 	return arrayChannelCal;
 };
+
 /**
  * Luu thong tin saveChannelsCalendar vao database
  * @param {string} idChannel
@@ -283,44 +292,13 @@ const saveChannelsCalendar = (idChannel, arrCalendar) => {
 	});
 };
 
-const getAccessToken = async (req, res) => {
-	const { code, state } = req.query;
-	try {
-		const tokens = await getToken(code, state);
-		const accessTokenAzure = tokens.access_token;
-		const refreshTokenAzure = tokens.refresh_token;
-
-		// Thuc hien lay tai nguyen list calendars
-		const allData = await getListCalendar(accessTokenAzure);
-		const allCalendar = allData.value;
-
-		// Thuc hien lay tai nguyen user profile
-		const profileUser = await getProfileUser(accessTokenAzure);
-
-		// Thêm đối tượng microsoftAccount và bảng microsoft_account
-		await saveUserProfile(profileUser, refreshTokenAzure);
-
-		// Thêm list calendar vào bảng microsoft_calendar
-		await saveListCalendar(allCalendar);
-
-		// Luu  vào bảng microsoft_account_calendar
-		await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
-
-		// Lay Decode jwt de lay ra data
-		const { idChannel, idUser } = await decodeJWS(state);
-
-		// Thêm channelvào bảng channels
-		await saveInfoChannel(idChannel);
-
-		//  Luu channels calendar vào bảng channels_calendar
-		await saveChannelsCalendar(idChannel, allCalendar);
-
-		return res.send("Successful !");
-	} catch (e) {
-		return res.send("Login Error !");
-	}
-};
-
 module.exports = {
-	getAccessToken,
+	getToken,
+	getListCalendar,
+	getProfileUser,
+	saveUserProfile,
+	saveListCalendar,
+	saveInfoChannel,
+	saveMicrosoftAccountCalendar,
+	saveChannelsCalendar,
 };

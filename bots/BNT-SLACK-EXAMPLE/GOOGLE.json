@@ -1,0 +1,21 @@
+{
+	"server": {
+		"PORT": 5001
+	},
+	"resourceServer": {
+		"CLIENT_SECRET": "",
+		"CLIENT_ID": "",
+		"REDIRECT_URI": "",
+		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar",
+		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
+		"RESPONSE_TYPE": "code",
+		"ACCESS_TYPE": "offline",
+		"GRANT_TYPE": "authorization_code",
+		"API_URL": "https://www.googleapis.com",
+		"API_URL_OAUTH":"https://oauth2.googleapis.com",
+		"API_USER_INFO": "/oauth2/v3/userinfo",
+		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
+		"API_TOKEN": "/token",
+		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth"
+	}
+}

@@ -1,16 +1,27 @@
-const BaseServer = require("../common/BaseServer");
-const Env = require("../utils/Env");
-const Template = require("./views/Template");
-const Auth = require("./Auth");
+const BaseServer = require("../../common/BaseServer");
+const Env = require("../../utils/Env");
+const Template = require("../views/Template");
+const { decodeJWS } = require("./Jws");
+
+const {
+	getToken,
+	getListCalendar,
+	getProfileUser,
+	saveUserProfile,
+	saveListCalendar,
+	saveInfoChannel,
+	saveMicrosoftAccountCalendar,
+	saveChannelsCalendar,
+} = require("./Auth");
 const {
 	sendMessageLogin,
 	handlerSettingsMessage,
 } = require("./HandlerChatService");
+
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
 		this.microsoftAccess = this.microsoftAccess.bind(this);
-		this.authAccess = Auth.getAccessToken.bind(this);
 		this.template = Template();
 	}
 	/**
@@ -22,9 +33,10 @@ class SlackMicrosoft extends BaseServer {
 	handlerEvent(event, tokenBot) {
 		const { subtype, user } = event;
 		const { loginResource } = this.template;
+		const type = Env.chatServiceGOF("TYPE")
 		if (
-			subtype === "bot_add" ||
-			(subtype === "channel_join" && user === Env.chatServiceGOF("USER_BOT"))
+			subtype === type.BOT_ADD ||
+			(subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
 		)
 			return sendMessageLogin(event, loginResource, tokenBot);
 	}
@@ -54,7 +66,7 @@ class SlackMicrosoft extends BaseServer {
 			command = null,
 		} = req.body;
 		try {
-			const tokenBot = Env.chatServiceGet("TOKEN_BOT");
+			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
 
 			if (event) {
         await this.handlerEvent(event, tokenBot);
@@ -77,14 +89,48 @@ class SlackMicrosoft extends BaseServer {
 
 	async resourceServerHandler(req, res, next) {
 		try {
-			const tokenBot = Env.chatServiceGet("TOKEN_BOT");
+			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}
 	}
 
-	microsoftAccess(req, res, next) {
-		this.authAccess(req, res, next);
+	async microsoftAccess(req, res, next) {
+		const { code, state } = req.query;
+		try {
+			const tokens = await getToken(code, state);
+			const accessTokenAzure = tokens.access_token;
+			const refreshTokenAzure = tokens.refresh_token;
+
+			// Thuc hien lay tai nguyen list calendars
+			const allData = await getListCalendar(accessTokenAzure);
+			const allCalendar = allData.value;
+
+			// Thuc hien lay tai nguyen user profile
+			const profileUser = await getProfileUser(accessTokenAzure);
+
+			// Thêm đối tượng microsoftAccount và bảng microsoft_account
+			await saveUserProfile(profileUser, refreshTokenAzure);
+
+			// Thêm list calendar vào bảng microsoft_calendar
+			await saveListCalendar(allCalendar);
+
+			// Luu  vào bảng microsoft_account_calendar
+			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
+
+			// Lay Decode jwt de lay ra data
+			const { idChannel, idUser } = await decodeJWS(state);
+
+			// Thêm channelvào bảng channels
+			await saveInfoChannel(idChannel);
+
+			//  Luu channels calendar vào bảng channels_calendar
+			await saveChannelsCalendar(idChannel, allCalendar);
+
+			return res.send("Successful !");
+		} catch (e) {
+			return res.send("Login Error !");
+		}
 	}
 }
 

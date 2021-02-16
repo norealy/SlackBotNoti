@@ -57,11 +57,12 @@ class BaseServer {
 
 	/**
 	 * Load config from file in config folder(either depending on the service you want to run)
+	 * @param {string} name
 	 * @return {Promise<unknown>}
 	 */
-  loadConfig() {
+  loadConfig(name) {
     try{
-      const fileName = Path.join(this.instanceId + '.json');
+      const fileName = Path.join(name + '.json');
       return this.getConfig(fileName)
     } catch (err) {
 			throw new Error(`E_LOAD_CONFIG: ${err.message}`)
@@ -164,7 +165,8 @@ class BaseServer {
   }
 
   async init() {
-		let instanceEnv = await this.loadConfig();
+		const instanceEnv = await this.loadConfig(this.resourceServer);
+		instanceEnv.chatService = await this.loadConfig(this.chatService);
 		this.configEnv(instanceEnv);
 
     if(this.resourceServer === "WRAPPER" || /dev/.test(Env.get("NODE_ENV", "dev"))){

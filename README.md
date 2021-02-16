@@ -5,11 +5,16 @@
 ##2. File structure
 ```
 .
+├── bots                   //List bot
 ├── common                 //code module
 │   ├── BaseServer.js
 │   └── utils              //Utility file storage of the common code
 ├── config                 //config file application environment variables
-├── slack-google           //Pipeline of Slack and Google
+├── slack                  //Service Slack
+│   ├── google             //Pipeline of Slack and Google
+│   └── microsoft          //Pipeline of Slack and Microsoft
+│   └── wrapper            //Wrapper of Slack
+│   ...
 ├── scripts                //Various scripts for starting the server
 ├── test                   //Unit test files
 ├── utils                  //Utility file storage of the application
@@ -23,10 +28,10 @@
 ##3. How to start
 ###Slack - Google_calendar
 Start from command line
-- `node slack-google/index.js SLACK-GOOGLE ./config/`
+- `node slack/google/index.js SLACK-GOOGLE ./bots/BNT-SLACK-0001/`
 - For `SLACK-GOOGLE` in the above example, enter the key name described in
- `config/SLACK-GOOGLE.json` of the bot body. The value corresponding to that key is
- used to start the server.
+ `/bots/BNT-SLACK-0001/SLACK.json` and `/bots/BNT-SLACK-0001/GOOGLE.json` of
+ the bot body. The value corresponding to that key is used to start the server.
 
 ##4. Coding conventions
 - Folder names written as lower-case

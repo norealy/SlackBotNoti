@@ -8,6 +8,8 @@ const BodyParser = require('body-parser');
 const _ = require("lodash");
 const Env = require('../utils/Env');
 const Redis = require('../utils/redis');
+const Mongo = require('../utils/mongo');
+const LogModel = require('../models/mongo/LogModel');
 
 class BaseServer {
 	/**
@@ -55,11 +57,12 @@ class BaseServer {
 
 	/**
 	 * Load config from file in config folder(either depending on the service you want to run)
+	 * @param {string} name
 	 * @return {Promise<unknown>}
 	 */
-  loadConfig() {
+  loadConfig(name) {
     try{
-      const fileName = Path.join(this.instanceId + '.json');
+      const fileName = Path.join(name + '.json');
       return this.getConfig(fileName)
     } catch (err) {
 			throw new Error(`E_LOAD_CONFIG: ${err.message}`)
@@ -101,7 +104,7 @@ class BaseServer {
 	 */
 	configMySQL() {
 		return new Promise((resolve, reject) => {
-			const configMysql = require('./utils/mysql/Database')(Env.appRoot);
+			const configMysql = require('../config/MySQL')(Env.appRoot);
 			const mysql = knex(configMysql);
 			Model.knex(mysql);
 			mysql.raw("SELECT VERSION()")
@@ -162,11 +165,15 @@ class BaseServer {
   }
 
   async init() {
-		let instanceEnv = await this.loadConfig();
+		const instanceEnv = await this.loadConfig(this.resourceServer);
+		instanceEnv.chatService = await this.loadConfig(this.chatService);
 		this.configEnv(instanceEnv);
 
-    require('./utils/logger')(this.app, this.instanceId);
-		require('./utils/Axios');
+    if(this.resourceServer === "WRAPPER" || /dev/.test(Env.get("NODE_ENV", "dev"))){
+    	const mongoDB = await Mongo();
+			const logModel = LogModel(mongoDB);
+    	require('../utils/logger')(this.app, this.instanceId, logModel)
+    }
 
 		await this.configMySQL();
 		await this.configRedis();

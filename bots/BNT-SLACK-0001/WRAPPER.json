@@ -1,0 +1,8 @@
+{
+	"server": {
+		"PORT": 5000
+	},
+	"resourceServer": {
+
+	}
+}

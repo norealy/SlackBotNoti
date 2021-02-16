@@ -1,0 +1,16 @@
+{
+	"BOT_TOKEN": "",
+	"BOT_USER": "",
+	"API_URL": "https://slack.com/api",
+	"API_POST_MESSAGE": "/chat.postMessage",
+	"API_VIEW_PUBLISH": "/views.publish",
+	"API_VIEW_OPEN": "/views.open",
+	"API_VIEW_UPDATE": "/views.update",
+	"API_VIEW_PUSH": "/views.push",
+	"API_CHANNEL_INFO": "/conversations.info?channel=",
+	"TYPE": {
+		"BOT_ADD": "bot_add",
+		"APP_JOIN": "app_conversation_join",
+		"CHANNEL_JOIN": "channel_join"
+	}
+}

@@ -8,7 +8,7 @@ const jws = require("jws");
  */
 const createJWS = (idChannel, idUser) => {
 	const iat = Math.floor(new Date());
-	const exp = iat + (Env.getOrFail("JWT_DURATION")/100);
+	const exp = iat + (Env.getOrFail("JWT_DURATION")/1000);
 	const jwsEncode = jws.sign({
 		header: { alg: Env.getOrFail("JWT_ALG"), typ: "JWT" },
 		payload: { idChannel, idUser, iat, exp },

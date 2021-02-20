@@ -20,7 +20,7 @@ const redirectMicrosoft = (idChannel, idUser) => {
 			"AZURE_REDIRECT"
 		)}`;
 		urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
-		return urlRequestAuthor;
+    return urlRequestAuthor;
 	} catch (error) {
 		return "error";
 	}
@@ -55,12 +55,8 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 			inviter
 		);
 		Axios(options)
-			.then((result) => {
-				return resolve(result);
-			})
-			.catch((err) => {
-				return reject(err);
-			});
+			.then((result) => resolve(result))
+			.catch((err) => reject(err));
 	});
 };
 

@@ -2,6 +2,7 @@ const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
 const Template = require("../views/Template");
 const { decodeJWS } = require("./Jws");
+const AxiosConfig = require('./Axios');
 
 const {
 	getToken,
@@ -17,6 +18,11 @@ const {
 	sendMessageLogin,
 	handlerSettingsMessage,
 } = require("./HandlerChatService");
+const {
+  handlerCreated,
+  handlerUpdated,
+  handlerDeleted
+} = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
@@ -67,7 +73,6 @@ class SlackMicrosoft extends BaseServer {
 		} = req.body;
 		try {
 			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
-
 			if (event) {
         await this.handlerEvent(event, tokenBot);
 
@@ -87,33 +92,63 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 
-	async resourceServerHandler(req, res, next) {
-		try {
-			return res.status(204).send("OK");
-		} catch (e) {
-			return res.status(204).send("ERROR");
-		}
-	}
+  handlerNotifications(value) {
+    const { subscriptionId, changeType, resource } = value;
+    const { showEvent } = this.template;
+    switch (changeType) {
+      case "updated":
+        handlerUpdated(subscriptionId, resource, showEvent);
+        break
+      case "created":
+        handlerCreated(subscriptionId, resource, showEvent);
+        break
+      case "deleted":
+        handlerDeleted(subscriptionId, resource, showEvent);
+        break
+      default:
+        break
+    }
+  }
+
+  resourceServerHandler(req, res, next) {
+    try {
+      const { body = null, query = null } = req;
+      if (body.value) {
+        res.status(202).send("OK")
+        console.log(body.value[0]);
+        this.handlerNotifications(body.value[0]);
+        return null;
+      }
+      else if (query) {
+        const { validationToken } = query;
+        return res.status(200).send(validationToken);
+      }
+    } catch (e) {
+      console.log(e)
+      return res.status(403).send("ERROR");
+    }
+  }
 
 	async microsoftAccess(req, res, next) {
 		const { code, state } = req.query;
 		try {
 			const tokens = await getToken(code, state);
+      console.log(tokens)
 			const accessTokenAzure = tokens.access_token;
 			const refreshTokenAzure = tokens.refresh_token;
-
-			// Thuc hien lay tai nguyen list calendars
-			const allData = await getListCalendar(accessTokenAzure);
-			const allCalendar = allData.value;
 
 			// Thuc hien lay tai nguyen user profile
 			const profileUser = await getProfileUser(accessTokenAzure);
 
 			// Thêm đối tượng microsoftAccount và bảng microsoft_account
-			await saveUserProfile(profileUser, refreshTokenAzure);
+			await saveUserProfile(profileUser, refreshTokenAzure,accessTokenAzure);
+
+			// Thuc hien lay tai nguyen list calendars
+			const allData = await getListCalendar(profileUser.id);
+			const allCalendar = allData.value;
 
 			// Thêm list calendar vào bảng microsoft_calendar
-			await saveListCalendar(allCalendar);
+			await saveListCalendar(allCalendar,profileUser.id);
 
 			// Luu  vào bảng microsoft_account_calendar
 			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
@@ -129,6 +164,7 @@ class SlackMicrosoft extends BaseServer {
 
 			return res.send("Successful !");
 		} catch (e) {
+      console.log(e)
 			return res.send("Login Error !");
 		}
 	}
@@ -146,4 +182,5 @@ module.exports = SlackMicrosoft;
 	await Template().init();
 	await pipeline.init();
 	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
+  AxiosConfig();
 })();

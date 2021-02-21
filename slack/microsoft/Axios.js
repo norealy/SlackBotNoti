@@ -24,13 +24,10 @@ module.exports = function () {
     console.log('Before REQUEST: ', config);
     const { url = null, headers = null } = config;
     const {Authorization = null} = config.headers;
-    console.log("Authorization:",Authorization);
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {
       const idAccount = headers['X-Microsoft-AccountId'];
-      console.log("idAccount", idAccount);
       try {
         let accessToken = await getValueRedis(idAccount);
-        console.log("accessToken", accessToken);
         if (accessToken) {
           config.headers['Authorization'] = `Bearer ${accessToken}`;
           return config;
@@ -49,11 +46,8 @@ module.exports = function () {
 
   //  Handler RESPONSE
   Axios.interceptors.response.use(function (response) {
-    console.log('RESPONSE TIME: ', new Date().toISOString());
-    // console.log('Response:',response);
     return response;
   }, async function (error) {
-    console.log("ERROR RESPONSE CONFIG: ", error);
     console.log("ERROR RESPONSE DATA: ", error.response.data);
     try {
       if (error.response.data.error.code === "InvalidAuthenticationToken") {

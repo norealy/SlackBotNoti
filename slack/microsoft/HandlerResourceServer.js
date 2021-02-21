@@ -86,7 +86,6 @@ const checkEventExist = async ( idEvent ,idUser) => {
   if (eventRedis) {
     const data = JSON.parse(eventRedis);
     const checked = _.isEqual(event, data);
-    console.log("checked:", checked);
     if (checked) {
       return false
     }
@@ -97,13 +96,12 @@ const checkEventExist = async ( idEvent ,idUser) => {
 
 
 const handlerCreated = async (idSub, resource, showEvent) => {
-  console.log("====================CREATED====================");
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
   const idCal = await getValueRedis(idSub);
   const event = await checkEventExist( idEvent , idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
   Promise.all(arrChenCal.map(item => sendMessage(1, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Create ok")
@@ -111,13 +109,12 @@ const handlerCreated = async (idSub, resource, showEvent) => {
 }
 
 const handlerUpdated = async (idSub, resource, showEvent) => {
-  console.log("====================Update====================");
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
   const idCal = await getValueRedis(idSub);
   const event = await checkEventExist( idEvent , idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
   Promise.all(arrChenCal.map(item => sendMessage(2, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Update ok")
@@ -125,13 +122,12 @@ const handlerUpdated = async (idSub, resource, showEvent) => {
 }
 
 const handlerDeleted = async (idSub, resource, showEvent) => {
-  console.log("====================DELETE====================");
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
   const idCal = await getValueRedis(idSub);
   const event = await checkEventExist( idEvent , idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
   Promise.all(arrChenCal.map(item => sendMessage(3, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Delete ok")

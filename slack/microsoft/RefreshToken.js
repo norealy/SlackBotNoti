@@ -20,7 +20,6 @@ function getRefreshToken(idAccount) {
 
 const createAccessToken = async (idAccount) => {
   const refreshToken = await getRefreshToken(idAccount);
-  console.log("===========refreshToken============");
   const data = {
     "grant_type": "refresh_token",
     "refresh_token": refreshToken,
@@ -28,6 +27,7 @@ const createAccessToken = async (idAccount) => {
     "client_secret": Env.resourceServerGet("AZURE_SECRET"),
     "scope": Env.resourceServerGet("SCOPE")
   }
+
   const options = {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },

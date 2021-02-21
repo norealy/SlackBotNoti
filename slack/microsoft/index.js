@@ -115,7 +115,6 @@ class SlackMicrosoft extends BaseServer {
       const { body = null, query = null } = req;
       if (body.value) {
         res.status(202).send("OK")
-        console.log(body.value[0]);
         this.handlerNotifications(body.value[0]);
         return null;
       }
@@ -124,7 +123,6 @@ class SlackMicrosoft extends BaseServer {
         return res.status(200).send(validationToken);
       }
     } catch (e) {
-      console.log(e)
       return res.status(403).send("ERROR");
     }
   }
@@ -133,7 +131,6 @@ class SlackMicrosoft extends BaseServer {
 		const { code, state } = req.query;
 		try {
 			const tokens = await getToken(code, state);
-      console.log(tokens)
 			const accessTokenAzure = tokens.access_token;
 			const refreshTokenAzure = tokens.refresh_token;
 

@@ -2,6 +2,7 @@ const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
 const Template = require("../views/Template");
 const { decodeJWS } = require("./Jws");
+const AxiosConfig = require('./Axios');
 
 const {
 	getToken,
@@ -16,7 +17,16 @@ const {
 const {
 	sendMessageLogin,
 	handlerSettingsMessage,
+  handlerAddEvent,
+  handlerBlocksActions,
+  submitAddEvent,
+  viewClosed
 } = require("./HandlerChatService");
+const {
+  handlerCreated,
+  handlerUpdated,
+  handlerDeleted
+} = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
@@ -27,10 +37,9 @@ class SlackMicrosoft extends BaseServer {
 	/**
 	 * Xu ly cac event
 	 * @param {object} event
-	 * @param {string} tokenBot
 	 * @returns {Promise}
 	 */
-	handlerEvent(event, tokenBot) {
+	handlerEvent(event) {
 		const { subtype, user } = event;
 		const { loginResource } = this.template;
 		const type = Env.chatServiceGOF("TYPE")
@@ -38,21 +47,40 @@ class SlackMicrosoft extends BaseServer {
 			subtype === type.BOT_ADD ||
 			(subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
 		)
-			return sendMessageLogin(event, loginResource, tokenBot);
+			return sendMessageLogin(event, loginResource);
 	}
 	/**
 	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
 	 * @param {object} body
-	 * @param {string} tokenBot
 	 * @returns {Promise}
 	 */
-	handlerCommand(body, tokenBot) {
+	handlerCommand(body) {
 		let text = body.text.trim();
-		const { systemSetting } = this.template;
+		const { systemSetting, addEvent} = this.template;
 		const result = new Promise((resolve) => resolve(body));
 		switch (text) {
 			case "settings":
-				return handlerSettingsMessage(systemSetting, body, tokenBot);
+				return handlerSettingsMessage(systemSetting, body);
+      case "add-event":
+        console.log(body);
+        return handlerAddEvent(body,this.template);
+			default:
+				return result;
+		}
+	}
+
+	handlerPayload(payload,res) {
+    payload = JSON.parse(payload);
+    const { type=null } = payload;
+    console.log("payload:",payload)
+		const result = new Promise((resolve) => resolve(payload));
+		switch (type) {
+      case "block_actions":
+        return handlerBlocksActions(payload, this.template);
+			case "view_submission":
+        return submitAddEvent(payload,res);
+      // case "view_closed":
+      //   return viewClosed(res);
 			default:
 				return result;
 		}
@@ -66,34 +94,63 @@ class SlackMicrosoft extends BaseServer {
 			command = null,
 		} = req.body;
 		try {
-			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
-
 			if (event) {
-        await this.handlerEvent(event, tokenBot);
+        await this.handlerEvent(event);
 
 			} else if (command && /^\/cal$/.test(command)) {
-        await this.handlerCommand(req.body, tokenBot);
+        await this.handlerCommand(req.body);
+
+      } else if (payload) {
+        await this.handlerPayload(payload,res);
 
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
 
-			const message = `Thank you call BOT-NOTI !`;
-			return res.status(200).send(message);
+			// const message = `Thank you call BOT-NOTI !`;
+			// return res.status(200).send(message);
 		} catch (error) {
+      console.log(error);
 			const message = `Thank you call BOT-NOTI !
         If you want assistance please enter: /cal --help`;
 			return res.status(403).send(message);
 		}
 	}
 
-	async resourceServerHandler(req, res, next) {
-		try {
-			return res.status(204).send("OK");
-		} catch (e) {
-			return res.status(204).send("ERROR");
-		}
-	}
+  handlerNotifications(value) {
+    const { subscriptionId, changeType, resource } = value;
+    const { showEvent } = this.template;
+    switch (changeType) {
+      case "updated":
+        handlerUpdated(subscriptionId, resource, showEvent);
+        break
+      case "created":
+        handlerCreated(subscriptionId, resource, showEvent);
+        break
+      case "deleted":
+        handlerDeleted(subscriptionId, resource, showEvent);
+        break
+      default:
+        break
+    }
+  }
+
+  resourceServerHandler(req, res, next) {
+    try {
+      const { body = null, query = null } = req;
+      if (body.value) {
+        res.status(202).send("OK")
+        this.handlerNotifications(body.value[0]);
+        return null;
+      }
+      else if (query) {
+        const { validationToken } = query;
+        return res.status(200).send(validationToken);
+      }
+    } catch (e) {
+      return res.status(403).send("ERROR");
+    }
+  }
 
 	async microsoftAccess(req, res, next) {
 		const { code, state } = req.query;
@@ -102,18 +159,18 @@ class SlackMicrosoft extends BaseServer {
 			const accessTokenAzure = tokens.access_token;
 			const refreshTokenAzure = tokens.refresh_token;
 
-			// Thuc hien lay tai nguyen list calendars
-			const allData = await getListCalendar(accessTokenAzure);
-			const allCalendar = allData.value;
-
 			// Thuc hien lay tai nguyen user profile
 			const profileUser = await getProfileUser(accessTokenAzure);
 
 			// Thêm đối tượng microsoftAccount và bảng microsoft_account
-			await saveUserProfile(profileUser, refreshTokenAzure);
+			await saveUserProfile(profileUser, refreshTokenAzure,accessTokenAzure);
+
+			// Thuc hien lay tai nguyen list calendars
+			const allData = await getListCalendar(profileUser.id);
+			const allCalendar = allData.value;
 
 			// Thêm list calendar vào bảng microsoft_calendar
-			await saveListCalendar(allCalendar);
+			await saveListCalendar(allCalendar,profileUser.id);
 
 			// Luu  vào bảng microsoft_account_calendar
 			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
@@ -129,6 +186,7 @@ class SlackMicrosoft extends BaseServer {
 
 			return res.send("Successful !");
 		} catch (e) {
+      console.log(e)
 			return res.send("Login Error !");
 		}
 	}
@@ -146,4 +204,5 @@ module.exports = SlackMicrosoft;
 	await Template().init();
 	await pipeline.init();
 	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
+  AxiosConfig();
 })();

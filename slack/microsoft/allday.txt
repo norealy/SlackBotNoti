@@ -1,0 +1,116 @@
+{
+    "reminderMinutesBeforeStart": 15,
+    "isReminderOn": true,
+    "subject": "RR",
+    "isAllDay": false,
+    "start": {
+        "dateTime": "2021-02-20T16:00:00.0000000",
+        "timeZone": "UTC"
+    },
+    "end": {
+        "dateTime": "2021-02-25T16:30:00.0000000",
+        "timeZone": "UTC"
+    },
+    "location": {
+        "displayName": "Harry's Bar",
+        "locationType": "default",
+        "uniqueId": "Harry's Bar",
+        "uniqueIdType": "private"
+    },
+    "recurrence": {
+        "pattern": {
+            "type": "absoluteMonthly",
+            "interval": 1,
+            "month": 0,
+            "dayOfMonth": 24,
+            "firstDayOfWeek": "sunday",
+            "index": "first"
+        },
+        "range": {
+            "type": "endDate",
+            "startDate": "2021-02-24",
+            "endDate": "2022-02-24",
+            "recurrenceTimeZone": "SE Asia Standard Time",
+            "numberOfOccurrences": 0
+        }
+    }
+}
+// ngay
+"recurrence": {
+                "pattern": {
+                    "type": "daily",
+                    "interval": 1,
+                    "month": 0,
+                    "dayOfMonth": 0,
+                    "firstDayOfWeek": "sunday",
+                    "index": "first"
+                },
+                "range": {
+                    "type": "endDate",
+                    "startDate": "2021-02-23",
+                    "endDate": "2021-05-23",
+                    "recurrenceTimeZone": "SE Asia Standard Time",
+                    "numberOfOccurrences": 0
+                }
+            },
+
+
+            // Tuan
+            "recurrence": {
+                "pattern": {
+                    "type": "weekly",
+                    "interval": 1,
+                    "month": 0,
+                    "dayOfMonth": 0,
+                    "daysOfWeek": [
+                        "monday"
+                    ],
+                    "firstDayOfWeek": "sunday",
+                    "index": "first"
+                },
+                "range": {
+                    "type": "endDate",
+                    "startDate": "2021-02-22",
+                    "endDate": "2021-08-16",
+                    "recurrenceTimeZone": "SE Asia Standard Time",
+                    "numberOfOccurrences": 0
+                }
+            },
+
+// Thang
+"recurrence": {
+        "pattern": {
+            "type": "absoluteMonthly",
+            "interval": 1,
+            "month": 0,
+            "dayOfMonth": 24,
+            "firstDayOfWeek": "sunday",
+            "index": "first"
+        },
+        "range": {
+            "type": "endDate",
+            "startDate": "2021-02-24",
+            "endDate": "2022-02-24",
+            "recurrenceTimeZone": "SE Asia Standard Time",
+            "numberOfOccurrences": 0
+        }
+    }
+
+// nam
+"recurrence": {
+                "pattern": {
+                    "type": "absoluteYearly",
+                    "interval": 1,
+                    "month": 2,
+                    "dayOfMonth": 22,
+                    "firstDayOfWeek": "sunday",
+                    "index": "first"
+                },
+                "range": {
+                    "type": "noEnd",
+                    "startDate": "2021-02-22",
+                    "endDate": "0001-01-01",
+                    "recurrenceTimeZone": "SE Asia Standard Time",
+                    "numberOfOccurrences": 0
+                }
+            },

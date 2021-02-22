@@ -1,7 +1,9 @@
 {
+	"type": "modal",
+	"notify_on_close": true,
 	"title": {
 		"type": "plain_text",
-		"text": "BOT NOTI CALENDARS ",
+		"text": "My App",
 		"emoji": true
 	},
 	"submit": {
@@ -9,7 +11,6 @@
 		"text": "Submit",
 		"emoji": true
 	},
-	"type": "modal",
 	"close": {
 		"type": "plain_text",
 		"text": "Cancel",
@@ -20,40 +21,53 @@
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Edit event calendar",
+				"text": "Add event calendar",
 				"emoji": true
 			}
 		},
 		{
 			"type": "section",
+			"block_id": "select_calendar",
 			"text": {
 				"type": "mrkdwn",
 				"text": "Calendar :"
 			},
 			"accessory": {
-				"type": "users_select",
+				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Select a calendar",
+					"text": "Select an item",
 					"emoji": true
 				},
-				"action_id": "users_select-action"
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-0"
+					}
+				],
+				"action_id": "select_calendar"
 			}
 		},
 		{
 			"type": "input",
+			"block_id": "input_title",
 			"element": {
 				"type": "plain_text_input",
-				"action_id": "plain_text_input-action"
+				"action_id": "input-action"
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Edit a title",
+				"text": "Add a title",
 				"emoji": true
 			}
 		},
 		{
 			"type": "section",
+			"block_id": "check_allday",
 			"text": {
 				"type": "plain_text",
 				"text": " "
@@ -74,23 +88,129 @@
 		},
 		{
 			"type": "section",
+			"block_id": "select-date-start",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Date of the event"
+				"text": "Date time event"
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-02-18",
+				"initial_date": "2021-02-28",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Date event at ",
+					"text": "Select a date",
 					"emoji": true
 				},
-				"action_id": "datepicker-action"
+				"action_id": "datepicker-action-start"
+			}
+		},
+		{
+			"type": "section",
+			"block_id": "select-date-end",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Date end event"
+			},
+			"accessory": {
+				"type": "datepicker",
+				"initial_date": "2021-02-28",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select a date",
+					"emoji": true
+				},
+				"action_id": "datepicker-action-end"
+			}
+		},
+		{
+			"type": "section",
+			"block_id": "select-time-start",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Time start event"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "02:00 AM",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-0"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-1"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-2"
+					}
+				],
+				"action_id": "time-start-action"
+			}
+		},
+		{
+			"type": "section",
+			"block_id": "select-time-end",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Time end event"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "02:00 AM",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-0"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-1"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*",
+							"emoji": true
+						},
+						"value": "value-2"
+					}
+				],
+				"action_id": "time-end-action"
 			}
 		},
 		{
 			"type": "input",
+			"block_id": "input_location",
 			"element": {
 				"type": "plain_text_input",
 				"action_id": "plain_text_input-action"
@@ -103,6 +223,7 @@
 		},
 		{
 			"type": "input",
+			"block_id": "select_everyday",
 			"element": {
 				"type": "static_select",
 				"placeholder": {
@@ -114,7 +235,7 @@
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Every day",
+							"text": "Nomal",
 							"emoji": true
 						},
 						"value": "value-0"
@@ -122,7 +243,7 @@
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Every week",
+							"text": "Every day",
 							"emoji": true
 						},
 						"value": "value-1"
@@ -130,10 +251,18 @@
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Every month",
+							"text": "Every week",
 							"emoji": true
 						},
 						"value": "value-2"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Every month",
+							"emoji": true
+						},
+						"value": "value-3"
 					}
 				],
 				"action_id": "static_select-action"
@@ -146,6 +275,7 @@
 		},
 		{
 			"type": "input",
+			"block_id": "select_before_notification",
 			"element": {
 				"type": "static_select",
 				"placeholder": {

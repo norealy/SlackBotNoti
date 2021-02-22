@@ -33,10 +33,9 @@ class SlackMicrosoft extends BaseServer {
 	/**
 	 * Xu ly cac event
 	 * @param {object} event
-	 * @param {string} tokenBot
 	 * @returns {Promise}
 	 */
-	handlerEvent(event, tokenBot) {
+	handlerEvent(event) {
 		const { subtype, user } = event;
 		const { loginResource } = this.template;
 		const type = Env.chatServiceGOF("TYPE")
@@ -44,21 +43,20 @@ class SlackMicrosoft extends BaseServer {
 			subtype === type.BOT_ADD ||
 			(subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
 		)
-			return sendMessageLogin(event, loginResource, tokenBot);
+			return sendMessageLogin(event, loginResource);
 	}
 	/**
 	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
 	 * @param {object} body
-	 * @param {string} tokenBot
 	 * @returns {Promise}
 	 */
-	handlerCommand(body, tokenBot) {
+	handlerCommand(body) {
 		let text = body.text.trim();
 		const { systemSetting } = this.template;
 		const result = new Promise((resolve) => resolve(body));
 		switch (text) {
 			case "settings":
-				return handlerSettingsMessage(systemSetting, body, tokenBot);
+				return handlerSettingsMessage(systemSetting, body);
 			default:
 				return result;
 		}
@@ -74,10 +72,10 @@ class SlackMicrosoft extends BaseServer {
 		try {
 			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
 			if (event) {
-        await this.handlerEvent(event, tokenBot);
+        await this.handlerEvent(event);
 
 			} else if (command && /^\/cal$/.test(command)) {
-        await this.handlerCommand(req.body, tokenBot);
+        await this.handlerCommand(req.body);
 
 			} else if (challenge) {
 				return res.status(200).send(challenge);
@@ -161,7 +159,6 @@ class SlackMicrosoft extends BaseServer {
 
 			return res.send("Successful !");
 		} catch (e) {
-      console.log(e)
 			return res.send("Login Error !");
 		}
 	}

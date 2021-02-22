@@ -21,7 +21,6 @@ module.exports = function () {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
     console.log('Start time: ', new Date().toISOString());
-    console.log('Before REQUEST: ', config);
     const { url = null, headers = null } = config;
     const {Authorization = null} = config.headers;
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {
@@ -48,7 +47,6 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
-    console.log("ERROR RESPONSE DATA: ", error.response.data);
     try {
       if (error.response.data.error.code === "InvalidAuthenticationToken") {
         const idAccount = error.config.headers['X-Microsoft-AccountId'];

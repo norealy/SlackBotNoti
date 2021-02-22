@@ -35,7 +35,13 @@ function getValueRedis(key) {
     });
   })
 }
-
+/**
+ *
+ * @param {number} lv
+ * @param {object} event
+ * @param {string} idChan
+ * @param {json} messageFormat
+ */
 const sendMessage = async (lv, event, idChan, messageFormat) => {
   const tokenBot = Env.chatServiceGet("BOT_TOKEN");
   const options = {
@@ -70,9 +76,12 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   return axios(options)
 }
 
-
+/**
+ *
+ * @param {string} idEvent
+ * @param {string} idUser
+ */
 const checkEventExist = async ( idEvent ,idUser) => {
-
   let accessToken = await getValueRedis(idUser);
   let result = await getEvent(idUser, idEvent, accessToken);
   const { status = null } = result;
@@ -94,7 +103,12 @@ const checkEventExist = async ( idEvent ,idUser) => {
   return event;
 }
 
-
+/**
+ *
+ * @param {string} idSub
+ * @param {object} resource
+ * @param {json} showEvent
+ */
 const handlerCreated = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
@@ -107,7 +121,12 @@ const handlerCreated = async (idSub, resource, showEvent) => {
       console.log("Create ok")
     })
 }
-
+/**
+ *
+ * @param {string} idSub
+ * @param {object} resource
+ * @param {json} showEvent
+ */
 const handlerUpdated = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
@@ -120,7 +139,12 @@ const handlerUpdated = async (idSub, resource, showEvent) => {
       console.log("Update ok")
     })
 }
-
+/**
+ *
+ * @param {string} idSub
+ * @param {object} resource
+ * @param {json} showEvent
+ */
 const handlerDeleted = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];

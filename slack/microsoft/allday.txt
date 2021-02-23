@@ -42,15 +42,11 @@
                     "interval": 1,
                     "month": 0,
                     "dayOfMonth": 0,
-                    "firstDayOfWeek": "sunday",
-                    "index": "first"
                 },
                 "range": {
                     "type": "endDate",
                     "startDate": "2021-02-23",
-                    "endDate": "2021-05-23",
-                    "recurrenceTimeZone": "SE Asia Standard Time",
-                    "numberOfOccurrences": 0
+                    "endDate": "2021-05-23"
                 }
             },
 

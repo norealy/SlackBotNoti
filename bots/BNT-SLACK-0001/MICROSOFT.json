@@ -16,6 +16,6 @@
 		"GRAPH_SUB":"/v1.0/subscriptions",
     "GRAPH_MY_EVENT":"/v1.0/me/events",
     "SUB_CHANGETPYE":"created,updated,deleted",
-		"SUB_NOTIFICATION_URL": "https://8307bb93258d.ngrok.io/watch/resource-server"
+		"SUB_NOTIFICATION_URL": "https://7c054e7a2ed3.ngrok.io/watch/resource-server"
 	}
 }

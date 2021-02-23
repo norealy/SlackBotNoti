@@ -20,7 +20,7 @@ const {
   handlerAddEvent,
   handlerBlocksActions,
   submitAddEvent,
-  viewClosed
+  customDatetime,
 } = require("./HandlerChatService");
 const {
   handlerCreated,
@@ -33,6 +33,7 @@ class SlackMicrosoft extends BaseServer {
 		super(instanceId, opt);
 		this.microsoftAccess = this.microsoftAccess.bind(this);
 		this.template = Template();
+    this.timePicker = customDatetime();
 	}
 	/**
 	 * Xu ly cac event
@@ -62,25 +63,22 @@ class SlackMicrosoft extends BaseServer {
 			case "settings":
 				return handlerSettingsMessage(systemSetting, body);
       case "add-event":
-        return handlerAddEvent(body,this.template);
+        return handlerAddEvent(body,this.template, this.timePicker);
 			default:
 				return result;
 		}
 	}
 
-	async handlerPayload(payload,res) {
+	handlerPayload(payload,res) {
     payload = JSON.parse(payload);
     const { type=null } = payload;
     console.log("payload:",payload)
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
       case "block_actions":
-        return handlerBlocksActions(payload, this.template);
+        return handlerBlocksActions(payload, this.template , this.timePicker);
 			case "view_submission":
-        await submitAddEvent(payload);
-        return res.status(200).send({
-          "response_action": "clear"
-        });
+        return submitAddEvent(payload);
       // case "view_closed":
       //   return viewClosed(res);
 			default:
@@ -104,13 +102,14 @@ class SlackMicrosoft extends BaseServer {
 
       } else if (payload) {
         await this.handlerPayload(payload,res);
+        // return res.status(200).send("Ok");
 
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
 
-			// const message = `Thank you call BOT-NOTI !`;
-			// return res.status(200).send(message);
+			const message = `Thank you call BOT-NOTI !`;
+			return res.status(200).send(message);
 		} catch (error) {
       console.log(error);
 			const message = `Thank you call BOT-NOTI !
@@ -188,7 +187,7 @@ class SlackMicrosoft extends BaseServer {
 
 			return res.send("Successful !");
 		} catch (e) {
-      console.log(e)
+      console.log(e.response.data.error)
 			return res.send("Login Error !");
 		}
 	}

@@ -21,7 +21,6 @@ module.exports = function () {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
     console.log('Start time: ', new Date().toISOString());
-    // console.log('Before REQUEST: ', config);
     const { url = null, headers = null } = config;
     const {Authorization = null} = config.headers;
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {
@@ -33,6 +32,7 @@ module.exports = function () {
           return config;
         }
         accessToken = await createAccessToken(idAccount);
+        console.log(accessToken);
         Redis.client.setex(idAccount, 60 * 59, accessToken);
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       } catch (error) {

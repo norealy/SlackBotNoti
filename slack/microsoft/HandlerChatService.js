@@ -5,12 +5,14 @@ const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 
-const handlerAddEvent = async (body, template) => {
+const handlerAddEvent = async (body, template, timePicker) => {
+  // console.log('Start time: ', new Date().toISOString());
   const { trigger_id = null, channel_id = null } = body;
   const { addEvent } = template;
+  const addView = Object.assign({},addEvent);
   const data = {
     trigger_id: trigger_id,
-    view: addEvent,
+    view: addView,
   };
   const options = {
     method: "POST",
@@ -24,7 +26,6 @@ const handlerAddEvent = async (body, template) => {
   for (let i = 0; i < chanCals.length; i++) {
     const item = chanCals[i];
     const calendar = await MicrosoftCalendar.query().findById(item.id_calendar);
-    console.log(calendar);
     const selectCalendars = {
       "text": {
         "type": "plain_text",
@@ -35,37 +36,39 @@ const handlerAddEvent = async (body, template) => {
     }
     options.data.view.blocks[1].accessory.options.push(selectCalendars);
   }
-  const timePicker = customDatetime();
   options.data.view.blocks[6].accessory.options = timePicker;
   options.data.view.blocks[7].accessory.options = timePicker;
   options.data.view.blocks.splice(5, 1);
-  const result = await Axios(options);
-  console.log(result);
-  return result;
+  // console.log('End time: ', new Date().toISOString());
+  return Axios(options);;
 };
 
-const handlerBlocksActions = (payload, template) => {
+const handlerBlocksActions = async (payload, template) => {
+  console.log('Start time: ', new Date().toISOString());
   const { addEvent } = template;
-
-  const { view = null } = payload;
+  console.log(addEvent);
+  let addView = Object.assign({},addEvent);
+  console.log("ADD VIEW:",JSON.stringify(addView));
+  console.log('PAYLOAD VIEW:',JSON.stringify(payload.view));
+  addView.blocks = payload.view.blocks;
 
   const { action_id = null, selected_options = null } = payload.actions[0];
   if (action_id === "allday" && selected_options.length === 0) {
     console.log("all day false");
-    view.blocks.splice(5, 1);
-    view.blocks.splice(5, 0, addEvent.blocks[6]);
-    view.blocks.splice(6, 0, addEvent.blocks[7]);
+    addView.blocks.splice(5, 1);
+    addView.blocks.splice(5, 0, addEvent.blocks[7]);
+    addView.blocks.splice(5, 0, addEvent.blocks[6]);
   }
 
   else if (action_id === "allday" && selected_options.length > 0) {
     console.log("all day true");
-    view.blocks.splice(5, 2);
-    view.blocks.splice(5, 0, addEvent.blocks[5]);
+    addView.blocks.splice(5, 2);
+    addView.blocks.splice(5, 0, addEvent.blocks[5]);
   }
 
   let data = {
-    "view_id": view.id,
-    "view": view
+    "view_id": payload["container"]["view_id"],
+    "view": addView
   }
   const options = {
     method: 'POST',
@@ -73,12 +76,55 @@ const handlerBlocksActions = (payload, template) => {
     data: data,
     url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`
   };
-
-  return Axios(options);
-
+  console.log(data.view.blocks);
+  return new Promise((resolve,reject)=>{
+    Axios(options).then((resp)=>{
+      console.log(resp.data);
+      console.log('End time: ', new Date().toISOString());
+      return resolve(data);
+    }).catch((err)=>{
+      // console.log(err.data);
+      console.log('End time: ', new Date().toISOString());
+      return reject(err);
+    });
+  });
 };
 
-const submitAddEvent = async (payload) => {
+Date.prototype.addMonth = function (months) {
+  let month = new Date(this.valueOf());
+  month.setMonth(month.getMonth() + months);
+  return month;
+}
+
+const getRecurrence = (type) => {
+  const recurrence = {
+    "pattern": {
+      "type": "absoluteMonthly",
+      "interval": 1,
+      "dayOfMonth": 24
+    },
+    "range": {
+      "startDate": "2021-02-24",
+      "endDate": "2022-02-24"
+    }
+  }
+
+  switch(type){
+    case "daily":
+      recurrence.pattern.dayOfMonth = 0;
+      break;
+    case "weekly":
+      // let month = recurrence.range.endDate.split('-');
+      // month[1] = month[1] + 1;
+      // recurrence.range.endDate = ;
+      break;
+    default:
+      break;
+  }
+  return recurrence;
+}
+
+const submitAddEvent = async (payload,res) => {
   const { values } = payload.view.state;
   const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]
@@ -96,49 +142,33 @@ const submitAddEvent = async (payload) => {
   }
   const data =
   {
-    "reminderMinutesBeforeStart": 15,//values['select_before_notification']['static_select-action']['selected_option'].value,
+    "reminderMinutesBeforeStart": values['select_before_notification']['static_select-action'].selected_option.value,
     "isReminderOn": true,
     "subject": values['input_title']['input-action'].value,
     "isAllDay": allDay,
     "start": {
       "dateTime": `${dateStart}T${timeStart}:00.0000000`,
-      "timeZone": "UTC"
+      "timeZone": "Asia/Ho_Chi_Minh"
     },
     "end": {
       "dateTime": `${dateEnd}T${timeEnd}:00.0000000`,
-      "timeZone": "UTC"
+      "timeZone": "Asia/Ho_Chi_Minh"
     },
     "location": {
       "displayName": values['input_location']['plain_text_input-action'].value,
     }
   }
-  console.log(data);
-  const recurrence = {
-    "pattern": {
-      "type": "absoluteMonthly",
-      "interval": 1,
-      "month": 0,
-      "dayOfMonth": 24,
-      "firstDayOfWeek": "sunday",
-      "index": "first"
-    },
-    "range": {
-      "type": "endDate",
-      "startDate": "2021-02-24",
-      "endDate": "2022-02-24",
-      "recurrenceTimeZone": "SE Asia Standard Time",
-      "numberOfOccurrences": 0
-    }
-  }
+  console.log(values['select_before_notification']['static_select-action'].selected_option);
+
   const idCalendar = values["select_calendar"]["select_calendar"]["selected_option"].value;
 
-  const accountCal = await MicrosoftAccountCalendar.query().where({ id_calendar: idCalendar });
+  const accountCal = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
 
   const options = {
     method: 'POST',
-    headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${accessTokenAzure}` },
+    headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': accountCal.id_account },
     data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/v1.0/me/calendars/${req.params.id}/events`
+    url: `https://graph.microsoft.com/v1.0/me/calendars/${idCalendar}/events`
   };
   // Env.resourceServerGOF("GRAPH_URL") +
   // Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
@@ -158,8 +188,11 @@ const submitAddEvent = async (payload) => {
     data: data1,
     url: `https://slack.com/api/views.push`
   };
-  return Axios(options1);
+  await Axios(options1);
 
+  return res.status(200).send({
+    "response_action": "clear"
+  });
 };
 
 /**
@@ -253,55 +286,50 @@ const handlerSettingsMessage = (viewSystemSetting, body) => {
 };
 
 function customDatetime() {
-  try {
-    let arrayDT = [];
-    let i = 0;
-    while (i < 24) {
-      let j = 0
-      for (j = 0; j < 46; j++) {
-
-        let datetimePicker = {
-          "text": {
-            "type": "plain_text",
-            "text": "",
-            "emoji": true
-          },
-          "value": ""
-        }
-        let textH = "";
-        let textM = "";
-
-        if (j < 10) {
-          textM = `0${j}`;
-        } else {
-          textM = `${j}`;
-        }
-        if (i < 10) {
-          textH = `0${i}:` + textM + "AM";
-        }
-        else if (i < 12) {
-          textH = `${i}:` + textM + "AM";
-        }
-        else {
-          textH = `${i}:` + textM + "PM";
-        }
-        datetimePicker.text.text = textH;
-        datetimePicker.value = textH.slice(0, 5);
-        console.log(datetimePicker.value);
-        arrayDT.push(datetimePicker);
-        j += 14;
+  let arrayDT = [];
+  let i = 0;
+  while (i < 24) {
+    let j = 0
+    for (j = 0; j < 46; j++) {
+      let datetimePicker = {
+        "text": {
+          "type": "plain_text",
+          "text": "",
+          "emoji": true
+        },
+        "value": ""
       }
-      i++;
+      let textH = "";
+      let textM = "";
+
+      if (j < 10) {
+        textM = `0${j}`;
+      } else {
+        textM = `${j}`;
+      }
+      if (i < 10) {
+        textH = `0${i}:` + textM + "AM";
+      }
+      else if (i < 12) {
+        textH = `${i}:` + textM + "AM";
+      }
+      else {
+        textH = `${i}:` + textM + "PM";
+      }
+      datetimePicker.text.text = textH;
+      datetimePicker.value = textH.slice(0, 5);
+      arrayDT.push(datetimePicker);
+      j += 14;
     }
-    return arrayDT;
-  } catch (error) {
-    return error;
+    i++;
   }
+  return arrayDT;
 }
 module.exports = {
   handlerSettingsMessage,
   sendMessageLogin,
   handlerAddEvent,
   submitAddEvent,
-  handlerBlocksActions
+  handlerBlocksActions,
+  customDatetime
 };

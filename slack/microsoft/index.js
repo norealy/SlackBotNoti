@@ -62,14 +62,13 @@ class SlackMicrosoft extends BaseServer {
 			case "settings":
 				return handlerSettingsMessage(systemSetting, body);
       case "add-event":
-        console.log(body);
         return handlerAddEvent(body,this.template);
 			default:
 				return result;
 		}
 	}
 
-	handlerPayload(payload,res) {
+	async handlerPayload(payload,res) {
     payload = JSON.parse(payload);
     const { type=null } = payload;
     console.log("payload:",payload)
@@ -78,7 +77,10 @@ class SlackMicrosoft extends BaseServer {
       case "block_actions":
         return handlerBlocksActions(payload, this.template);
 			case "view_submission":
-        return submitAddEvent(payload,res);
+        await submitAddEvent(payload);
+        return res.status(200).send({
+          "response_action": "clear"
+        });
       // case "view_closed":
       //   return viewClosed(res);
 			default:

@@ -35,3 +35,30 @@
       }
   }
 }
+{
+  select_calendar: {
+    select_calendar: { type: 'static_select', selected_option: [Object] }
+  },
+  input_title: {
+    'input-action': { type: 'plain_text_input', value: 'title Event 123' }
+  },
+  check_allday: { allday: { type: 'checkboxes', selected_options: [] } },
+  'select-date-start': {
+    'datepicker-action-start': { type: 'datepicker', selected_date: '2021-02-26' }
+  },
+  'select-time-start': {
+    'time-start-action': { type: 'static_select', selected_option: [Object] }
+  },
+  'select-time-end': {
+    'time-end-action': { type: 'static_select', selected_option: [Object] }
+  },
+  input_location: {
+    'plain_text_input-action': { type: 'plain_text_input', value: 'Bun dau mam tom' }
+  },
+  select_everyday: {
+    'static_select-action': { type: 'static_select', selected_option: [Object] }
+  },
+  select_before_notification: {
+    'static_select-action': { type: 'static_select', selected_option: [Object] }
+  }
+}

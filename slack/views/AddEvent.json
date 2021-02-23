@@ -3,7 +3,7 @@
 	"notify_on_close": true,
 	"title": {
 		"type": "plain_text",
-		"text": "My App",
+		"text": "Bot notification",
 		"emoji": true
 	},
 	"submit": {
@@ -40,14 +40,7 @@
 					"emoji": true
 				},
 				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-0"
-					}
+
 				],
 				"action_id": "select_calendar"
 			}
@@ -133,7 +126,7 @@
 				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "02:00 AM",
+					"text": "select time start event",
 					"emoji": true
 				},
 				"options": [
@@ -176,7 +169,7 @@
 				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "02:00 AM",
+					"text": "select time end event",
 					"emoji": true
 				},
 				"options": [
@@ -238,7 +231,7 @@
 							"text": "Nomal",
 							"emoji": true
 						},
-						"value": "value-0"
+						"value": "nomal"
 					},
 					{
 						"text": {
@@ -246,7 +239,7 @@
 							"text": "Every day",
 							"emoji": true
 						},
-						"value": "value-1"
+						"value": "daily"
 					},
 					{
 						"text": {
@@ -254,7 +247,7 @@
 							"text": "Every week",
 							"emoji": true
 						},
-						"value": "value-2"
+						"value": "weekly"
 					},
 					{
 						"text": {
@@ -262,7 +255,7 @@
 							"text": "Every month",
 							"emoji": true
 						},
-						"value": "value-3"
+						"value": "absoluteMonthly"
 					}
 				],
 				"action_id": "static_select-action"
@@ -290,7 +283,7 @@
 							"text": "At time of event",
 							"emoji": true
 						},
-						"value": "value-0"
+						"value": "0"
 					},
 					{
 						"text": {
@@ -298,7 +291,7 @@
 							"text": "15 minutes before",
 							"emoji": true
 						},
-						"value": "value-1"
+						"value": "15"
 					},
 					{
 						"text": {
@@ -306,7 +299,7 @@
 							"text": "30 minutes before",
 							"emoji": true
 						},
-						"value": "value-2"
+						"value": "30"
 					},
 					{
 						"text": {
@@ -314,7 +307,7 @@
 							"text": "1 hours before",
 							"emoji": true
 						},
-						"value": "value-3"
+						"value": "60"
 					}
 				],
 				"action_id": "static_select-action"

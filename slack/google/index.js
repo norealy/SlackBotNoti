@@ -3,6 +3,8 @@ const Env = require("../../utils/Env");
 const Template = require("../views/Template");
 const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
+const Axios = require('axios');
+const AxiosConfig = require('./AxiosConfig');
 
 const {
 	getToken,
@@ -157,8 +159,39 @@ class SlackGoogle extends BaseServer {
 		}
 	}
 
-	resourceServerHandler(req, res, next) {
+	/**
+	 * Get google calendar event updates
+	 * @param {object} headers
+	 * @return {Promise}
+	 */
+	getEventUpdate(headers) {
+		return new Promise((resolve, reject) => {
+			const dateNow = new Date();
+			const options = {
+				url: headers['x-goog-resource-uri'],
+				method: 'GET',
+				headers: {'Authorization': `Bearer ${Env.resourceServerGOF("ACCESS_TOKEN")}`},
+				params: {
+					updatedMin: new Date(dateNow - (5*60*1000)).toISOString(),
+				},
+			};
+			Axios(options)
+				.then(result => {
+					const {items = []} = result.data;
+					const legItem = items.length;
+					if(legItem === 0) resolve(null);
+					resolve(items[legItem - 1])
+				})
+				.catch(err => {
+					reject(err)
+				});
+		});
+	}
+
+	async resourceServerHandler(req, res, next) {
 		try {
+			const item = await this.getEventUpdate(req.headers);
+			console.log(item);
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");

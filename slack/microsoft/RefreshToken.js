@@ -4,6 +4,11 @@ const axios = require('axios');
 const MicrosoftAccount = require('../../models/MicrosoftAccount');
 const Redis = require('../../utils/redis/index');
 
+/**
+ *  Get refresh token in database
+ * @param {string} idAccount
+ * @returns {string} refresh token
+ */
 function getRefreshToken(idAccount) {
   return new Promise((resolve, reject) => {
     MicrosoftAccount.query().findById(idAccount)
@@ -18,6 +23,11 @@ function getRefreshToken(idAccount) {
   })
 }
 
+/**
+ *  create new access token
+ * @param {string} idAccount
+ * @returns {string} access token
+ */
 const createAccessToken = async (idAccount) => {
   const refreshToken = await getRefreshToken(idAccount);
   const data = {
@@ -38,10 +48,13 @@ const createAccessToken = async (idAccount) => {
   };
 
   const result = await axios(options);
-  // Redis.client.setex(idAccount, 60*59 ,result.data.access_token);
   return result.data.access_token;
 }
-
+/**
+ * Update refresh token
+ * @param {string} idAccount
+ * @param {string} refreshToken
+ */
 const updateRefresh = (idAccount, refreshToken) => {
   return MicrosoftAccount.query()
     .patch({ refresh_token: refreshToken })

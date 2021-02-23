@@ -4,7 +4,12 @@ const Redis = require('../../utils/redis/index');
 const ChannelsCalendar = require('../../models/ChannelsCalendar');
 const _ = require('lodash');
 
-
+/**
+ *  Lay event
+ * @param {string} idUser
+ * @param {string} idEvent
+ * @returns {Promise}
+ */
 const getEvent = (idUser, idEvent) => {
   const options = {
     method: 'GET',
@@ -36,7 +41,7 @@ function getValueRedis(key) {
   })
 }
 /**
- *
+ * Gui tin nhan ve channel
  * @param {number} lv
  * @param {object} event
  * @param {string} idChan
@@ -77,7 +82,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
 }
 
 /**
- *
+ * Kiem tra event da gui cach day 5s
  * @param {string} idEvent
  * @param {string} idUser
  */

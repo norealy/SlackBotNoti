@@ -1,12 +1,23 @@
 const Env = require('../../utils/Env');
 const axios = require('axios');
 
+/**
+ * Sum date
+ * @param {interger} days
+ * @returns {Promise}
+ */
 Date.prototype.addDays = function (days) {
   var date = new Date(this.valueOf());
   date.setDate(date.getDate() + days);
   return date;
 }
 
+/**
+ * register subcription
+ * @param {string} idCalendar
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
 const createSubcription = (idCalendar, idAccount) => {
   let date = new Date();
   const data = {
@@ -29,7 +40,12 @@ const createSubcription = (idCalendar, idAccount) => {
   };
   return axios(options);
 }
-
+/**
+ * update Subcription
+ * @param {string} idSub
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
 const updateSubcription = (idSub, idAccount) => {
   let date = new Date();
   const data = {

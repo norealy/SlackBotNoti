@@ -20,7 +20,6 @@ function getValueRedis(key) {
 module.exports = function () {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
-    console.log('Start time: ', new Date().toISOString());
     const { url = null, headers = null } = config;
     const {Authorization = null} = config.headers;
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {

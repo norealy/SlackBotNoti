@@ -1,5 +1,4 @@
-{
-	"blocks": [
+[
 		{
 			"type": "context",
 			"elements": [
@@ -56,4 +55,4 @@
 			}
 		}
 	]
-}
+

@@ -1,0 +1,19 @@
+{
+	kind: 'calendar#event',
+		etag: '"3228317015044000"',
+	id: '1nafv4ikmlloequh3m5tvlq8ir',
+	status: 'confirmed',
+	htmlLink: 'https://www.google.com/calendar/event?eid=MW5hZnY0aWttbGxvZXF1aDNtNXR2bHE4aXIgdHVhbm5hOTlxbkBt',
+	created: '2021-02-24T09:21:47.000Z',
+	updated: '2021-02-24T09:21:47.522Z',
+	summary: 'tesst',
+	location: 'tedsadsa',
+	creator: { email: 'tuanna99qn@gmail.com', self: true },
+	organizer: { email: 'tuanna99qn@gmail.com', self: true },
+	start: { dateTime: '2021-03-03T16:30:00+07:00' },
+	end: { dateTime: '2021-03-03T17:30:00+07:00' },
+	iCalUID: '1nafv4ikmlloequh3m5tvlq8ir@google.com',
+		sequence: 0,
+	reminders: { useDefault: true },
+	eventType: 'default'
+}

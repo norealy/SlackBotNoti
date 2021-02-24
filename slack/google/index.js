@@ -192,8 +192,31 @@ class SlackGoogle extends BaseServer {
 			console.log(item);
 			const summary = item.summary;
 			const created = item.created;
+			const updated = item.updated;
+			const location = item.location;
+
+			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
+			const options = {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${tokenBot}`,
+				},
+				data: {
+					channel: "C01NEPFRC9M" ,
+					blocks: this.template.showEvent
+				},
+				url:
+					Env.chatServiceGet("API_URL") +
+					Env.chatServiceGet("API_POST_MESSAGE"),
+			}
+			options.data.blocks[4].text.text = item.location
+			console.log("options",options.data.blocks)
+			await Axios(options)
+			//const start
 			return res.status(204).send("OK");
 		} catch (e) {
+			console.log(e)
 			return res.status(204).send("ERROR");
 		}
 	}

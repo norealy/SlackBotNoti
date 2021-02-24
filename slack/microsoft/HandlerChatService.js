@@ -48,7 +48,6 @@ const handlerBlocksActions = async (payload, template) => {
   const { addEvent } = template;
   let addView = Object.assign({},addEvent);
   addView.blocks = payload.view.blocks;
-
   const { action_id = null, selected_options = null } = payload.actions[0];
   if (action_id === "allday" && selected_options.length === 0) {
     console.log("all day false");
@@ -56,13 +55,11 @@ const handlerBlocksActions = async (payload, template) => {
     addView.blocks.splice(5, 0, addEvent.blocks[7]);
     addView.blocks.splice(5, 0, addEvent.blocks[6]);
   }
-
   else if (action_id === "allday" && selected_options.length > 0) {
     console.log("all day true");
     addView.blocks.splice(5, 2);
     addView.blocks.splice(5, 0, addEvent.blocks[5]);
   }
-
   let data = {
     "view_id": payload["container"]["view_id"],
     "view": addView
@@ -75,10 +72,8 @@ const handlerBlocksActions = async (payload, template) => {
   };
   return new Promise((resolve,reject)=>{
     Axios(options).then((resp)=>{
-      // console.log(resp.data);
       return resolve(resp);
     }).catch((err)=>{
-      // console.log(err);
       return reject(err);
     });
   });

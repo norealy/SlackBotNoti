@@ -2,8 +2,7 @@ const Env = require("./Env");
 const jws = require("jws");
 const crypto = require('crypto');
 const cryptoSecret = Env.get("CRYPTO_SECRET");
-const IV = Env.get("CRYPTO_IV");
-
+const IV = Env.get("CRYPTO_IV"); // phai la 16 ky tu
 
 /**
  * Tao jwt
@@ -38,7 +37,6 @@ const decodeJWS = async (jwsToken) => {
   return payload;
 };
 
-
 /**
  * encode
  * @param {string} idSub
@@ -52,6 +50,7 @@ const cryptoEncode = function (idSub) {
   let cipher = crypto.Cipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
   let encode = cipher.update(JSON.stringify(data), 'utf8', 'hex')
   encode += cipher.final('hex');
+  console.log(encode);
   return encode;
 };
 

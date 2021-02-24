@@ -16,6 +16,7 @@
 		"API_USER_INFO": "/oauth2/v3/userinfo",
 		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
 		"API_TOKEN": "/token",
-		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth"
+		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",
+		"ACCESS_TOKEN": "ya29.A0AfH6SMAuLaTqIzqtLz0biRDmZyPevPeyF64mPUENkEL27Uok08XRVcFW4VGaQBedsjyrXfAAqfC5grtzKUTPkv4n2vI52CwR69ZGJ9kUdgJqnDCljBwbt2Fzdr5UAoSzjRW0Qqk6gh1aOkFNjh8Z3xdX-DNd"
 	}
 }

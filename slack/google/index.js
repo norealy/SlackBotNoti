@@ -4,8 +4,6 @@ const Template = require("../views/Template");
 const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
 const Axios = require('axios');
-const AxiosConfig = require('./AxiosConfig');
-
 const {
 	getToken,
 	getListCalendar,
@@ -187,11 +185,13 @@ class SlackGoogle extends BaseServer {
 				});
 		});
 	}
-
 	async resourceServerHandler(req, res, next) {
 		try {
+		//	console.log(req.headers)
 			const item = await this.getEventUpdate(req.headers);
 			console.log(item);
+			const summary = item.summary;
+			const created = item.created;
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");

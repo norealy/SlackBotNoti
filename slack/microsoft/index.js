@@ -20,7 +20,6 @@ const {
   handlerAddEvent,
   handlerBlocksActions,
   submitAddEvent,
-  customDatetime,
 } = require("./HandlerChatService");
 const {
   handlerCreated,
@@ -78,9 +77,14 @@ class SlackMicrosoft extends BaseServer {
       case "block_actions":
         return handlerBlocksActions(payload, this.template , this.timePicker);
 			case "view_submission":
-        return submitAddEvent(payload);
-      // case "view_closed":
-      //   return viewClosed(res);
+         submitAddEvent(payload);
+         return res.status(200).send({
+          "response_action": "clear"
+        });
+      case "view_closed":
+        return res.status(200).send({
+          "response_action": "clear"
+        });
 			default:
 				return result;
 		}
@@ -99,17 +103,15 @@ class SlackMicrosoft extends BaseServer {
 
 			} else if (command && /^\/cal$/.test(command)) {
         await this.handlerCommand(req.body);
+        const message = `Thank you call BOT-NOTI !`;
+        return res.status(200).send(message);
 
       } else if (payload) {
         await this.handlerPayload(payload,res);
-        // return res.status(200).send("Ok");
-
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
-
-			const message = `Thank you call BOT-NOTI !`;
-			return res.status(200).send(message);
+      return;
 		} catch (error) {
       console.log(error);
 			const message = `Thank you call BOT-NOTI !
@@ -191,6 +193,47 @@ class SlackMicrosoft extends BaseServer {
 			return res.send("Login Error !");
 		}
 	}
+}
+
+function customDatetime() {
+  let arrayDT = [];
+  let i = 0;
+  while (i < 24) {
+    let j = 0
+    for (j = 0; j < 46; j++) {
+      let datetimePicker = {
+        "text": {
+          "type": "plain_text",
+          "text": "",
+          "emoji": true
+        },
+        "value": ""
+      }
+      let textH = "";
+      let textM = "";
+
+      if (j < 10) {
+        textM = `0${j}`;
+      } else {
+        textM = `${j}`;
+      }
+      if (i < 10) {
+        textH = `0${i}:` + textM + "AM";
+      }
+      else if (i < 12) {
+        textH = `${i}:` + textM + "AM";
+      }
+      else {
+        textH = `${i}:` + textM + "PM";
+      }
+      datetimePicker.text.text = textH;
+      datetimePicker.value = textH.slice(0, 5);
+      arrayDT.push(datetimePicker);
+      j += 14;
+    }
+    i++;
+  }
+  return arrayDT;
 }
 
 module.exports = SlackMicrosoft;

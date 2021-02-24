@@ -6,10 +6,10 @@ const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 
 const handlerAddEvent = async (body, template, timePicker) => {
-  // console.log('Start time: ', new Date().toISOString());
   const { trigger_id = null, channel_id = null } = body;
   const { addEvent } = template;
-  const addView = Object.assign({},addEvent);
+  let addView = JSON.stringify(addEvent);
+  addView = JSON.parse(addView);
   const data = {
     trigger_id: trigger_id,
     view: addView,
@@ -38,18 +38,15 @@ const handlerAddEvent = async (body, template, timePicker) => {
   }
   options.data.view.blocks[6].accessory.options = timePicker;
   options.data.view.blocks[7].accessory.options = timePicker;
-  options.data.view.blocks.splice(5, 1);
-  // console.log('End time: ', new Date().toISOString());
-  return Axios(options);;
+  addView.blocks.splice(5, 1);
+  return Axios(options);
 };
 
 const handlerBlocksActions = async (payload, template) => {
-  console.log('Start time: ', new Date().toISOString());
+
+  console.log("handlerBlocksActions:");
   const { addEvent } = template;
-  console.log(addEvent);
   let addView = Object.assign({},addEvent);
-  console.log("ADD VIEW:",JSON.stringify(addView));
-  console.log('PAYLOAD VIEW:',JSON.stringify(payload.view));
   addView.blocks = payload.view.blocks;
 
   const { action_id = null, selected_options = null } = payload.actions[0];
@@ -76,15 +73,12 @@ const handlerBlocksActions = async (payload, template) => {
     data: data,
     url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`
   };
-  console.log(data.view.blocks);
   return new Promise((resolve,reject)=>{
     Axios(options).then((resp)=>{
-      console.log(resp.data);
-      console.log('End time: ', new Date().toISOString());
-      return resolve(data);
+      // console.log(resp.data);
+      return resolve(resp);
     }).catch((err)=>{
-      // console.log(err.data);
-      console.log('End time: ', new Date().toISOString());
+      // console.log(err);
       return reject(err);
     });
   });
@@ -112,6 +106,7 @@ const getRecurrence = (type) => {
   switch(type){
     case "daily":
       recurrence.pattern.dayOfMonth = 0;
+
       break;
     case "weekly":
       // let month = recurrence.range.endDate.split('-');
@@ -174,10 +169,7 @@ const submitAddEvent = async (payload,res) => {
   // Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
 
   await Axios(options);
-
   const { trigger_id = null, view = null } = payload;
-  console.log(payload.view.state.values);
-
   const data1 = {
     "trigger_id": trigger_id,
     "view": view
@@ -188,12 +180,24 @@ const submitAddEvent = async (payload,res) => {
     data: data1,
     url: `https://slack.com/api/views.push`
   };
-  await Axios(options1);
+  return Axios(options1);
 
-  return res.status(200).send({
-    "response_action": "clear"
-  });
 };
+
+const clearViews = async (payload) => {
+  const { trigger_id = null, view = null } = payload;
+  const data1 = {
+    "trigger_id": trigger_id,
+    "view": view
+  }
+  const options1 = {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+    data: data1,
+    url: `https://slack.com/api/views.push`
+  };
+  return Axios(options1);
+}
 
 /**
  * Tao url request author
@@ -285,51 +289,10 @@ const handlerSettingsMessage = (viewSystemSetting, body) => {
   });
 };
 
-function customDatetime() {
-  let arrayDT = [];
-  let i = 0;
-  while (i < 24) {
-    let j = 0
-    for (j = 0; j < 46; j++) {
-      let datetimePicker = {
-        "text": {
-          "type": "plain_text",
-          "text": "",
-          "emoji": true
-        },
-        "value": ""
-      }
-      let textH = "";
-      let textM = "";
-
-      if (j < 10) {
-        textM = `0${j}`;
-      } else {
-        textM = `${j}`;
-      }
-      if (i < 10) {
-        textH = `0${i}:` + textM + "AM";
-      }
-      else if (i < 12) {
-        textH = `${i}:` + textM + "AM";
-      }
-      else {
-        textH = `${i}:` + textM + "PM";
-      }
-      datetimePicker.text.text = textH;
-      datetimePicker.value = textH.slice(0, 5);
-      arrayDT.push(datetimePicker);
-      j += 14;
-    }
-    i++;
-  }
-  return arrayDT;
-}
 module.exports = {
   handlerSettingsMessage,
   sendMessageLogin,
   handlerAddEvent,
   submitAddEvent,
   handlerBlocksActions,
-  customDatetime
 };

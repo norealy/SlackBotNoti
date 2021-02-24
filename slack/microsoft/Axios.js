@@ -20,7 +20,6 @@ function getValueRedis(key) {
 module.exports = function () {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
-    console.log('Start time: ', new Date().toISOString());
     const { url = null, headers = null } = config;
     const {Authorization = null} = config.headers;
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {
@@ -32,7 +31,6 @@ module.exports = function () {
           return config;
         }
         accessToken = await createAccessToken(idAccount);
-        console.log(accessToken);
         Redis.client.setex(idAccount, 60 * 59, accessToken);
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       } catch (error) {
@@ -48,7 +46,6 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
-    console.log("ERROR RESPONSE DATA: ", error.response.data);
     try {
       if (error.response.data.error.code === "InvalidAuthenticationToken") {
         const idAccount = error.config.headers['X-Microsoft-AccountId'];

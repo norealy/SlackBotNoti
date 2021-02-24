@@ -1,36 +1,59 @@
 {
-	"type": "modal",
-	"title": {
-		"type": "plain_text",
-		"text": "Event",
-		"emoji": true
-	},
-	"close": {
-		"type": "plain_text",
-		"text": "Close",
-		"emoji": true
-	},
 	"blocks": [
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "image",
+					"image_url": "https://wpcomputersolutions.com/wp-content/uploads/2018/01/outlook.jpg",
+					"alt_text": "outlook"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Event calendar. Type: Created*"
+				}
+			]
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "*Triển Khai dự án mới*"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Repeat : In day"
+			}
+		},
 		{
 			"type": "section",
 			"fields": [
 				{
 					"type": "mrkdwn",
-					"text": "*Triển Khai dự án mới*"
+					"text": "27-02-2021"
 				},
 				{
 					"type": "mrkdwn",
 					"text": "1:00PM-2:00PM"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "_phòng họp số 1_"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "27-02-2021"
 				}
 			]
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "location"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "description"
+			}
 		}
 	]
 }

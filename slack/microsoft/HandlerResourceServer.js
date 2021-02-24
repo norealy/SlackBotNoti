@@ -63,20 +63,29 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
-  options.data.blocks[0].fields[0].text = event.subject;
-  options.data.blocks[0].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] + "-";
-  options.data.blocks[0].fields[1].text += event.end.dateTime.split('T')[1].split('.0000000')[0];
+  options.data.blocks[1].text.text = `*${event.subject}*`;
+  options.data.blocks[2].text.text = " "
+  options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0];
+  options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] +
+    "-" + event.end.dateTime.split('T')[1].split('.0000000')[0];
+  options.data.blocks[4].text.text = " ";
   if (event.locations[0]) {
-    options.data.blocks[0].fields[2].text = event.locations[0].displayName
-  } else {
-    options.data.blocks[0].fields[2].text = "_______";
+    options.data.blocks[4].text.text = event.locations[0].displayName;
   }
-  options.data.blocks[0].fields[3].text = event.start.dateTime.split('T')[0];
-  options.data.blocks[0].text = { "type": "mrkdwn", "text": "*Create Event*" };
+  options.data.blocks[5].text.text = " ";
+  if (event.bodyPreview) {
+    options.data.blocks[5].text.text = `_${event.bodyPreview}_`;
+  }
+  if (event.recurrence) {
+    options.data.blocks[2].text.text = "Repeat : " + event.recurrence.pattern.type;
+  }
+  if (event.isAllDay) {
+    options.data.blocks[3].fields[1].text = event.end.dateTime.split('T')[0];
+  }
   if (lv === 2) {
-    options.data.blocks[0].text.text = "*Update Event*"
+    options.data.blocks[0].elements[1].text = "*Event calendar. Type: Updated*"
   } else if (lv === 3) {
-    options.data.blocks[0].text.text = "*Delete Event*"
+    options.data.blocks[0].elements[1].text = "*Event calendar. Type: Deleted*"
   }
   return axios(options)
 }
@@ -86,7 +95,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
  * @param {string} idEvent
  * @param {string} idUser
  */
-const checkEventExist = async ( idEvent ,idUser) => {
+const checkEventExist = async (idEvent, idUser) => {
   let accessToken = await getValueRedis(idUser);
   let result = await getEvent(idUser, idEvent, accessToken);
   const { status = null } = result;
@@ -118,9 +127,9 @@ const handlerCreated = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
   const idCal = await getValueRedis(idSub);
-  const event = await checkEventExist( idEvent , idUser);
+  const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
   Promise.all(arrChenCal.map(item => sendMessage(1, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Create ok")
@@ -135,10 +144,11 @@ const handlerCreated = async (idSub, resource, showEvent) => {
 const handlerUpdated = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
+  await sleep(1500);
   const idCal = await getValueRedis(idSub);
-  const event = await checkEventExist( idEvent , idUser);
+  const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
   Promise.all(arrChenCal.map(item => sendMessage(2, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Update ok")
@@ -154,15 +164,22 @@ const handlerDeleted = async (idSub, resource, showEvent) => {
   const idEvent = resource.split('/')[3];
   const idUser = resource.split('/')[1];
   const idCal = await getValueRedis(idSub);
-  const event = await checkEventExist( idEvent , idUser);
+  const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
-  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
+  const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
   Promise.all(arrChenCal.map(item => sendMessage(3, event, item.id_channel, showEvent)))
     .then(function () {
       console.log("Delete ok")
     })
 }
-
+/**
+ * sleep
+ * @param {number} ms
+ * @returns {Promise}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 module.exports = {
   handlerCreated,
   handlerUpdated,

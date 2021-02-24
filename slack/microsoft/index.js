@@ -64,23 +64,18 @@ class SlackMicrosoft extends BaseServer {
 
 	async chatServiceHandler(req, res, next) {
 		let {
-			payload = null,
 			challenge = null,
 			event = null,
 			command = null,
 		} = req.body;
 		try {
-			const tokenBot = Env.chatServiceGet("BOT_TOKEN");
 			if (event) {
         await this.handlerEvent(event);
-
 			} else if (command && /^\/cal$/.test(command)) {
         await this.handlerCommand(req.body);
-
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
-
 			const message = `Thank you call BOT-NOTI !`;
 			return res.status(200).send(message);
 		} catch (error) {

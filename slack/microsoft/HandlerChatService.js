@@ -9,7 +9,6 @@ const ENV = require("../../utils/Env");
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-	try {
 		const scopeAzure = ENV.resourceServerGet("SCOPE");
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
 		let urlRequestAuthor = `${ENV.resourceServerGet(
@@ -21,9 +20,6 @@ const redirectMicrosoft = (idChannel, idUser) => {
 		)}`;
 		urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
     return urlRequestAuthor;
-	} catch (error) {
-		return "error";
-	}
 };
 
 /**

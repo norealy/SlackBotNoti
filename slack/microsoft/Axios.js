@@ -46,18 +46,6 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
-    try {
-      if (error.response.data.error.code === "InvalidAuthenticationToken") {
-        const idAccount = error.config.headers['X-Microsoft-AccountId'];
-        const accessToken = await createAccessToken(idAccount);
-        Redis.client.setex(idAccount, 60 * 59, accessToken);
-        error.config.headers['Authorization'] = `Bearer ${accessToken}`;
-        return Axios(error.config);
-      }
-
-    } catch (err) {
-      return Promise.reject(err);
-    }
-    return Promise.reject(error);
+    return Promise.reject(error.response);
   });
 }

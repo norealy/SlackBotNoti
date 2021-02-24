@@ -3,7 +3,6 @@ const axios = require('axios');
 const Redis = require('../../utils/redis/index');
 const ChannelsCalendar = require('../../models/ChannelsCalendar');
 const _ = require('lodash');
-
 /**
  *  Lay event
  * @param {string} idUser
@@ -64,15 +63,12 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
   options.data.blocks[1].text.text = `*${event.subject}*`;
-  options.data.blocks[2].text.text = " "
   options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0];
   options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] +
     "-" + event.end.dateTime.split('T')[1].split('.0000000')[0];
-  options.data.blocks[4].text.text = " ";
   if (event.locations[0]) {
     options.data.blocks[4].text.text = event.locations[0].displayName;
   }
-  options.data.blocks[5].text.text = " ";
   if (event.bodyPreview) {
     options.data.blocks[5].text.text = `_${event.bodyPreview}_`;
   }
@@ -82,14 +78,23 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   if (event.isAllDay) {
     options.data.blocks[3].fields[1].text = event.end.dateTime.split('T')[0];
   }
+
+  if (!event.bodyPreview) {
+    delete options.data.blocks[5];
+  }
+  if (!event.locations[0]) {
+    delete options.data.blocks[4];
+  }
+  if (!event.recurrence) {
+    delete options.data.blocks[2];
+  }
   if (lv === 2) {
     options.data.blocks[0].elements[1].text = "*Event calendar. Type: Updated*"
   } else if (lv === 3) {
     options.data.blocks[0].elements[1].text = "*Event calendar. Type: Deleted*"
   }
-  return axios(options)
+  return axios(options);
 }
-
 /**
  * Kiem tra event da gui cach day 5s
  * @param {string} idEvent
@@ -116,7 +121,6 @@ const checkEventExist = async (idEvent, idUser) => {
   Redis.client.setex(event.id, 5, JSON.stringify(event));
   return event;
 }
-
 /**
  *
  * @param {string} idSub

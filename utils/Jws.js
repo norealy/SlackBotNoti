@@ -50,7 +50,6 @@ const cryptoEncode = function (idSub) {
   let cipher = crypto.Cipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
   let encode = cipher.update(JSON.stringify(data), 'utf8', 'hex')
   encode += cipher.final('hex');
-  console.log(encode);
   return encode;
 };
 

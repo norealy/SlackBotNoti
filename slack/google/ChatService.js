@@ -177,13 +177,14 @@ const requestBlockActionsAllDay = (payload,template)=>{
 	const { action_id = null, selected_options = null } = payload.actions[0];
 	 if (selected_options.length === 0) {
 	 	console.log("false")
-		 addView.blocks.splice(5, 2);
-		 addView.blocks.splice(5, 0, addEvent.blocks[6])
-		 addView.blocks.splice(5, 0, addEvent.blocks[7]);
+		 addView.blocks.splice(5, 1);
+		 addView.blocks.splice(5, 0, addEvent.blocks[7])
+		 addView.blocks.splice(5, 0, addEvent.blocks[6]);
 	 }
 	 else if (selected_options.length >0){
 		 console.log("true")
-		 addView.blocks.splice(5, 2, addEvent.blocks[5])
+		 addView.blocks.splice(5, 0, addEvent.blocks[5])
+		 addEvent.blocks.splice(6,2);
 
 	 }
 	 console.log("payload",payload.view.blocks)

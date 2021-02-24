@@ -96,7 +96,7 @@ class SlackGoogle extends BaseServer {
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
 				return requestAddEvent(payload, this.template.addEvent);
 			} else if (payload.actions[0].action_id === "allday") {
-				requestBlockActionsAllDay(payload, this.template.addEvent)
+				requestBlockActionsAllDay(payload, this.template)
 			}
 		} else if (payload.type === "view_submission") {
 			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value

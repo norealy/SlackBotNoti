@@ -51,7 +51,6 @@ const getListCalendar = (idAccount) => {
 			Env.resourceServerGOF("API_URL") +
 			Env.resourceServerGOF("API_lIST_CALENDAR"),
 	};
-	//console.log("options",options)
 	return new Promise((resolve, reject) => {
 		Axios(options)
 			.then((res) => resolve(res.data))
@@ -122,7 +121,6 @@ const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogl
 			GoogleAccount.query()
 				.insert(account)
 				.then((res) => {
-				//	console.log("Redis",Redis);
 					return resolve(res)
 				})
 				.catch((err) => reject(err));

@@ -124,19 +124,20 @@ const requestHome = (body, homePage) => {
 	return Axios(option);
 };
 
-const requestAddEvent = async (body, viewsAdd) => {
+const requestAddEvent = async (body, template) => {
 	try {
-
+		let addView = JSON.stringify(template)
+		addView = JSON.parse(addView);
 		let option = {method: "POST"}
 		option.url = Env.chatServiceGOF('API_URL');
 		option.url += Env.chatServiceGOF('API_VIEW_OPEN');
 		option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`}
-		const { trigger_id = null, channel_id = null} = body;
+		const {trigger_id = null, channel_id = null} = body;
 		option.data = {
 			"trigger_id": trigger_id,
-			"view": viewsAdd
+			"view": addView
 		}
-		const chanCals = await ChannelsCalendar.query().where({ id_channel: channel_id });
+		const chanCals = await ChannelsCalendar.query().where({id_channel: channel_id});
 		for (let i = 0; i < chanCals.length; i++) {
 			const item = chanCals[i];
 			const calendar = await GoogleCalendar.query().findById(item.id_calendar);
@@ -156,11 +157,9 @@ const requestAddEvent = async (body, viewsAdd) => {
 		option.data.view.blocks[7].accessory.options = timePicker;
 		option.data.view.blocks.splice(5, 1)
 		const result = await Axios(option);
-		console.log("result",result);
 		return result
 	} catch (e) {
-		console.log(e)
-		return e
+		throw e
 	}
 }
 /**
@@ -169,39 +168,75 @@ const requestAddEvent = async (body, viewsAdd) => {
  * @param template
  * @returns {void|*|AxiosPromise}
  */
-const requestBlockActionsAllDay = (payload,template)=>{
-	const { addEvent } = template;
-	const addView = Object.assign({},addEvent);
-	const { view = null } = payload;
-	addView.blocks = view.blocks;
-	const { action_id = null, selected_options = null } = payload.actions[0];
-	 if (selected_options.length === 0) {
-	 	console.log("false")
-		 addView.blocks.splice(5, 1);
-		 addView.blocks.splice(5, 0, addEvent.blocks[7])
-		 addView.blocks.splice(5, 0, addEvent.blocks[6]);
-	 }
-	 else if (selected_options.length >0){
-		 console.log("true")
-		 addView.blocks.splice(5, 0, addEvent.blocks[5])
-		 addEvent.blocks.splice(6,2);
+const handlerAddEvent = async (body, template, timePicker) => {
+	const {trigger_id = null, channel_id = null} = body;
+	const {addEvent} = template;
+	let addView = JSON.stringify(addEvent);
+	addView = JSON.parse(addView);
+	const data = {
+		trigger_id: trigger_id,
+		view: addView,
+	};
+	const options = {
+		method: "POST",
+		headers: {Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
+		data: data,
+		url:
+			Env.chatServiceGet("API_URL") +
+			Env.chatServiceGet("API_VIEW_OPEN"),
+	};
+	const chanCals = await ChannelsCalendar.query().where({id_channel: channel_id});
+	for (let i = 0; i < chanCals.length; i++) {
+		const item = chanCals[i];
+		const calendar = await MicrosoftCalendar.query().findById(item.id_calendar);
+		const selectCalendars = {
+			"text": {
+				"type": "plain_text",
+				"text": calendar.name,
+				"emoji": true
+			},
+			"value": calendar.id
+		}
+		options.data.view.blocks[1].accessory.options.push(selectCalendars);
+	}
+	options.data.view.blocks[6].accessory.options = timePicker;
+	options.data.view.blocks[7].accessory.options = timePicker;
+	addView.blocks.splice(5, 1);
+	return Axios(options);
+};
 
-	 }
-	 console.log("payload",payload.view.blocks)
+const requestBlockActionsAllDay = async (payload, template) => {
+	const {addEvent} = template;
+	let addView = Object.assign({}, addEvent);
+	addView.blocks = payload.view.blocks;
+	const {action_id = null, selected_options = null} = payload.actions[0];
+	if (action_id === "allday" && selected_options.length === 0) {
+		addView.blocks.splice(5, 1);
+		addView.blocks.splice(5, 0, addEvent.blocks[7]);
+		addView.blocks.splice(5, 0, addEvent.blocks[6]);
+	} else if (action_id === "allday" && selected_options.length > 0) {
+		addView.blocks.splice(5, 2);
+		addView.blocks.splice(5, 0, addEvent.blocks[5]);
+	}
+
 	let data = {
 		"view_id": payload["container"]["view_id"],
 		"view": addView
 	}
-	 console.log("data",data)
 	const options = {
 		method: 'POST',
-		headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+		headers: {'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
 		data: data,
 		url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`
 	};
-	 console.log("options",options)
-	return Axios(options);
-}
+	return new Promise((resolve, reject) => {
+		Axios(options).then((resp) => {
+			return resolve(resp);
+		}).catch((err) => {
+			return reject(err);
+		});
+	});
+};
 
 /**
  *  khi người dùng thực hiện click vào button login google ở home view
@@ -232,21 +267,19 @@ const requestButtonSettings = (payload, systemSetting,) => {
  */
 const createEvent = async (event, idCanlendar) => {
 	try {
-		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar:idCanlendar})
+		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar: idCanlendar})
 
 		const idAccount = googleAccountCalendar.id_account
-		//console.log("idAccount", idAccount)
 		const option = {method: "POST"};
 		option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCanlendar}/events`
 		option.headers = {'content-type': 'application/json', 'X-Google-AccountId': idAccount};
 		option.data = event
-		//console.log(option)
 		return Axios(option);
 	} catch (e) {
-		console.log(e)
-		return e
+		throw e
 	}
 }
+
 function customDatetime() {
 	try {
 		let arrayDT = [];
@@ -272,17 +305,14 @@ function customDatetime() {
 					textM = `${j}`;
 				}
 				if (i < 10) {
-					textH = `0${i}:` + textM+ "AM";
-				}
-				else if (i < 12) {
-					textH = `${i}:` + textM+ "AM";
-				}
-				else {
-					textH = `${i}:` + textM+ "PM";
+					textH = `0${i}:` + textM + "AM";
+				} else if (i < 12) {
+					textH = `${i}:` + textM + "AM";
+				} else {
+					textH = `${i}:` + textM + "PM";
 				}
 				datetimePicker.text.text = textH;
-				datetimePicker.value = textH.slice(0,5)
-				//console.log(datetimePicker)
+				datetimePicker.value = textH.slice(0, 5)
 				arrayDT.push(datetimePicker);
 				j += 14;
 			}
@@ -293,6 +323,7 @@ function customDatetime() {
 		return error;
 	}
 }
+
 module.exports = {
 	requestPostLogin,
 	requestSettings,

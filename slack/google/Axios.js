@@ -20,12 +20,9 @@ function getValueRedis(key) {
 module.exports = function () {
 	// Handler REQUEST
 	Axios.interceptors.request.use(async function (config) {
-		console.log('Start time: ', new Date().toISOString());
-		 console.log('Before REQUEST: ', config);
 		const { url = null, headers = null } = config;
 		const {Authorization = null} = config.headers;
 		if (url && url.split('.com')[0] === Env.resourceServerGet("API_URL").split('.com')[0]&&!Authorization) {
-			console.log("url",url)
 			const idAccount = headers['X-Google-AccountId'];
 			try {
 				let accessToken = await getValueRedis(idAccount);
@@ -34,11 +31,9 @@ module.exports = function () {
 					return config;
 				}
 				accessToken = await newAccessToken(idAccount);
-				console.log("accessToken",accessToken)
 				Redis.client.setex(idAccount,60 * 59, accessToken);
 				config.headers['Authorization'] = `Bearer ${accessToken}`;
 			} catch (error) {
-				console.log("request", error)
 				return Promise.reject(error);
 			}
 		}
@@ -51,7 +46,6 @@ module.exports = function () {
 	Axios.interceptors.response.use(function (response) {
 		return response;
 	}, async function (error) {
-		console.log("ERROR RESPONSE DATA: ", error);
 		try {
 			if (error.response.data.error.code === "InvalidAuthenticationToken") {
 				const idAccount = error.config.headers['X-Google-AccountId'];
@@ -61,7 +55,6 @@ module.exports = function () {
 				return Axios(error.config);
 			}
 		} catch (err) {
-			console.log(err)
 			return Promise.reject(err);
 		}
 		return Promise.reject(error);

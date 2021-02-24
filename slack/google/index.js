@@ -91,7 +91,6 @@ class SlackGoogle extends BaseServer {
 		if (payload.type === "block_actions") {
 
 			if (payload.actions[0].action_id === "btnSettings") {
-				///console.log("payload",payload)
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
 				return requestAddEvent(payload, this.template.addEvent);
@@ -101,64 +100,18 @@ class SlackGoogle extends BaseServer {
 		} else if (payload.type === "view_submission") {
 			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value
 			try {
-				if (payload.view.state.values["check_allday"]["allday"]["selected_options"].value === "true") {
-					let eventAllDay = {
-						"summary": payload.view.state.values["input_title"]["input-action"].value,
-						"location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
-
-						"start": {
-							"date": `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`,
-							"timeZone": "Asia/Ho_Chi_Minh"
-						},
-						"end": {
-							"date": `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`,
-							"timeZone": "Asia/Ho_Chi_Minh"
-						},
-						"recurrence": [
-							`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};COUNT=2`
-						],
-						"attendees": [
-							{
-								"email": "tuanna99qn@gmail.com"
-							},
-						],
-						"reminders": {
-							"useDefault": false,
-							"overrides": [
-								{
-									"method": "email",
-									"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
-								},
-								{
-									"method": "popup",
-									"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
-								}
-							]
-						}
-					}
-
-					return await createEvent(eventAllDay, idCalendar)
-				} else if(payload.view.state.values["check_allday"]["allday"]["selected_options"].value === "") {
 				let event = {
 					"summary": payload.view.state.values["input_title"]["input-action"].value,
 					"location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
 
 					"start": {
-						"dateTime": `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`,
 						"timeZone": "Asia/Ho_Chi_Minh"
 					},
 					"end": {
-						"dateTime": `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`,
-						"date": `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`,
 						"timeZone": "Asia/Ho_Chi_Minh"
 					},
 					"recurrence": [
 						`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};COUNT=2`
-					],
-					"attendees": [
-						{
-							"email": "tuanna99qn@gmail.com"
-						},
 					],
 					"reminders": {
 						"useDefault": false,
@@ -174,11 +127,21 @@ class SlackGoogle extends BaseServer {
 						]
 					}
 				}
-					return await createEvent(event, idCalendar)
-				}
+				if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
+					const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
+					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
+					event.start.dateTime = dateTimeStart;
+					event.end.dateTime = dateTimeEnd;
 
+				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
+					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`
+					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`
+					event.start.date = dateAllDayStart;
+					event.end.date = dateAllDayEnd;
+
+				}
+				return createEvent(event, idCalendar)
 			} catch (e) {
-				console.log(e)
 				return e
 			}
 		}
@@ -203,7 +166,6 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send("OK");
 			}
 			if (payload) {
-				console.log("payload", JSON.stringify(payload))
 				await this.handlerPayLoad(req.body, payload);
 				return res.status(200).send({"response_action": "clear"});
 			}
@@ -221,7 +183,6 @@ class SlackGoogle extends BaseServer {
 
 			// Xử lý profile user google
 			const profileUser = await getProfile(accessTokenGoogle);
-			console.log("profileUser", profileUser)
 			const user = await GoogleAccount.query().findById(profileUser.sub);
 			if (!user) {
 				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle);
@@ -230,7 +191,6 @@ class SlackGoogle extends BaseServer {
 			const calendars = await getListCalendar(profileUser.sub);
 
 			const listCalendar = calendars.items;
-			console.log("calendars", listCalendar)
 			await saveListCalendar(listCalendar);
 
 			// Xử lý channel slack
@@ -253,7 +213,6 @@ class SlackGoogle extends BaseServer {
 
 			return res.send("Oke");
 		} catch (err) {
-			console.log(err)
 			return res.send("ERROR");
 		}
 	}

@@ -122,10 +122,8 @@ const getProfileUser = (accessTokenAzure) => {
  */
 const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure) => {
   const result = await getTimeZoneOutlook(accessTokenAzure);
-  console.log(result.data.timeZone);
   const resultArr = await getTimeZoneSupport(accessTokenAzure);
   const timeZone = resultArr.data.value.find((element) => element.alias === result.data.timeZone);
-  console.log(typeof timeZone);
   const account = {
     id: profileUser.id,
     name: profileUser.displayName,

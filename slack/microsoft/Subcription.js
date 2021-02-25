@@ -23,7 +23,6 @@ const createSubcription = (idCalendar, idAccount) => {
     idAccount
   }
   const state = cryptoEncode(JSON.stringify(obj));
-  console.log(state);
   let date = new Date();
   const data = {
     "changeType": "created,updated,deleted",

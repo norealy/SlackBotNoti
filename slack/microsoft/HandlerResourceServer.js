@@ -47,18 +47,15 @@ function getValueRedis(key) {
  * @param {json} messageFormat
  */
 const sendMessage = async (lv, event, idChan, messageFormat) => {
-  let showEvent = JSON.stringify(messageFormat);
-  showEvent = JSON.parse(showEvent);
-  const tokenBot = Env.chatServiceGet("BOT_TOKEN");
   const options = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${tokenBot}`,
+      Authorization: `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`,
     },
     data: {
       channel: idChan,
-      blocks: showEvent.blocks,
+      blocks: [...messageFormat.blocks],
     },
     url:
       Env.chatServiceGet("API_URL") +
@@ -68,8 +65,8 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0];
   options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] +
     "-" + event.end.dateTime.split('T')[1].split('.0000000')[0];
-  if (event.locations[0]) {
-    options.data.blocks[4].text.text = event.locations[0].displayName;
+  if (event.locations.length > 0) {
+    options.data.blocks[4].text.text = event.locations.map(value => value.displayName).join(", ");
   }
   if (event.bodyPreview) {
     options.data.blocks[5].text.text = `_${event.bodyPreview}_`;
@@ -135,10 +132,7 @@ const handlerCreated = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
-  Promise.all(arrChenCal.map(item => sendMessage(1, event, item.id_channel, showEvent)))
-    .then(function () {
-      console.log("Create ok")
-    })
+  Promise.all(arrChenCal.map(item => sendMessage(1, event, item.id_channel, showEvent)));
 }
 /**
  *
@@ -154,10 +148,7 @@ const handlerUpdated = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
-  Promise.all(arrChenCal.map(item => sendMessage(2, event, item.id_channel, showEvent)))
-    .then(function () {
-      console.log("Update ok")
-    })
+  Promise.all(arrChenCal.map(item => sendMessage(2, event, item.id_channel, showEvent)));
 }
 /**
  *
@@ -172,10 +163,7 @@ const handlerDeleted = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
-  Promise.all(arrChenCal.map(item => sendMessage(3, event, item.id_channel, showEvent)))
-    .then(function () {
-      console.log("Delete ok")
-    })
+  Promise.all(arrChenCal.map(item => sendMessage(3, event, item.id_channel, showEvent)));
 }
 /**
  * sleep

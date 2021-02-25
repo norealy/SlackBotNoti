@@ -5,18 +5,18 @@ const { decodeJWS } = require("./Jws");
 const AxiosConfig = require('./Axios');
 
 const {
-	getToken,
-	getListCalendar,
-	getProfileUser,
-	saveUserProfile,
-	saveListCalendar,
-	saveInfoChannel,
-	saveMicrosoftAccountCalendar,
-	saveChannelsCalendar,
+  getToken,
+  getListCalendar,
+  getProfileUser,
+  saveUserProfile,
+  saveListCalendar,
+  saveInfoChannel,
+  saveMicrosoftAccountCalendar,
+  saveChannelsCalendar,
 } = require("./Auth");
 const {
-	sendMessageLogin,
-	handlerSettingsMessage,
+  sendMessageLogin,
+  handlerSettingsMessage,
 } = require("./HandlerChatService");
 const {
   handlerCreated,
@@ -25,69 +25,69 @@ const {
 } = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
-	constructor(instanceId, opt) {
-		super(instanceId, opt);
-		this.microsoftAccess = this.microsoftAccess.bind(this);
-		this.template = Template();
-	}
-	/**
-	 * Xu ly cac event
-	 * @param {object} event
-	 * @returns {Promise}
-	 */
-	handlerEvent(event) {
-		const { subtype, user } = event;
-		const { loginResource } = this.template;
-		const type = Env.chatServiceGOF("TYPE")
-		if (
-			subtype === type.BOT_ADD ||
-			(subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
-		)
-			return sendMessageLogin(event, loginResource);
-	}
-	/**
-	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
-	 * @param {object} body
-	 * @returns {Promise}
-	 */
-	handlerCommand(body) {
-		let text = body.text.trim();
-		const { systemSetting } = this.template;
-		const result = new Promise((resolve) => resolve(body));
-		switch (text) {
-			case "settings":
-				return handlerSettingsMessage(systemSetting, body);
-			default:
-				return result;
-		}
-	}
+  constructor(instanceId, opt) {
+    super(instanceId, opt);
+    this.microsoftAccess = this.microsoftAccess.bind(this);
+    this.template = Template();
+  }
+  /**
+   * Xu ly cac event
+   * @param {object} event
+   * @returns {Promise}
+   */
+  handlerEvent(event) {
+    const { subtype, user } = event;
+    const { loginResource } = this.template;
+    const type = Env.chatServiceGOF("TYPE")
+    if (
+      subtype === type.BOT_ADD ||
+      (subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
+    )
+      return sendMessageLogin(event, loginResource);
+  }
+  /**
+   *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
+   * @param {object} body
+   * @returns {Promise}
+   */
+  handlerCommand(body) {
+    let text = body.text.trim();
+    const { systemSetting } = this.template;
+    const result = new Promise((resolve) => resolve(body));
+    switch (text) {
+      case "settings":
+        return handlerSettingsMessage(systemSetting, body);
+      default:
+        return result;
+    }
+  }
 
-	async chatServiceHandler(req, res, next) {
-		let {
-			challenge = null,
-			event = null,
-			command = null,
-		} = req.body;
-		try {
-			if (event) {
+  async chatServiceHandler(req, res, next) {
+    let {
+      challenge = null,
+      event = null,
+      command = null,
+    } = req.body;
+    try {
+      if (event) {
         await this.handlerEvent(event);
-			} else if (command && /^\/cal$/.test(command)) {
+      } else if (command && /^\/cal$/.test(command)) {
         await this.handlerCommand(req.body);
-			} else if (challenge) {
-				return res.status(200).send(challenge);
-			}
-			const message = `Thank you call BOT-NOTI !`;
-			return res.status(200).send(message);
-		} catch (error) {
-			const message = `Thank you call BOT-NOTI !
+      } else if (challenge) {
+        return res.status(200).send(challenge);
+      }
+      const message = `Thank you call BOT-NOTI !`;
+      return res.status(200).send(message);
+    } catch (error) {
+      const message = `Thank you call BOT-NOTI !
         If you want assistance please enter: /cal --help`;
-			return res.status(403).send(message);
-		}
-	}
+      return res.status(403).send(message);
+    }
+  }
 
   handlerNotifications(value) {
     const { subscriptionId, changeType, resource } = value;
-    const showEvent  = {...this.template.showEvent};
+    const { showEvent } = this.template;
     switch (changeType) {
       case "updated":
         handlerUpdated(subscriptionId, resource, showEvent);
@@ -120,56 +120,56 @@ class SlackMicrosoft extends BaseServer {
     }
   }
 
-	async microsoftAccess(req, res, next) {
-		const { code, state } = req.query;
-		try {
-			const tokens = await getToken(code, state);
-			const accessTokenAzure = tokens.access_token;
-			const refreshTokenAzure = tokens.refresh_token;
+  async microsoftAccess(req, res, next) {
+    const { code, state } = req.query;
+    try {
+      const tokens = await getToken(code, state);
+      const accessTokenAzure = tokens.access_token;
+      const refreshTokenAzure = tokens.refresh_token;
 
-			// Thuc hien lay tai nguyen user profile
-			const profileUser = await getProfileUser(accessTokenAzure);
+      // Thuc hien lay tai nguyen user profile
+      const profileUser = await getProfileUser(accessTokenAzure);
 
-			// Thêm đối tượng microsoftAccount và bảng microsoft_account
-			await saveUserProfile(profileUser, refreshTokenAzure,accessTokenAzure);
+      // Thêm đối tượng microsoftAccount và bảng microsoft_account
+      await saveUserProfile(profileUser, refreshTokenAzure, accessTokenAzure);
 
-			// Thuc hien lay tai nguyen list calendars
-			const allData = await getListCalendar(profileUser.id);
-			const allCalendar = allData.value;
+      // Thuc hien lay tai nguyen list calendars
+      const allData = await getListCalendar(profileUser.id);
+      const allCalendar = allData.value;
 
-			// Thêm list calendar vào bảng microsoft_calendar
-			await saveListCalendar(allCalendar,profileUser.id);
+      // Thêm list calendar vào bảng microsoft_calendar
+      await saveListCalendar(allCalendar, profileUser.id);
 
-			// Luu  vào bảng microsoft_account_calendar
-			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
+      // Luu  vào bảng microsoft_account_calendar
+      await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
 
-			// Lay Decode jwt de lay ra data
-			const { idChannel, idUser } = await decodeJWS(state);
+      // Lay Decode jwt de lay ra data
+      const { idChannel, idUser } = await decodeJWS(state);
 
-			// Thêm channelvào bảng channels
-			await saveInfoChannel(idChannel);
+      // Thêm channelvào bảng channels
+      await saveInfoChannel(idChannel);
 
-			//  Luu channels calendar vào bảng channels_calendar
-			await saveChannelsCalendar(idChannel, allCalendar);
+      //  Luu channels calendar vào bảng channels_calendar
+      await saveChannelsCalendar(idChannel, allCalendar);
 
-			return res.send("Successful !");
-		} catch (e) {
-			return res.send("Login Error !");
-		}
-	}
+      return res.send("Successful !");
+    } catch (e) {
+      return res.send("Login Error !");
+    }
+  }
 }
 
 module.exports = SlackMicrosoft;
 
 (async function () {
-	const pipeline = new SlackMicrosoft(process.argv[2], {
-		config: {
-			path: process.argv[3],
-			appRoot: __dirname,
-		},
-	});
-	await Template().init();
-	await pipeline.init();
-	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
+  const pipeline = new SlackMicrosoft(process.argv[2], {
+    config: {
+      path: process.argv[3],
+      appRoot: __dirname,
+    },
+  });
+  await Template().init();
+  await pipeline.init();
+  pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
   AxiosConfig();
 })();

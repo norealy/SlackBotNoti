@@ -6,7 +6,7 @@
 		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
 		"AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
 		"AZURE_REDIRECT": "http://localhost:5002/auth/microsoft",
-		"SCOPE": "offline_access user.read calendars.readwrite MailboxSettings.Read",
+		"SCOPE": "offline_access user.read calendars.readwrite",
 		"API_URL_AUTH":"https://login.microsoftonline.com/common/oauth2",
 		"API_TOKEN":"/v2.0/token",
 		"API_AUTHOR":"/v2.0/authorize",
@@ -14,7 +14,7 @@
 		"GRAPH_CALENDARS":"/v1.0/me/calendars",
 		"GRAPH_USER":"/v1.0/me",
 		"SUB_CHANGETPYE":"created,updated,deleted",
-		"SUB_NOTIFICATION_URL": "https://eea2a4034042.ngrok.io/watch/resource-server",
+		"SUB_NOTIFICATION_URL": "https://63c36c3cfe0b.ngrok.io/watch/resource-server",
 		"GRAPH_SUB":"/v1.0/subscriptions",
     "GRAPH_MY_EVENT":"/v1.0/me/events"
 	}

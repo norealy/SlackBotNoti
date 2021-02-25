@@ -8,6 +8,8 @@ const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar"
 const handlerAddEvent = async (body, template, timePicker) => {
   const { trigger_id = null, channel_id = null } = body;
   const { addEvent } = template;
+  addEvent.blocks[6].accessory.options = timePicker;
+  addEvent.blocks[7].accessory.options = timePicker;
   let addView = JSON.stringify(addEvent);
   addView = JSON.parse(addView);
   const data = {
@@ -36,27 +38,22 @@ const handlerAddEvent = async (body, template, timePicker) => {
     }
     options.data.view.blocks[1].accessory.options.push(selectCalendars);
   }
-  options.data.view.blocks[6].accessory.options = timePicker;
-  options.data.view.blocks[7].accessory.options = timePicker;
   addView.blocks.splice(5, 1);
   return Axios(options);
 };
 
 const handlerBlocksActions = async (payload, template) => {
-
-  console.log("handlerBlocksActions:");
   const { addEvent } = template;
-  let addView = Object.assign({},addEvent);
+  let addView = JSON.stringify(addEvent);
+  addView = JSON.parse(addView)
   addView.blocks = payload.view.blocks;
   const { action_id = null, selected_options = null } = payload.actions[0];
   if (action_id === "allday" && selected_options.length === 0) {
-    console.log("all day false");
     addView.blocks.splice(5, 1);
     addView.blocks.splice(5, 0, addEvent.blocks[7]);
     addView.blocks.splice(5, 0, addEvent.blocks[6]);
   }
   else if (action_id === "allday" && selected_options.length > 0) {
-    console.log("all day true");
     addView.blocks.splice(5, 2);
     addView.blocks.splice(5, 0, addEvent.blocks[5]);
   }
@@ -70,43 +67,59 @@ const handlerBlocksActions = async (payload, template) => {
     data: data,
     url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`
   };
-  return new Promise((resolve,reject)=>{
-    Axios(options).then((resp)=>{
+  return new Promise((resolve, reject) => {
+    Axios(options).then((resp) => {
       return resolve(resp);
-    }).catch((err)=>{
+    }).catch((err) => {
       return reject(err);
     });
   });
 };
 
-Date.prototype.addMonth = function (months) {
-  let month = new Date(this.valueOf());
-  month.setMonth(month.getMonth() + months);
-  return month;
+Date.prototype.addDays = function (days) {
+  let date = new Date(this.valueOf());
+  date.setDate(date.getDate() + days);
+  return date;
 }
 
-const getRecurrence = (type) => {
+const getRecurrence = (type, datetime, date) => {
+  const dateStart = datetime;
   const recurrence = {
     "pattern": {
-      "type": "absoluteMonthly",
+      "type": "daily",
       "interval": 1,
-      "dayOfMonth": 24
+      "month": 0,
+      "dayOfMonth": 0,
+      "daysOfWeek": [
+        "monday"
+      ],
+      "index": "first"
     },
     "range": {
-      "startDate": "2021-02-24",
-      "endDate": "2022-02-24"
+      "type": "endDate",
+      "startDate": dateStart,
+      "endDate": dateStart
     }
   }
-
-  switch(type){
+  datetime = datetime.split('-');
+  var date = new Date(datetime[0], datetime[1], datetime[2]);
+  switch (type) {
     case "daily":
-      recurrence.pattern.dayOfMonth = 0;
-
+      recurrence.pattern.type = "daily"
+      let dateD = date.addDays(60);
+      recurrence.range.endDate = dateD.getFullYear() + "-" + dateD.getMonth() + "-" + dateD.getDate()
       break;
     case "weekly":
-      // let month = recurrence.range.endDate.split('-');
-      // month[1] = month[1] + 1;
-      // recurrence.range.endDate = ;
+      recurrence.pattern.type = "weekly";
+      let dateW = date.addDays(150);
+      recurrence.range.endDate = dateW.getFullYear() + "-" + dateW.getMonth() + "-" + dateW.getDate()
+      break;
+    case "absoluteMonthly":
+      recurrence.pattern.type = "absoluteMonthly"
+      recurrence.pattern.dayOfMonth = 24;
+      recurrence.pattern.firstDayOfWeek = "sunday";
+      let dateM = date.addDays(365);
+      recurrence.range.endDate = dateM.getFullYear() + "-" + dateM.getMonth() + "-" + dateM.getDate()
       break;
     default:
       break;
@@ -114,8 +127,9 @@ const getRecurrence = (type) => {
   return recurrence;
 }
 
-const submitAddEvent = async (payload,res) => {
+const submitAddEvent = async (payload, res) => {
   const { values } = payload.view.state;
+
   const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let timeStart = "00:00";
@@ -127,11 +141,14 @@ const submitAddEvent = async (payload,res) => {
     timeEnd = values["select-time-end"]["time-end-action"]["selected_option"].value
   }
   let allDay = false;
+
   if (values['check_allday']['allday'].selected_options.length > 0) {
-    allDay = true
+    allDay = true;
+    timeStart = "00:00";
+    timeEnd = "00:00";
+    dateEnd = values["select-date-end"]["datepicker-action-end"]["selected_date"];
   }
-  const data =
-  {
+  const event = {
     "reminderMinutesBeforeStart": values['select_before_notification']['static_select-action'].selected_option.value,
     "isReminderOn": true,
     "subject": values['input_title']['input-action'].value,
@@ -148,51 +165,41 @@ const submitAddEvent = async (payload,res) => {
       "displayName": values['input_location']['plain_text_input-action'].value,
     }
   }
-  console.log(values['select_before_notification']['static_select-action'].selected_option);
-
+  if (values.select_everyday['static_select-action']['selected_option'].value !== "nomal" && !allDay) {
+    event.recurrence = getRecurrence(values.select_everyday['static_select-action']['selected_option'].value, dateStart);
+  }
   const idCalendar = values["select_calendar"]["select_calendar"]["selected_option"].value;
-
   const accountCal = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
-
   const options = {
     method: 'POST',
     headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': accountCal.id_account },
-    data: JSON.stringify(data),
-    url: `https://graph.microsoft.com/v1.0/me/calendars/${idCalendar}/events`
+    data: JSON.stringify(event),
+    url:
+      Env.resourceServerGOF("GRAPH_URL") +
+      Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
   };
-  // Env.resourceServerGOF("GRAPH_URL") +
-  // Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
-
-  await Axios(options);
+   await Axios(options);
   const { trigger_id = null, view = null } = payload;
-  const data1 = {
+  const data = {
     "trigger_id": trigger_id,
     "view": view
   }
   const options1 = {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data1,
-    url: `https://slack.com/api/views.push`
+    data: data,
+    url: Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_VIEW_PUSH")
   };
-  return Axios(options1);
+  return new Promise((resolve, reject) => {
+    Axios(options1).then((data) => {
+      return resolve(data);
+    }).catch((error) => {
+      return reject(error);
+    });
+  })
 
 };
-
-const clearViews = async (payload) => {
-  const { trigger_id = null, view = null } = payload;
-  const data1 = {
-    "trigger_id": trigger_id,
-    "view": view
-  }
-  const options1 = {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data1,
-    url: `https://slack.com/api/views.push`
-  };
-  return Axios(options1);
-}
 
 /**
  * Tao url request author

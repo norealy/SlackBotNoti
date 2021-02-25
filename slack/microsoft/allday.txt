@@ -51,7 +51,7 @@
             },
 
 
-            // Tuan
+  // Tuan
             "recurrence": {
                 "pattern": {
                     "type": "weekly",
@@ -110,3 +110,32 @@
                     "numberOfOccurrences": 0
                 }
             },
+\
+
+{
+    "reminderMinutesBeforeStart": 15,
+    "isReminderOn": true,
+    "subject": "ABCD11",
+    "isAllDay": false,
+    "start": {
+        "dateTime": "2021-02-28T00:30:00.0000000",
+        "timeZone": "UTC"
+    },
+    "end": {
+        "dateTime": "2021-02-28T01:15:00.0000000",
+        "timeZone": "UTC"
+    },
+    "location": {
+        "displayName": "Location ABC"
+    },
+    "recurrence": {
+        "pattern": {
+            "type": "daily",
+            "interval": 1
+        },
+        "range": {
+            "startDate": "2021-02-24",
+            "endDate": "2022-03-24"
+        }
+    }
+}

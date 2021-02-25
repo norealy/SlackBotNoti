@@ -71,7 +71,6 @@ class SlackMicrosoft extends BaseServer {
 	handlerPayload(payload,res) {
     payload = JSON.parse(payload);
     const { type=null } = payload;
-    console.log("payload:",payload)
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
       case "block_actions":
@@ -100,7 +99,6 @@ class SlackMicrosoft extends BaseServer {
 		try {
 			if (event) {
         await this.handlerEvent(event);
-
 			} else if (command && /^\/cal$/.test(command)) {
         await this.handlerCommand(req.body);
         const message = `Thank you call BOT-NOTI !`;
@@ -108,10 +106,12 @@ class SlackMicrosoft extends BaseServer {
 
       } else if (payload) {
         await this.handlerPayload(payload,res);
+        return ;
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
-      return;
+      const message = `Thank you call BOT-NOTI !`;
+      return res.status(200).send(message);
 		} catch (error) {
       console.log(error);
 			const message = `Thank you call BOT-NOTI !
@@ -123,6 +123,7 @@ class SlackMicrosoft extends BaseServer {
   handlerNotifications(value) {
     const { subscriptionId, changeType, resource } = value;
     const { showEvent } = this.template;
+
     switch (changeType) {
       case "updated":
         handlerUpdated(subscriptionId, resource, showEvent);
@@ -189,7 +190,6 @@ class SlackMicrosoft extends BaseServer {
 
 			return res.send("Successful !");
 		} catch (e) {
-      console.log(e.response.data.error)
 			return res.send("Login Error !");
 		}
 	}

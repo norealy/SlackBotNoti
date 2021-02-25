@@ -6,6 +6,7 @@ const GoogleAccount = require("../../models/GoogleAccount");
 const Redis = require('../../utils/redis')
 const AxiosConfig = require('./Axios');
 const Axios = require('axios')
+const ChannelsCalendar = require("../../models/ChannelsCalendar")
 const {
 	getToken,
 	getListCalendar,
@@ -28,7 +29,10 @@ const {
 	createEvent,
 	requestBlockActionsAllDay
 } = require("./ChatService");
-
+ const {
+	 getEventUpdate,
+	 sendWatchNoti
+ } = require("./ResourceServer")
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
@@ -219,41 +223,24 @@ class SlackGoogle extends BaseServer {
 			return res.send("ERROR");
 		}
 	}
-	/**
-	 * Get google calendar event updates
-	 * @param {object} headers
-	 * @return {Promise}
-	 */
-	getEventUpdate(headers,idAccount) {
-		return new Promise((resolve, reject) => {
-			const dateNow = new Date();
-			const options = {
-				url: headers['x-goog-resource-uri'],
-				method: 'GET',
-				headers: {'X-Google-AccountId': idAccount},
-				params: {
-					updatedMin: new Date(dateNow - (5*60*1000)).toISOString(),
-				},
-			};
-			Axios(options)
-				.then(result => {
-					const {items = []} = result.data;
-					const legItem = items.length;
-					if(legItem === 0) resolve(null);
-					resolve(items[legItem - 1])
-				})
-				.catch(err => {
-					reject(err)
-				});
-		});
-	}
+
 
 	async resourceServerHandler(req, res, next) {
 		try {
-			const item = await this.getEventUpdate(req.headers,"106346810760142562802");
+			const item = await getEventUpdate(req.headers,"106346810760142562802");
 			console.log(item);
+			const options = await sendWatchNoti("C01P0CCHQV9",this.template.showEvent,item)
+			// const summary = item.summary;
+			// const location = item.location;
+			// const created =  '2021-02-25T02:40:23.000Z';
+			// const	updated = '2021-02-25T02:40:23.677Z';
+			// const start = '2021-02-08';
+			// const end = '2021-02-09';
+			// const status = 'confirmed';
+
 			return res.status(204).send("OK");
 		} catch (e) {
+			console.log("err", e);
 			return res.status(204).send("ERROR");
 		}
 	}

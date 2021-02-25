@@ -50,6 +50,7 @@ class TemplateSlack {
 			this.loginResource = await this.readFileTemplate(`${pathFile}/LoginResource.json`);
 			this.showEvent = await this.readFileTemplate(`${pathFile}/ShowEvent.json`);
 			this.systemSetting = await this.readFileTemplate(`${pathFile}/SystemSetting.json`);
+
 			return this;
 		} catch (err) {
 			throw err

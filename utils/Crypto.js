@@ -47,7 +47,7 @@ const decodeJWT = async (token) => {
  */
 const cryptoEncode = function (value) {
   let cipher = crypto.Cipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
-  let encodeString = cipher.update(JSON.stringify(value), 'utf8', 'hex')
+  let encodeString = cipher.update(value, 'utf8', 'hex')
   encodeString += cipher.final('hex');
   return encodeString;
 };
@@ -68,3 +68,4 @@ module.exports = {
   cryptoEncode,
   cryptoDecode
 };
+cryptoEncode();

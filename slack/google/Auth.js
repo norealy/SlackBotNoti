@@ -37,7 +37,22 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
-
+const watchGoogleCalendar = async (idCalendar,idAccount)=>{
+	const options = {
+		method: 'POST',
+		url:`https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
+		headers: {'X-Google-AccountId': idAccount},
+		data:{
+			id: "00304594-a576-4f8d-bc7a-956492",
+			type: "web_hook",
+			address: "https://apis.iceteait.com/watch/resource-server",
+			"token": `${idAccount}${idCalendar}`,
+		}
+	}
+	const done = await Axios(options);
+	console.log("done",done)
+	return done
+}
 /**
  * Thông qua accessToken để list ra calendar
  * @param{string} accessTokenGoogle
@@ -228,4 +243,5 @@ module.exports = {
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
 	SaveChannelsCalendar,
+	watchGoogleCalendar
 };

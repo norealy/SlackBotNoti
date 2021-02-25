@@ -16,7 +16,8 @@ const {
 	saveInfoChannel,
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
-	SaveChannelsCalendar
+	SaveChannelsCalendar,
+	watchGoogleCalendar
 } = require("./Auth");
 
 const {
@@ -29,10 +30,11 @@ const {
 	createEvent,
 	requestBlockActionsAllDay
 } = require("./ChatService");
- const {
-	 getEventUpdate,
-	 sendWatchNoti
- } = require("./ResourceServer")
+const {
+	getEventUpdate,
+	sendWatchNoti
+} = require("./ResourceServer")
+
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
 		super(instanceId, opt);
@@ -47,7 +49,7 @@ class SlackGoogle extends BaseServer {
 	 * @returns {Promise}
 	 */
 	handlerEvent(event) {
-		console.log(event)
+
 		event = JSON.parse(JSON.stringify(event))
 		const {subtype, user} = event;
 		const botId = Env.chatServiceGOF("BOT_USER");
@@ -147,7 +149,7 @@ class SlackGoogle extends BaseServer {
 				}
 				return createEvent(event, idCalendar)
 			} catch (e) {
-				console.log("err",e)
+				console.log("err", e)
 				throw e
 			}
 		}
@@ -176,7 +178,7 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send({"response_action": "clear"});
 			}
 		} catch (error) {
-			console.log("errr",error)
+		///	console.log("errr", error)
 			return res.status(403).send("Error");
 		}
 	}
@@ -212,18 +214,19 @@ class SlackGoogle extends BaseServer {
 			for (let calendar of listCalendar) {
 				idCalendars.push(calendar.id)
 			}
-
+			// watch
+			await watchGoogleCalendar(idCalendars,profileUser.sub)
 			// profileUser +  listAllCalendar
 			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
 			await SaveChannelsCalendar(idCalendars, idChannel);
-
 			return res.send("Oke");
 		} catch (err) {
-			console.log("err",err.response.data)
+			console.log("err", err.response.data)
 			return res.send("ERROR");
 		}
 	}
-	 getValueRedis(key) {
+
+	getValueRedis(key) {
 		return new Promise((resolve, reject) => {
 			Redis.client.get(key, (err, reply) => {
 				if (err) reject(null);
@@ -231,13 +234,13 @@ class SlackGoogle extends BaseServer {
 			});
 		})
 	}
+
 	async resourceServerHandler(req, res, next) {
 		try {
-			const event = await getEventUpdate(req.headers,"106346810760142562802");
-			//console.log(event);
-			console.log("headers",req.headers)
+			const idAccount = req.headers['x-goog-channel-token']
+			const event = await getEventUpdate(req.headers, idAccount,);
 			//const arrIdChannel = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
-			const options = await sendWatchNoti("C01P0CCHQV9",this.template.showEvent,event)
+			const options = await sendWatchNoti("C01P0CCHQV9", this.template.showEvent, event)
 
 			return res.status(204).send("OK");
 		} catch (e) {

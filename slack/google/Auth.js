@@ -7,6 +7,7 @@ const Channels = require("../../models/Channels");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const Redis = require("../../utils/redis/index");
+const {cryptoEncode} = require('../../utils/Crypto')
 
 /**
  * Thực hiện việc lấy accesToken
@@ -37,20 +38,21 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
-const watchGoogleCalendar = async (idCalendar,idAccount)=>{
+const watchGoogleCalendar = async (idCalendar, idAccount) => {
+//	const token = cryptoEncode({idCalendars: idCalendar, idAccounts: idAccount})
 	const options = {
 		method: 'POST',
-		url:`https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
+		url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
 		headers: {'X-Google-AccountId': idAccount},
-		data:{
-			id: "00304594-a576-4f8d-bc7a-956492",
+		data: {
+			id: "00304594-a576-4f8d-bc7a-9564sb",
 			type: "web_hook",
 			address: "https://apis.iceteait.com/watch/resource-server",
-			"token": `${idAccount}${idCalendar}`,
+			"token": idAccount,
 		}
 	}
 	const done = await Axios(options);
-	console.log("done",done)
+	console.log("done", done)
 	return done
 }
 /**
@@ -131,7 +133,7 @@ const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogl
 	}
 	const data = await GoogleAccount.query().findById(account.id);
 	return new Promise((resolve, reject) => {
-		Redis.client.setex(account.id,60 * 59, accessTokenGoogle)
+		Redis.client.setex(account.id, 60 * 59, accessTokenGoogle)
 		if (!data) {
 			GoogleAccount.query()
 				.insert(account)

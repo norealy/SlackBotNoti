@@ -47,6 +47,7 @@ module.exports = function () {
 		return response;
 	}, async function (error) {
 		try {
+			console.log(error)
 			if (error.response.data.error.code === "InvalidAuthenticationToken") {
 				const idAccount = error.config.headers['X-Google-AccountId'];
 				const accessToken = await newAccessToken(idAccount);

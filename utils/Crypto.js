@@ -68,4 +68,3 @@ module.exports = {
   cryptoEncode,
   cryptoDecode
 };
-cryptoEncode();

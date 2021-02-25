@@ -54,7 +54,6 @@ const decode = async (token) => {
 	}
 	const decode = Jwt.decode(token);
 	const data = decode.payload;
-	console.log("data",data)
 	return data;
 }
 

@@ -6,6 +6,7 @@ const GoogleAccount = require("../../models/GoogleAccount");
 const Redis = require('../../utils/redis')
 const AxiosConfig = require('./Axios');
 const Axios = require('axios')
+const {cryptoDecode} = require('../../utils/Crypto')
 const ChannelsCalendar = require("../../models/ChannelsCalendar")
 const {
 	getToken,
@@ -86,7 +87,6 @@ class SlackGoogle extends BaseServer {
 			return promise;
 		}
 	}
-
 	/**
 	 *
 	 * @param {object} body
@@ -178,7 +178,7 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send({"response_action": "clear"});
 			}
 		} catch (error) {
-		///	console.log("errr", error)
+			console.log("errr", error)
 			return res.status(403).send("Error");
 		}
 	}
@@ -215,13 +215,13 @@ class SlackGoogle extends BaseServer {
 				idCalendars.push(calendar.id)
 			}
 			// watch
-			await watchGoogleCalendar(idCalendars,profileUser.sub)
+			await watchGoogleCalendar('tuanna99qn@gmail.com',profileUser.sub)
 			// profileUser +  listAllCalendar
 			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
 			await SaveChannelsCalendar(idCalendars, idChannel);
 			return res.send("Oke");
 		} catch (err) {
-			console.log("err", err.response.data)
+			console.log("err", err)
 			return res.send("ERROR");
 		}
 	}
@@ -234,13 +234,14 @@ class SlackGoogle extends BaseServer {
 			});
 		})
 	}
-
 	async resourceServerHandler(req, res, next) {
 		try {
+			console.log("headers",req.headers)
+
 			const idAccount = req.headers['x-goog-channel-token']
 			const event = await getEventUpdate(req.headers, idAccount,);
-			//const arrIdChannel = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
-			const options = await sendWatchNoti("C01P0CCHQV9", this.template.showEvent, event)
+			console.log(event)
+			//const options = await sendWatchNoti("C01P0CCHQV9", this.template.showEvent, event)
 
 			return res.status(204).send("OK");
 		} catch (e) {

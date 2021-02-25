@@ -1,5 +1,5 @@
 const Axios = require("axios");
-const EncodeJws = require("./Jws");
+const Crypto = require("../../utils/Crypto");
 const ENV = require("../../utils/Env");
 
 /**
@@ -11,7 +11,11 @@ const ENV = require("../../utils/Env");
 const redirectMicrosoft = (idChannel, idUser) => {
 	try {
 		const scopeAzure = ENV.resourceServerGet("SCOPE");
-		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
+    const data = {
+      idChannel,
+      idUser
+    }
+		const stateAzure = Crypto.createJWT(data);
 		let urlRequestAuthor = `${ENV.resourceServerGet(
 			"API_URL_AUTH"
 		)}${ENV.resourceServerGet("API_AUTHOR")}`;

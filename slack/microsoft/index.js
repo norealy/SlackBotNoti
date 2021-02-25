@@ -21,11 +21,6 @@ const {
   handlerBlocksActions,
   submitAddEvent,
 } = require("./HandlerChatService");
-const {
-  handlerCreated,
-  handlerUpdated,
-  handlerDeleted
-} = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
 	constructor(instanceId, opt) {
@@ -120,34 +115,10 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 
-  handlerNotifications(value) {
-    const { subscriptionId, changeType, resource } = value;
-    const { showEvent } = this.template;
-
-    switch (changeType) {
-      case "updated":
-        handlerUpdated(subscriptionId, resource, showEvent);
-        break
-      case "created":
-        handlerCreated(subscriptionId, resource, showEvent);
-        break
-      case "deleted":
-        handlerDeleted(subscriptionId, resource, showEvent);
-        break
-      default:
-        break
-    }
-  }
-
   resourceServerHandler(req, res, next) {
     try {
-      const { body = null, query = null } = req;
-      if (body.value) {
-        res.status(202).send("OK")
-        this.handlerNotifications(body.value[0]);
-        return null;
-      }
-      else if (query) {
+      const { query = null } = req;
+      if (query) {
         const { validationToken } = query;
         return res.status(200).send(validationToken);
       }

@@ -116,7 +116,7 @@ const getRecurrence = (type, datetime, date) => {
       break;
     case "absoluteMonthly":
       recurrence.pattern.type = "absoluteMonthly"
-      recurrence.pattern.dayOfMonth = 24;
+      recurrence.pattern.dayOfMonth = datetime[2];
       recurrence.pattern.firstDayOfWeek = "sunday";
       let dateM = date.addDays(365);
       recurrence.range.endDate = dateM.getFullYear() + "-" + dateM.getMonth() + "-" + dateM.getDate()
@@ -129,7 +129,6 @@ const getRecurrence = (type, datetime, date) => {
 
 const submitAddEvent = async (payload, res) => {
   const { values } = payload.view.state;
-
   const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let timeStart = "00:00";

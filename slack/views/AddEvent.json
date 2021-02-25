@@ -40,7 +40,6 @@
 					"emoji": true
 				},
 				"options": [
-
 				],
 				"action_id": "select_calendar"
 			}
@@ -88,7 +87,7 @@
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-02-28",
+				"initial_date": "2021-03-03",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select a date",
@@ -106,7 +105,7 @@
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-02-28",
+				"initial_date": "2021-03-03",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select a date",

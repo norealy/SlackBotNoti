@@ -6,6 +6,7 @@ const Path = require('path');
 const FsExtra = require('fs-extra');
 const Fs = require('fs');
 const BodyParser = require('body-parser');
+const CookieParser = require('cookie-parser');
 const _ = require("lodash");
 const Env = require('../utils/Env');
 const Redis = require('../utils/redis');
@@ -81,6 +82,7 @@ class BaseServer {
 			1);
 		listFile.splice(_.findIndex(listFile,(value) => value === `${this.chatService}.json`),
 			1);
+		wrapper.server["LIST"] = [];
 		for (let i = 0, length = listFile.length; i < length; i++) {
 			const regex = /.json$/;
 			if (regex.test(listFile[i])) {
@@ -90,7 +92,13 @@ class BaseServer {
 				for (let j = 0, lngProps = props.length; j < lngProps; j++) {
 					wrapper.resourceServer[`${prefix}_${props[j]}`] = config.resourceServer[`${props[j]}`]
 				}
-				wrapper.server[`${listFile[i].replace(regex, "")}_PORT`] = config.server["PORT"]
+				const name = listFile[i].replace(regex, "");
+				wrapper.server[`${name}_PORT`] = config.server["PORT"];
+				wrapper.server["LIST"].push({
+					prefix,
+					name,
+					PORT: config.server["PORT"],
+				})
 			}
 		}
 		return wrapper
@@ -205,6 +213,7 @@ class BaseServer {
 		await this.configRedis();
 
 		this.app.disable('x-powered-by');
+		this.app.use(CookieParser());
 		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));
 		this.app.use(BodyParser.json({limit: '2mb'}));
 

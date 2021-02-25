@@ -3,6 +3,8 @@ const httpProxy = require('http-proxy');
 const Axios = require('axios');
 const Template = require("../views/Template");
 const Env = require("../../utils/Env");
+const Redis = require('../../utils/redis');
+const {decodeJWT} = require('../../utils/Crypto');
 const Channels = require("../../models/Channels");
 
 const {
@@ -31,11 +33,11 @@ class SlackWrapper extends BaseServer {
 
 	/**
 	 *
-	 * @param {array} view
 	 * @param {object} event
+	 * @param {string} user_id
 	 * @returns {Promise}
 	 */
-	handlerEvent(event) {
+	handlerEvent(event, user_id) {
 		const {subtype} = event;
 		const {BOT_ADD, APP_JOIN, CHANNEL_JOIN} = Env.chatServiceGOF("TYPE");
 		const {loginResource} = this.template;
@@ -45,24 +47,75 @@ class SlackWrapper extends BaseServer {
 			case APP_JOIN:
 				return handlerOptionLogin(event, loginResource);
 			case CHANNEL_JOIN:
+				if(user_id === event.user) return handlerOptionLogin(event, loginResource);
+				return null;
 			default:
 				return null;
 		}
 	}
 
+	getDataServer(actions) {
+		const list = Env.serverGOF("LIST");
+		for(let i = 0, length = list.length; i < length; i++){
+			const {prefix} = list[i];
+			for(let j = 0, length = actions.length; j < length; j ++){
+				const regex = new RegExp(`^${prefix}_`);
+				if(regex.test(actions[j].action_id)) return list[i]
+			}
+		}
+	}
+
+	setUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.setex(`ACCESS_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
+				if(err) reject(err);
+				resolve(1);
+			});
+		})
+	}
+
+	getUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.get(`ACCESS_TOKEN_${uid}`, (err, res) => {
+				if (err) reject(err);
+				resolve(res);
+			});
+		})
+	}
+
+	delUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.del(`ACCESS_TOKEN_${uid}`, (err, res) => {
+				if (err) reject(err);
+				resolve(res);
+			});
+		})
+	}
+
 	async chatServiceHandler(req, res, next) {
-		let {challenge = null, event = null, payload = null, command = null} = req.body;
-		console.log(req.body);
+		let {challenge = null, event = null, payload = null, command = null, authorizations = null} = req.body;
+		if(challenge || command) console.log(req.body);
 		try {
 			if (challenge) {
 				return res.status(200).send(challenge);
 			}
 			if (event) {
-				console.log('chatServiceHandler event: ', event);
-				const config = this.handlerEvent(event);
-				if(config) await Axios(config);
+				const {user_id = ""} = authorizations[0];
+				const config = this.handlerEvent(event, user_id);
+				if(config){
+					const {redis = null} = config.extendedProperties;
+					if(redis && redis.accessTokenUid) await this.setUidToken(redis.accessTokenUid);
+					await Axios(config);
+				}
+				return res.status(200).send("OK");
 			}
-			return res.status(200).send("OK");
+			if(payload){
+				payload = JSON.parse(payload);
+				const {actions} = payload;
+				const data = this.getDataServer(actions);
+				proxy.web(req, res, {target: `http://localhost:${data.PORT}`})
+			}
+
 		} catch (e) {
 			console.log("chatServiceHandler error: ", e);
 			return res.status(400).send("ERROR");
@@ -79,38 +132,43 @@ class SlackWrapper extends BaseServer {
 		}
 	}
 
-	loginWrapper(req, res, next) {
-		const {accessToken = null, redirect = null} = req.query;
+	async loginWrapper(req, res, next) {
+		const {accessToken = "", redirect = ""} = req.query;
 		try {
 			if (!accessToken || !redirect) return res.status(400).send("Bad request");
-			// res.cookie(`${redirect}_SLACK`, accessToken, {
-			// 	maxAge: expCookie,
-			// 	httpOnly: true,
-			// 	sameSite: "Strict",
-			// });
-			// switch (redirect) {
-			// 	case "GOOGLE":
-			// 		return res.status(307).redirect(configUrlAuthGoogle());
-			// 	case "MICROSOFT":
-			// 		return res.status(307).redirect(configUrlAuthMicrosoft());
-			// 	default:
-			// 		return res.status(400).send("Bad request");
-			// }
-			return res.status(200).send("OK");
+			const payload = decodeJWT(accessToken);
+			// let result = await this.getUidToken(payload.uid);
+			// if(!result) return res.status(400).send("Bad request");
+			// result =	await this.delUidToken(result);
+			// console.log("loginWrapper: ", result);
+			const expCookie = parseInt(Env.getOrFail("JWT_DURATION"));
+			res.cookie(`SLACK-${redirect}`, accessToken, {
+				maxAge: expCookie * 1000,
+				httpOnly: true,
+				sameSite: "Strict",
+			});
+			switch (redirect) {
+				case "GOOGLE":
+					return res.status(307).redirect(configUrlAuthGoogle());
+				case "MICROSOFT":
+					return res.status(307).redirect(configUrlAuthMicrosoft());
+				default:
+					return res.status(400).send("Bad request");
+			}
 		} catch (e) {
-			return res.status(204).send("ERROR");
+			return res.status(400).send("Bad request");
 		}
 	}
 
 	loginGoogle(req, res, next) {
 		proxy.web(req, res, {
-			target: `http:localhost:${Env.resourceServerGOF("GOOGLE_PORT")}`
+			target: `http://localhost:${Env.serverGOF("GOOGLE_PORT")}`
 		})
 	}
 
 	loginMicrosoft(req, res, next) {
 		proxy.web(req, res, {
-			target: `http:localhost:${Env.resourceServerGOF("MICROSOFT_PORT")}`
+			target: `http://localhost:${Env.serverGOF("MICROSOFT_PORT")}`
 		})
 	}
 }

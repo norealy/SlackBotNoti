@@ -115,7 +115,8 @@ class SlackGoogle extends BaseServer {
 	}
 
 	async authGoogle(req, res) {
-		const { code, state } = req.query;
+		const { code } = req.query;
+		const state = req.cookies[this.instanceId];
 		try {
 			const tokens = await getToken(code, state);
 			const accessTokenGoogle = tokens.access_token;

@@ -1,5 +1,6 @@
 const Env = require("../../utils/Env");
 const {createJWT} = require('../../utils/Crypto');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Cấu hình đường dẫn redirect login google
@@ -46,7 +47,9 @@ const handlerOptionLogin = (event, view) => {
 	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
 	const {channel} = event;
 	const iat = Math.floor(new Date()/1000);
+	const uid = uuidv4();
 	const payload = {
+		uid,
 		idChannel: channel,
 		iat,
 		exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
@@ -61,6 +64,7 @@ const handlerOptionLogin = (event, view) => {
 		"channel": channel,
 		"blocks": viewLogin
 	};
+	option.extendedProperties = {redis: {accessTokenUid: uid}};
 	return option;
 };
 

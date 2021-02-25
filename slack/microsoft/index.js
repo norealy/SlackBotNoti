@@ -96,7 +96,8 @@ class SlackMicrosoft extends BaseServer {
 	}
 
 	async microsoftAccess(req, res, next) {
-		const { code, state } = req.query;
+		const { code } = req.query;
+		const state = req.cookies[this.instanceId];
 		try {
 			const tokens = await getToken(code, state);
 			const accessTokenAzure = tokens.access_token;

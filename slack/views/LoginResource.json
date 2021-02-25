@@ -21,7 +21,7 @@
 					"text": "Login Google"
 				},
 				"style": "primary",
-				"action_id": "addGoogle"
+				"action_id": "GO_addGoogle"
 			},
 			{
 				"type": "button",
@@ -31,7 +31,7 @@
 					"text": "Login microsoft"
 				},
 				"style": "primary",
-				"action_id": "addMicrosoft"
+				"action_id": "MI_addMicrosoft"
 			}
 		]
 	}

@@ -8,6 +8,8 @@ const AxiosConfig = require('./Axios');
 const Axios = require('axios')
 const {cryptoDecode} = require('../../utils/Crypto')
 const ChannelsCalendar = require("../../models/ChannelsCalendar")
+const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar")
+
 const {
 	getToken,
 	getListCalendar,
@@ -43,14 +45,12 @@ class SlackGoogle extends BaseServer {
 		this.template = Template();
 	}
 
-
 	/**
 	 *
 	 * @param {object} event
 	 * @returns {Promise}
 	 */
 	handlerEvent(event) {
-
 		event = JSON.parse(JSON.stringify(event))
 		const {subtype, user} = event;
 		const botId = Env.chatServiceGOF("BOT_USER");
@@ -81,9 +81,7 @@ class SlackGoogle extends BaseServer {
 			return requestHome(body, this.template.homePage);
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
-		} else if (chat === "add-event") {
-			return requestAddEvent(body, this.template.addEvent);
-		} else {
+		}  else {
 			return promise;
 		}
 	}
@@ -99,62 +97,9 @@ class SlackGoogle extends BaseServer {
 		if (payload.type === "block_actions") {
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
-			} else if (payload.actions[0].action_id === "btnEventAdd") {
-				return requestAddEvent(payload, this.template.addEvent);
-			} else if (payload.actions[0].action_id === "allday") {
-				requestBlockActionsAllDay(payload, this.template)
-			}
-		} else if (payload.type === "view_submission") {
-			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value
-			try {
-				let event = {
-					"summary": payload.view.state.values["input_title"]["input-action"].value,
-					"location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
-
-					"start": {
-						"timeZone": "Asia/Ho_Chi_Minh"
-					},
-					"end": {
-						"timeZone": "Asia/Ho_Chi_Minh"
-					},
-					"recurrence": [
-						`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};COUNT=2`
-					],
-					"reminders": {
-						"useDefault": false,
-						"overrides": [
-							{
-								"method": "email",
-								"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
-							},
-							{
-								"method": "popup",
-								"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
-							}
-						]
-					}
-				}
-				if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
-					const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
-					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
-					event.start.dateTime = dateTimeStart;
-					event.end.dateTime = dateTimeEnd;
-
-				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
-					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`
-					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`
-					event.start.date = dateAllDayStart;
-					event.end.date = dateAllDayEnd;
-
-				}
-				return createEvent(event, idCalendar)
-			} catch (e) {
-				console.log("err", e)
-				throw e
 			}
 		}
 	}
-
 	async chatServiceHandler(req, res, next) {
 		let {
 			challenge = null,
@@ -178,7 +123,6 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send({"response_action": "clear"});
 			}
 		} catch (error) {
-			console.log("errr", error)
 			return res.status(403).send("Error");
 		}
 	}
@@ -199,6 +143,12 @@ class SlackGoogle extends BaseServer {
 			// Xử lý danh sách calendar
 			const calendars = await getListCalendar(profileUser.sub);
 			const listCalendar = calendars.items;
+			for (let i = 0; i < listCalendar.length; i++) {
+				const idCalendar = listCalendar[i].id
+				await watchGoogleCalendar(idCalendar, profileUser.sub)
+
+			}
+
 			await saveListCalendar(listCalendar);
 
 			// Xử lý channel slack
@@ -208,24 +158,19 @@ class SlackGoogle extends BaseServer {
 				channel = await getInfoChannel(idChannel);
 				await saveInfoChannel(channel.channel)
 			}
-
 			// xử lí mảng để lưu
 			let idCalendars = [];
 			for (let calendar of listCalendar) {
 				idCalendars.push(calendar.id)
 			}
-			// watch
-			await watchGoogleCalendar('tuanna99qn@gmail.com',profileUser.sub)
 			// profileUser +  listAllCalendar
 			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
 			await SaveChannelsCalendar(idCalendars, idChannel);
 			return res.send("Oke");
 		} catch (err) {
-			console.log("err", err)
 			return res.send("ERROR");
 		}
 	}
-
 	getValueRedis(key) {
 		return new Promise((resolve, reject) => {
 			Redis.client.get(key, (err, reply) => {
@@ -234,23 +179,22 @@ class SlackGoogle extends BaseServer {
 			});
 		})
 	}
+
 	async resourceServerHandler(req, res, next) {
 		try {
-			console.log("headers",req.headers)
-
-			const idAccount = req.headers['x-goog-channel-token']
-			const event = await getEventUpdate(req.headers, idAccount,);
-			console.log(event)
-			//const options = await sendWatchNoti("C01P0CCHQV9", this.template.showEvent, event)
-
+			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
+			const {idAccount, idCalendar} = JSON.parse(decode)
+			const event = await getEventUpdate(req.headers, idAccount);
+			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
+			Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)))
+				.then(function () {
+				})
 			return res.status(204).send("OK");
 		} catch (e) {
-			console.log("err", e);
 			return res.status(204).send("ERROR");
 		}
 	}
 }
-
 module.exports = SlackGoogle;
 (async function () {
 	const pipeline = new SlackGoogle(process.argv[2], {

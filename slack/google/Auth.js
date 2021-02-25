@@ -8,7 +8,6 @@ const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const Redis = require("../../utils/redis/index");
 const {cryptoEncode} = require('../../utils/Crypto')
-
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -38,23 +37,34 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
+/**
+ *
+ * @param {string} idCalendar
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
+
 const watchGoogleCalendar = async (idCalendar, idAccount) => {
-//	const token = cryptoEncode({idCalendars: idCalendar, idAccounts: idAccount})
-	const options = {
-		method: 'POST',
-		url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
-		headers: {'X-Google-AccountId': idAccount},
-		data: {
-			id: "00304594-a576-4f8d-bc7a-9564sb",
-			type: "web_hook",
-			address: "https://apis.iceteait.com/watch/resource-server",
-			"token": idAccount,
+	const obj = {idCalendar, idAccount}
+	const googleAccountCalendar = await GoogleAccountCalendar.query().where({id_account:idAccount, id_calendar:idCalendar})
+	if(!googleAccountCalendar){
+		const tokens = cryptoEncode(JSON.stringify(obj));
+		const options = {
+			method: 'POST',
+			url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
+			headers: {'X-Google-AccountId': idAccount},
+			data: {
+				id: Env.resourceServerGOF("ID_SUB"),
+				type: Env.resourceServerGOF("TYPE"),
+				address: Env.resourceServerGOF("ADDRESS"),
+				"token": tokens,
+			}
 		}
+		const done = Axios(options);
+		return done
 	}
-	const done = await Axios(options);
-	console.log("done", done)
-	return done
 }
+
 /**
  * Thông qua accessToken để list ra calendar
  * @param{string} accessTokenGoogle
@@ -233,7 +243,6 @@ const SaveChannelsCalendar = async (idCalendars, idChannel) => {
 		}
 	})
 };
-
 
 module.exports = {
 	getToken,

@@ -12,7 +12,6 @@ const getRefreshToken = async (id) => {
 				if (!data) {
 					return null
 				} else {
-					//console.log(data.refresh_token)
 					return resolve(data.refresh_token);
 				}
 			})

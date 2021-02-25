@@ -33,9 +33,14 @@ const getEventUpdate = (headers,idAccount) => {
 			});
 	});
 }
-
+/**
+ *
+ * @param {string} idChanel
+ * @param {string}showEvent
+ * @param{string}event
+ * @returns {Promise}
+ */
 const sendWatchNoti = async (idChanel,showEvent,event)=>{
-
 	const tokenBot = Env.chatServiceGet("BOT_TOKEN");
 	const options = {
 		method: "POST",
@@ -43,7 +48,7 @@ const sendWatchNoti = async (idChanel,showEvent,event)=>{
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${tokenBot}`,
 		},
-		data: {
+		data:{
 			channel: idChanel,
 			blocks: showEvent,
 		},

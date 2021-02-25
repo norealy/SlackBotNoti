@@ -151,7 +151,8 @@ module.exports = {
 	requestPostLogin,
 	requestSettings,
 	requestHome,
-	requestButtonSettings
+	requestButtonSettings,
+	decode
 
 
 }

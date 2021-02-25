@@ -51,7 +51,7 @@ class SlackMicrosoft extends BaseServer {
 	 */
 	handlerCommand(body) {
 		let text = body.text.trim();
-		const { systemSetting, addEvent} = this.template;
+		const { systemSetting} = this.template;
 		const result = new Promise((resolve) => resolve(body));
 		switch (text) {
 			case "settings":
@@ -62,7 +62,11 @@ class SlackMicrosoft extends BaseServer {
 				return result;
 		}
 	}
-
+/**
+ *
+ * @param {Object} payload
+ * @param {object} res
+ */
 	handlerPayload(payload,res) {
     payload = JSON.parse(payload);
     const { type=null } = payload;
@@ -108,7 +112,6 @@ class SlackMicrosoft extends BaseServer {
       const message = `Thank you call BOT-NOTI !`;
       return res.status(200).send(message);
 		} catch (error) {
-      console.log(error);
 			const message = `Thank you call BOT-NOTI !
         If you want assistance please enter: /cal --help`;
 			return res.status(403).send(message);
@@ -165,7 +168,10 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 }
-
+/**
+ * Tao array Datetime
+ * @returns {Array} arrayDT
+ */
 function customDatetime() {
   let arrayDT = [];
   let i = 0;

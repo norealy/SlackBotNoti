@@ -46,7 +46,7 @@ const getToken = (code, state) => {
 
 /**
  * Lay tai nguyen  danh sach calendar
- * @param {string} accessTokenAzure
+ * @param {string} idAccount
  * @returns {Promise}
  */
 const getListCalendar = (idAccount) => {
@@ -88,6 +88,7 @@ const getProfileUser = (accessTokenAzure) => {
  * Luu thong tin vao database
  * @param {object} profileUser
  * @param {string} refreshTokenAzure
+ * @param {string} accessTokenAzure
  * @returns {Promise}
  */
 const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure) => {
@@ -134,9 +135,8 @@ const customFormatArrayCal = (allCalendar) => {
 
 /**
  *  Luu array calendar vao database
- * @param {string} idUser
- * @param {string} accessTokenAzure
- * @param {Array} allCalendar
+ * @param {string} allCalendar
+ * @param {string} idAccount
  * @returns {Promise}
  */
 const saveListCalendar = async (allCalendar, idAccount) => {

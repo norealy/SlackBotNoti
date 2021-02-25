@@ -5,6 +5,13 @@ const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 
+/**
+ * Show modals view add event to slack
+ * @param {Object} body
+ * @param {Object} template
+ * @param {Array} timePicker
+ * @returns {Promise}
+ */
 const handlerAddEvent = async (body, template, timePicker) => {
   const { trigger_id = null, channel_id = null } = body;
   const { addEvent } = template;
@@ -42,6 +49,12 @@ const handlerAddEvent = async (body, template, timePicker) => {
   return Axios(options);
 };
 
+/**
+ * handler Blocks Actions
+ * @param {Object} payload
+ * @param {Object} template
+ * @returns {Promise}
+ */
 const handlerBlocksActions = async (payload, template) => {
   const { addEvent } = template;
   let addView = JSON.stringify(addEvent);
@@ -76,12 +89,22 @@ const handlerBlocksActions = async (payload, template) => {
   });
 };
 
+/**
+ * Add day
+ * @param {number} days
+ * @returns {date}
+ */
 Date.prototype.addDays = function (days) {
   let date = new Date(this.valueOf());
   date.setDate(date.getDate() + days);
   return date;
 }
-
+/**
+ *
+ * @param {string} type
+ * @param {dateTime} datetime
+ * @param {*} date
+ */
 const getRecurrence = (type, datetime, date) => {
   const dateStart = datetime;
   const recurrence = {
@@ -126,8 +149,12 @@ const getRecurrence = (type, datetime, date) => {
   }
   return recurrence;
 }
-
-const submitAddEvent = async (payload, res) => {
+/**
+ * Submit event
+ * @param {Object} payload
+ * @returns {Promise}
+ */
+const submitAddEvent = async (payload) => {
   const { values } = payload.view.state;
   const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]

@@ -51,15 +51,13 @@ const sendWatchNoti = async (idChanel,showEvent,event)=>{
 			Env.chatServiceGet("API_URL") +
 			Env.chatServiceGet("API_POST_MESSAGE"),
 	};
-	const cutosm = options.data;
-	cutosm.blocks[1].text.text = event.summary
-	cutosm.blocks[3].fields[0].text = event.start;
-	// cutosm.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] + "-";
-//	cutosm.blocks[3].fields[1].text = +event.end.dateTime.split('T')[1].split('.0000000')[0] + "-";
+	options.data.blocks[1].text.text = event.summary
+	options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0]
+	options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] + "-";
+	options.data.blocks[3].fields[1].text += event.end.dateTime.split('T')[1].split('.0000000')[0];
+	options.data.blocks[4].text.text = event.location
+	options.data.blocks[5].text.text = event.description
 
-	cutosm.blocks[4].text.text = event.location
-	cutosm.blocks[5].text.text = event.description
-	console.log("optionssendWatchNoti",options.data.blocks[3])
 	return await Axios(options)
 }
 

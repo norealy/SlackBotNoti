@@ -47,6 +47,7 @@ class SlackGoogle extends BaseServer {
 	 * @returns {Promise}
 	 */
 	handlerEvent(event) {
+		console.log(event)
 		event = JSON.parse(JSON.stringify(event))
 		const {subtype, user} = event;
 		const botId = Env.chatServiceGOF("BOT_USER");
@@ -195,7 +196,6 @@ class SlackGoogle extends BaseServer {
 			}
 			// Xử lý danh sách calendar
 			const calendars = await getListCalendar(profileUser.sub);
-
 			const listCalendar = calendars.items;
 			await saveListCalendar(listCalendar);
 
@@ -223,20 +223,21 @@ class SlackGoogle extends BaseServer {
 			return res.send("ERROR");
 		}
 	}
-
-
+	 getValueRedis(key) {
+		return new Promise((resolve, reject) => {
+			Redis.client.get(key, (err, reply) => {
+				if (err) reject(null);
+				resolve(reply);
+			});
+		})
+	}
 	async resourceServerHandler(req, res, next) {
 		try {
-			const item = await getEventUpdate(req.headers,"106346810760142562802");
-			console.log(item);
-			const options = await sendWatchNoti("C01P0CCHQV9",this.template.showEvent,item)
-			// const summary = item.summary;
-			// const location = item.location;
-			// const created =  '2021-02-25T02:40:23.000Z';
-			// const	updated = '2021-02-25T02:40:23.677Z';
-			// const start = '2021-02-08';
-			// const end = '2021-02-09';
-			// const status = 'confirmed';
+			const event = await getEventUpdate(req.headers,"106346810760142562802");
+			//console.log(event);
+			console.log("headers",req.headers)
+			//const arrIdChannel = await ChannelsCalendar.query().where({ id_calendar: idCal , watch : true });
+			const options = await sendWatchNoti("C01P0CCHQV9",this.template.showEvent,event)
 
 			return res.status(204).send("OK");
 		} catch (e) {

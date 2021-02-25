@@ -29,9 +29,9 @@ const configUrlAuth = (accessToken) => {
  * @param  {string} channel
  * @returns{string} accessToken
  */
-const createJwt = (uid, channel) => {
+const createJwt = (uid, channel,idAccount) => {
 	const header = {alg: Env.getOrFail("JWT_ALG"), typ: "JWT"};
-	const payload = {idUser: uid, idChannel: channel};
+	const payload = {idUser: uid, idChannel: channel,idAccount:idAccount};
 	const iat = Math.floor(new Date());
 	const exp = iat + Env.getOrFail("JWT_DURATION") / 1000;
 	const key = Env.getOrFail("JWT_KEY");
@@ -54,6 +54,7 @@ const decode = async (token) => {
 	}
 	const decode = Jwt.decode(token);
 	const data = decode.payload;
+	console.log("data",data)
 	return data;
 }
 
@@ -268,7 +269,6 @@ const requestButtonSettings = (payload, systemSetting,) => {
 const createEvent = async (event, idCanlendar) => {
 	try {
 		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar: idCanlendar})
-
 		const idAccount = googleAccountCalendar.id_account
 		const option = {method: "POST"};
 		option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCanlendar}/events`

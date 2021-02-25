@@ -17,7 +17,7 @@ class Channels extends Model {
 			required: ["id", "name"],
 			properties: {
 				id: { type: "string" },
-				name: { type: "string", minLength: 5, maxLength: 255 },
+				name: { type: "string", minLength: 1, maxLength: 255 },
 				created_at: { default: null },
 			},
 		};

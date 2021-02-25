@@ -1,6 +1,6 @@
 const Env = require('../../utils/Env');
+const {cryptoEncode} = require('../../utils/Crypto');
 const axios = require('axios');
-
 /**
  * Sum date
  * @param {interger} days
@@ -19,13 +19,19 @@ Date.prototype.addDays = function (days) {
  * @returns {Promise}
  */
 const createSubcription = (idCalendar, idAccount) => {
+  const obj = {
+    idAccount
+  }
+  const state = cryptoEncode(JSON.stringify(obj));
+  console.log(state);
   let date = new Date();
   const data = {
     "changeType": "created,updated,deleted",
     "notificationUrl": Env.resourceServerGOF("SUB_NOTIFICATION_URL"),
     "resource": `me/calendars/${idCalendar}/events`,
     "expirationDateTime": date.addDays(2),
-    "latestSupportedTlsVersion": "v1_2"
+    "latestSupportedTlsVersion": "v1_2",
+    "clientState": state,
   }
   const options = {
     method: "POST",

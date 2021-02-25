@@ -21,8 +21,8 @@ module.exports = function () {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
     const { url = null, headers = null } = config;
-    const {Authorization = null} = config.headers;
-    if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0]&&!Authorization) {
+    const { Authorization = null } = config.headers;
+    if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0] && !Authorization) {
       const idAccount = headers['X-Microsoft-AccountId'];
       try {
         let accessToken = await getValueRedis(idAccount);
@@ -46,6 +46,8 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
+    const { response = null } = error;
+    if (response) return Promise.reject(error.response);
     return Promise.reject(error);
   });
 }

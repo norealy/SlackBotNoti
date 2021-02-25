@@ -87,7 +87,7 @@ class SlackMicrosoft extends BaseServer {
 
   handlerNotifications(value) {
     const { subscriptionId, changeType, resource } = value;
-    const { showEvent } = this.template;
+    const showEvent  = {...this.template.showEvent};
     switch (changeType) {
       case "updated":
         handlerUpdated(subscriptionId, resource, showEvent);

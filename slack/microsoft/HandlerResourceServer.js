@@ -47,6 +47,8 @@ function getValueRedis(key) {
  * @param {json} messageFormat
  */
 const sendMessage = async (lv, event, idChan, messageFormat) => {
+  let showEvent = JSON.stringify(messageFormat);
+  showEvent = JSON.parse(showEvent);
   const tokenBot = Env.chatServiceGet("BOT_TOKEN");
   const options = {
     method: "POST",
@@ -56,7 +58,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
     },
     data: {
       channel: idChan,
-      blocks: messageFormat.blocks,
+      blocks: showEvent.blocks,
     },
     url:
       Env.chatServiceGet("API_URL") +
@@ -78,15 +80,14 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   if (event.isAllDay) {
     options.data.blocks[3].fields[1].text = event.end.dateTime.split('T')[0];
   }
-
   if (!event.bodyPreview) {
-    delete options.data.blocks[5];
+    options.data.blocks.splice(5, 1);
   }
   if (!event.locations[0]) {
-    delete options.data.blocks[4];
+    options.data.blocks.splice(4, 1);
   }
   if (!event.recurrence) {
-    delete options.data.blocks[2];
+    options.data.blocks.splice(2, 1);
   }
   if (lv === 2) {
     options.data.blocks[0].elements[1].text = "*Event calendar. Type: Updated*"

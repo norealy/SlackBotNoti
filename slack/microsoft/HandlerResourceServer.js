@@ -61,6 +61,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
+  options.data.blocks[0].elements[0].image_url = 'https://apis.iceteait.com/public/icon/MICROSOFT.png';
   options.data.blocks[1].text.text = `*${event.subject}*`;
   options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0];
   options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] +

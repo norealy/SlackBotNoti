@@ -9,7 +9,6 @@ const ENV = require("../../utils/Env");
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-	try {
 		const scopeAzure = ENV.resourceServerGet("SCOPE");
 		const stateAzure = EncodeJws.createJWS(idChannel, idUser);
 		let urlRequestAuthor = `${ENV.resourceServerGet(
@@ -20,26 +19,22 @@ const redirectMicrosoft = (idChannel, idUser) => {
 			"AZURE_REDIRECT"
 		)}`;
 		urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
-		return urlRequestAuthor;
-	} catch (error) {
-		return "error";
-	}
+    return urlRequestAuthor;
 };
 
 /**
  * Xu ly gui tin nhan yeu cau login
  * @param {object} event
  * @param {view} viewLoginResource
- * @param {string} tokenBot
  * @returns {Promise}
  */
-const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
+const sendMessageLogin = (event, viewLoginResource) => {
 	return new Promise((resolve, reject) => {
 		const options = {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${tokenBot}`,
+				Authorization: `Bearer ${ENV.chatServiceGOF("BOT_TOKEN")}`,
 			},
 			data: {
 				channel: event.channel,
@@ -55,12 +50,8 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
 			inviter
 		);
 		Axios(options)
-			.then((result) => {
-				return resolve(result);
-			})
-			.catch((err) => {
-				return reject(err);
-			});
+			.then((result) => resolve(result))
+			.catch((err) => reject(err));
 	});
 };
 
@@ -68,10 +59,9 @@ const sendMessageLogin = (event, viewLoginResource, tokenBot) => {
  * Xu ly nguoi dung goi den settings
  * @param {object} viewSystemSetting
  * @param {object} body
- * @param {string} tokenBot
  * @returns {Promise}
  */
-const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
+const handlerSettingsMessage = (viewSystemSetting, body) => {
 	return new Promise((resolve, reject) => {
 		const data = {
 			trigger_id: body.trigger_id,
@@ -79,7 +69,7 @@ const handlerSettingsMessage = (viewSystemSetting, body, tokenBot) => {
 		};
 		const options = {
 			method: "POST",
-			headers: { Authorization: `Bearer ${tokenBot}` },
+			headers: { Authorization: `Bearer ${ENV.chatServiceGOF("BOT_TOKEN")}` },
 			data: data,
 			url:
 				ENV.chatServiceGet("API_URL") + ENV.chatServiceGet("API_VIEW_OPEN"),

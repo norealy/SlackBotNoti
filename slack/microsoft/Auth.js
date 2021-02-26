@@ -12,10 +12,9 @@ const { createSubcription } = require('./Subcription');
 /**
  * Lay tai nguyen tokens
  * @param {string} code
- * @param {string} state
  * @returns {Promise}
  */
-const getToken = (code, state) => {
+const getToken = (code) => {
   return new Promise((resolve, reject) => {
     let data = {
       client_id: Env.resourceServerGOF("AZURE_ID"),
@@ -25,7 +24,6 @@ const getToken = (code, state) => {
       grant_type: "authorization_code",
       client_secret: Env.resourceServerGOF("AZURE_SECRET"),
       response_mode: "form_post",
-      state,
     };
     const options = {
       method: "POST",

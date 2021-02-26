@@ -41,6 +41,48 @@ class BaseServer {
 	}
 
 	/**
+	 * Set uid token in redis
+	 * @param uid
+	 * @return {Promise}
+	 */
+	setUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.setex(`ACCESS_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
+				if(err) reject(err);
+				resolve(1);
+			});
+		})
+	}
+
+	/**
+	 * Get uid token in redis
+	 * @param uid
+	 * @return {Promise}
+	 */
+	getUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.get(`ACCESS_TOKEN_${uid}`, (err, res) => {
+				if (err) reject(err);
+				resolve(res);
+			});
+		})
+	}
+
+	/**
+	 * Delete uid token in redis
+	 * @param uid
+	 * @return {Promise}
+	 */
+	delUidToken(uid) {
+		return new Promise((resolve, reject) => {
+			Redis.client.del(`ACCESS_TOKEN_${uid}`, (err, res) => {
+				if (err) reject(err);
+				resolve(res);
+			});
+		})
+	}
+
+	/**
 	 * Read config file from config folder(either depending on the service you want to run)
 	 * @param fileName
 	 * @returns {Promise<unknown>}

@@ -6,7 +6,7 @@ const GoogleAccount = require("../../models/GoogleAccount");
 const Redis = require('../../utils/redis')
 const AxiosConfig = require('./Axios');
 const Axios = require('axios')
-const {cryptoDecode} = require('../../utils/Crypto')
+const {cryptoDecode, decodeJWT} = require('../../utils/Crypto')
 const ChannelsCalendar = require("../../models/ChannelsCalendar")
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar")
 const {
@@ -185,7 +185,11 @@ class SlackGoogle extends BaseServer {
 		const { code } = req.query;
 		const state = req.cookies[this.instanceId];
 		try {
-			const tokens = await getToken(code, state);
+			const payload = decodeJWT(state);
+			const result = await this.getUidToken(payload.uid);
+			if(!result) return res.status(401).send("jwt expired");
+			const tokens = await getToken(code);
+			await this.delUidToken(result);
 			const accessTokenGoogle = tokens.access_token;
 			const refreshTokenGoogle = tokens.refresh_token;
 

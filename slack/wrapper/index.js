@@ -3,9 +3,7 @@ const httpProxy = require('http-proxy');
 const Axios = require('axios');
 const Template = require("../views/Template");
 const Env = require("../../utils/Env");
-const Redis = require('../../utils/redis');
 const {decodeJWT} = require('../../utils/Crypto');
-const Channels = require("../../models/Channels");
 
 const {
 	handlerOptionLogin,
@@ -65,33 +63,6 @@ class SlackWrapper extends BaseServer {
 		}
 	}
 
-	setUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.setex(`ACCESS_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
-				if(err) reject(err);
-				resolve(1);
-			});
-		})
-	}
-
-	getUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.get(`ACCESS_TOKEN_${uid}`, (err, res) => {
-				if (err) reject(err);
-				resolve(res);
-			});
-		})
-	}
-
-	delUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.del(`ACCESS_TOKEN_${uid}`, (err, res) => {
-				if (err) reject(err);
-				resolve(res);
-			});
-		})
-	}
-
 	async chatServiceHandler(req, res, next) {
 		let {challenge = null, event = null, payload = null, command = null, authorizations = null} = req.body;
 		if(challenge || command) console.log(req.body);
@@ -117,7 +88,6 @@ class SlackWrapper extends BaseServer {
 			}
 
 		} catch (e) {
-			console.log("chatServiceHandler error: ", e);
 			return res.status(400).send("ERROR");
 		}
 	}
@@ -136,11 +106,7 @@ class SlackWrapper extends BaseServer {
 		const {accessToken = "", redirect = ""} = req.query;
 		try {
 			if (!accessToken || !redirect) return res.status(400).send("Bad request");
-			const payload = decodeJWT(accessToken);
-			// let result = await this.getUidToken(payload.uid);
-			// if(!result) return res.status(400).send("Bad request");
-			// result =	await this.delUidToken(result);
-			// console.log("loginWrapper: ", result);
+			decodeJWT(accessToken);
 			const expCookie = parseInt(Env.getOrFail("JWT_DURATION"));
 			res.cookie(`SLACK-${redirect}`, accessToken, {
 				maxAge: expCookie * 1000,

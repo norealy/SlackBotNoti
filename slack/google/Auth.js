@@ -10,11 +10,10 @@ const Redis = require("../../utils/redis/index");
 const {cryptoEncode} = require('../../utils/Crypto')
 /**
  * Thực hiện việc lấy accesToken
- * @param {string}code
- * @param {string}state
+ * @param {string} code
  * @returns {Promise}
  */
-const getToken = (code, state) => {
+const getToken = (code) => {
 	return new Promise((resolve, reject) => {
 		let url = Env.resourceServerGet("API_URL_OAUTH");
 		url += `${Env.resourceServerGet("API_TOKEN")}`;
@@ -24,7 +23,6 @@ const getToken = (code, state) => {
 			code,
 			grant_type: Env.resourceServerGet("GRANT_TYPE"),
 			redirect_uri: Env.resourceServerGet("REDIRECT_URI"),
-			state,
 		};
 		const options = {
 			method: "POST",

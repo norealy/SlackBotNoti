@@ -234,7 +234,6 @@ const submitAddEvent = async (payload) => {
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-  try {
     const scopeAzure = Env.resourceServerGet("SCOPE");
     const stateAzure = EncodeJws.createJWS(idChannel, idUser);
     let urlRequestAuthor = `${Env.resourceServerGet(
@@ -246,9 +245,6 @@ const redirectMicrosoft = (idChannel, idUser) => {
     )}`;
     urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
     return urlRequestAuthor;
-  } catch (error) {
-    return "error";
-  }
 };
 
 /**

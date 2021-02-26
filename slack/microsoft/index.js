@@ -2,7 +2,7 @@ const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
 const {cryptoDecode} = require("../../utils/Crypto");
 const Template = require("../views/Template");
-const { decodeJWT } = require("../../utils/Crypto");
+const {decodeJWT} = require("../../utils/Crypto");
 const AxiosConfig = require('./Axios');
 
 const {
@@ -25,7 +25,7 @@ const {
 const {
 	handlerCreated,
 	handlerUpdated,
-	handlerDeleted
+	handlerDeleted,
 } = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
@@ -183,23 +183,23 @@ class SlackMicrosoft extends BaseServer {
 			// Thêm list calendar vào bảng microsoft_calendar
 			await saveListCalendar(allCalendar, profileUser.id);
 
-      // Luu  vào bảng microsoft_account_calendar
-      await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
+			// Luu  vào bảng microsoft_account_calendar
+			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
 
-      // Lay Decode jwt de lay ra data
-      const { idChannel } = await decodeJWT(state);
+			// Lay Decode jwt de lay ra data
+			const {idChannel} = await decodeJWT(state);
 
-      // Thêm channelvào bảng channels
-      await saveInfoChannel(idChannel);
+			// Thêm channelvào bảng channels
+			await saveInfoChannel(idChannel);
 
-      //  Luu channels calendar vào bảng channels_calendar
-      await saveChannelsCalendar(idChannel, allCalendar);
+			//  Luu channels calendar vào bảng channels_calendar
+			await saveChannelsCalendar(idChannel, allCalendar);
 
-      return res.send("Successful !");
-    } catch (e) {
-      return res.send("Login Error !");
-    }
-  }
+			return res.send("Successful !");
+		} catch (e) {
+			return res.send("Login Error !");
+		}
+	}
 }
 
 /**

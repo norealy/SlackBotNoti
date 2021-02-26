@@ -233,25 +233,21 @@ const submitAddEvent = async (payload) => {
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-	try {
-		const scopeAzure = ENV.resourceServerGet("SCOPE");
-    const data = {
-      idChannel,
-      idUser
-    }
-		const stateAzure = Crypto.createJWT(data);
-		let urlRequestAuthor = `${ENV.resourceServerGet(
-			"API_URL_AUTH"
-		)}${ENV.resourceServerGet("API_AUTHOR")}`;
-		urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
-		urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
-			"AZURE_REDIRECT"
-		)}`;
-		urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
-		return urlRequestAuthor;
-	} catch (error) {
-		return "error";
+	const scopeAzure = ENV.resourceServerGet("SCOPE");
+	const data = {
+		idChannel,
+		idUser
 	}
+	const stateAzure = Crypto.createJWT(data);
+	let urlRequestAuthor = `${ENV.resourceServerGet(
+		"API_URL_AUTH"
+	)}${ENV.resourceServerGet("API_AUTHOR")}`;
+	urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
+	urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
+		"AZURE_REDIRECT"
+	)}`;
+	urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
+	return urlRequestAuthor;
 };
 
 /**

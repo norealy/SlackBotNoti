@@ -16,6 +16,7 @@ class TemplateSlack {
 		this.loginResource = null;
 		this.showEvent = null;
 		this.systemSetting = null;
+		this.eventStartDate = null;
 	}
 
 	/**
@@ -50,6 +51,7 @@ class TemplateSlack {
 			this.loginResource = await this.readFileTemplate(`${pathFile}/LoginResource.json`);
 			this.showEvent = await this.readFileTemplate(`${pathFile}/ShowEvent.json`);
 			this.systemSetting = await this.readFileTemplate(`${pathFile}/SystemSetting.json`);
+			this.eventStartDate = await this.readFileTemplate(`${pathFile}/EventStartDate.json`);
 			return this;
 		} catch (err) {
 			throw err

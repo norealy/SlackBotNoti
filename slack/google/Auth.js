@@ -6,7 +6,8 @@ const GoogleCalendar = require("../../models/GoogleCalendar");
 const Channels = require("../../models/Channels");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
-
+const Redis = require("../../utils/redis/index");
+const {cryptoEncode} = require('../../utils/Crypto')
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -27,7 +28,7 @@ const getToken = (code, state) => {
 		};
 		const options = {
 			method: "POST",
-			headers: { "content-type": "application/x-www-form-urlencoded" },
+			headers: {"content-type": "application/x-www-form-urlencoded"},
 			data: qs.stringify(data),
 			url,
 		};
@@ -36,21 +37,49 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
+/**
+ *
+ * @param {string} idCalendar
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
+
+const watchGoogleCalendar = async (idCalendar, idAccount) => {
+	const obj = {idCalendar, idAccount}
+	const tokens = cryptoEncode(JSON.stringify(obj));
+	const googleAccountCalendar = await GoogleAccountCalendar.query().where({id_account:idAccount, id_calendar:idCalendar})
+	if(!googleAccountCalendar){
+		const tokens = cryptoEncode(JSON.stringify(obj));
+		const options = {
+			method: 'POST',
+			url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
+			headers: {'X-Google-AccountId': idAccount},
+			data: {
+				id: Env.resourceServerGOF("ID_SUB"),
+				type: Env.resourceServerGOF("TYPE"),
+				address: Env.resourceServerGOF("ADDRESS"),
+				"token": tokens,
+			}
+		}
+		const done = Axios(options);
+		return done
+	}
+}
 
 /**
  * Thông qua accessToken để list ra calendar
  * @param{string} accessTokenGoogle
  * @returns {Promise}
  */
-const getListCalendar = (accessTokenGoogle) => {
-	let url = Env.resourceServerGet("API_URL");
-	url += `${Env.resourceServerGet("API_lIST_CALENDAR")}`;
+const getListCalendar = (idAccount) => {
+	const options = {
+		method: "GET",
+		headers: {'X-Google-AccountId': idAccount},
+		url:
+			Env.resourceServerGOF("API_URL") +
+			Env.resourceServerGOF("API_lIST_CALENDAR"),
+	};
 	return new Promise((resolve, reject) => {
-		const options = {
-			method: "GET",
-			headers: { Authorization: `Bearer ${accessTokenGoogle}` },
-			url,
-		};
 		Axios(options)
 			.then((res) => resolve(res.data))
 			.catch((error) => reject(error));
@@ -68,7 +97,7 @@ const getProfile = (accessTokenGoogle) => {
 	return new Promise((resolve, reject) => {
 		const options = {
 			method: "GET",
-			headers: { Authorization: `Bearer ${accessTokenGoogle}` },
+			headers: {Authorization: `Bearer ${accessTokenGoogle}`},
 			url: url,
 		};
 		Axios(options)
@@ -82,15 +111,15 @@ const getProfile = (accessTokenGoogle) => {
  * @param idChannel
  * @return {Promise<unknown>}
  */
-const getInfoChannel = (idChannel)=>{
+const getInfoChannel = (idChannel) => {
 	return new Promise((resolve, reject) => {
 		let url = Env.chatServiceGOF("API_URL");
 		url += Env.chatServiceGOF("API_CHANNEL_INFO");
 		url += idChannel;
 		const options = {
 			method: "GET",
-			headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-			data:qs.stringify({channel: idChannel}),
+			headers: {Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
+			data: qs.stringify({channel: idChannel}),
 			url,
 		};
 		Axios(options)
@@ -105,13 +134,27 @@ const getInfoChannel = (idChannel)=>{
  * @param {string} refreshTokenGoogle
  * @returns {Promise}
  */
-const saveUserProfile = (profileUser, refreshTokenGoogle) => {
-	return GoogleAccount.query()
-		.insert({
-			id: profileUser.sub,
-			name: profileUser.name,
-			refresh_token: refreshTokenGoogle,
-		})
+const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogle) => {
+	const account = {
+		id: profileUser.sub,
+		name: profileUser.name,
+		refresh_token: refreshTokenGoogle,
+		created_at: null,
+		updated_at: null,
+	}
+	const data = await GoogleAccount.query().findById(account.id);
+	return new Promise((resolve, reject) => {
+		Redis.client.setex(account.id, 60 * 59, accessTokenGoogle)
+		if (!data) {
+			GoogleAccount.query()
+				.insert(account)
+				.then((res) => {
+					return resolve(res)
+				})
+				.catch((err) => reject(err));
+		}
+		resolve();
+	})
 };
 
 /**
@@ -130,6 +173,7 @@ const saveListCalendar = async (listCalendar) => {
 				name: listCalendar[i].summary,
 			})
 	}
+	return true;
 };
 
 /**
@@ -151,11 +195,11 @@ const saveInfoChannel = (channel) => {
  * @returns {Promise}
  * @constructor
  */
-const SaveGoogleAccountCalendar = (idCalendars,idAccount)=>{
-	return	GoogleAccountCalendar.transaction( async trx => {
+const SaveGoogleAccountCalendar = (idCalendars, idAccount) => {
+	return GoogleAccountCalendar.transaction(async trx => {
 		try {
 			let values = []
-			for ( let idx in idCalendars) {
+			for (let idx in idCalendars) {
 				const googleAccountCalendar = {
 					id_calendar: idCalendars[idx],
 					id_account: idAccount,
@@ -163,7 +207,7 @@ const SaveGoogleAccountCalendar = (idCalendars,idAccount)=>{
 				};
 				values.push(googleAccountCalendar)
 			}
-			await trx.insert(values).into(GoogleAccountCalendar.tableName).onConflict(["id_calendar","id_account" ]).merge();
+			await trx.insert(values).into(GoogleAccountCalendar.tableName).onConflict(["id_calendar", "id_account"]).merge();
 		} catch (e) {
 			trx.rollback();
 			throw e
@@ -178,8 +222,8 @@ const SaveGoogleAccountCalendar = (idCalendars,idAccount)=>{
  * @returns {Promise}
  * @constructor
  */
-const SaveChannelsCalendar = async (idCalendars,idChannel)=>{
-	return	ChannelsCalendar.transaction( async trx => {
+const SaveChannelsCalendar = async (idCalendars, idChannel) => {
+	return ChannelsCalendar.transaction(async trx => {
 		try {
 			let values = [];
 			for (let idx in idCalendars) {
@@ -200,6 +244,7 @@ const SaveChannelsCalendar = async (idCalendars,idChannel)=>{
 	})
 };
 
+
 module.exports = {
 	getToken,
 	getListCalendar,
@@ -210,4 +255,5 @@ module.exports = {
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
 	SaveChannelsCalendar,
+	watchGoogleCalendar
 };

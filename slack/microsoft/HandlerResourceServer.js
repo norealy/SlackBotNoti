@@ -100,7 +100,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
  * @param {string} idUser
  */
 const checkEventExist = async (idEvent, idUser) => {
-  let accessToken = await getValueRedis(idUser);
+  let accessToken = await getValueRedis("IDACC_GETTOKEN_" + idUser);
   let result = await getEvent(idUser, idEvent, accessToken);
   const { status = null } = result;
   if (status === 404) {

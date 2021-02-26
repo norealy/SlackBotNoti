@@ -164,8 +164,7 @@ const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogl
  */
 const saveListCalendar = async (listCalendar) => {
 	if (!listCalendar) return null;
-	const length = listCalendar.length;
-	for (let i = 0; i < length; i++) {
+	for (let i = 0, length = listCalendar.length; i < length; i++) {
 		const calendar = await GoogleCalendar.query().findOne({id: listCalendar[i].id});
 		if (!calendar) await GoogleCalendar
 			.query()
@@ -244,6 +243,7 @@ const SaveChannelsCalendar = async (idCalendars, idChannel) => {
 		}
 	})
 };
+
 
 module.exports = {
 	getToken,

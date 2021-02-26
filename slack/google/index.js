@@ -59,7 +59,7 @@ class SlackGoogle extends BaseServer {
 		switch (subtype) {
 			case type.BOT_ADD:
 				return requestPostLogin(event, loginResource);
-			//case type.APP_JOIM:
+			case type.APP_JOIN:
 			case type.CHANNEL_JOIN:
 				if (user === botId) return requestPostLogin(event, loginResource);
 				return promise;
@@ -80,10 +80,13 @@ class SlackGoogle extends BaseServer {
 			return requestHome(body, this.template.homePage);
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
-		}  else {
+		} else if (chat === "add-event") {
+			return requestAddEvent(body, this.template.addEvent);
+		} else {
 			return promise;
 		}
 	}
+
 	/**
 	 *
 	 * @param {object} body
@@ -96,9 +99,61 @@ class SlackGoogle extends BaseServer {
 		if (payload.type === "block_actions") {
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
+			} else if (payload.actions[0].action_id === "btnEventAdd") {
+				return requestAddEvent(payload, this.template.addEvent);
+			} else if (payload.actions[0].action_id === "allday") {
+				requestBlockActionsAllDay(payload, this.template)
+			}
+		} else if (payload.type === "view_submission") {
+			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value
+			try {
+				let event = {
+					"summary": payload.view.state.values["input_title"]["input-action"].value,
+					"location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
+
+					"start": {
+						"timeZone": "Asia/Ho_Chi_Minh"
+					},
+					"end": {
+						"timeZone": "Asia/Ho_Chi_Minh"
+					},
+					"recurrence": [
+						`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};COUNT=2`
+					],
+					"reminders": {
+						"useDefault": false,
+						"overrides": [
+							{
+								"method": "email",
+								"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+							},
+							{
+								"method": "popup",
+								"minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+							}
+						]
+					}
+				}
+				if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
+					const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
+					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
+					event.start.dateTime = dateTimeStart;
+					event.end.dateTime = dateTimeEnd;
+
+				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
+					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`
+					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`
+					event.start.date = dateAllDayStart;
+					event.end.date = dateAllDayEnd;
+
+				}
+				return createEvent(event, idCalendar)
+			} catch (e) {
+				return e
 			}
 		}
 	}
+
 	async chatServiceHandler(req, res, next) {
 		let {
 			challenge = null,
@@ -139,6 +194,7 @@ class SlackGoogle extends BaseServer {
 			if (!user) {
 				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle);
 			}
+
 			// Xử lý danh sách calendar
 			const calendars = await getListCalendar(profileUser.sub);
 			const listCalendar = calendars.items;
@@ -157,14 +213,17 @@ class SlackGoogle extends BaseServer {
 				channel = await getInfoChannel(idChannel);
 				await saveInfoChannel(channel.channel)
 			}
+
 			// xử lí mảng để lưu
 			let idCalendars = [];
 			for (let calendar of listCalendar) {
 				idCalendars.push(calendar.id)
 			}
+
 			// profileUser +  listAllCalendar
 			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
 			await SaveChannelsCalendar(idCalendars, idChannel);
+
 			return res.send("Oke");
 		} catch (err) {
 			return res.send("ERROR");

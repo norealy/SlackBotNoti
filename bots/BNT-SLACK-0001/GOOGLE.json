@@ -6,7 +6,7 @@
 		"CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",
 		"CLIENT_ID": "90881321712-8iib32ro3d46016qtor1ejg3p91mqhbu.apps.googleusercontent.com",
 		"REDIRECT_URI": "http://localhost:5001/auth/google",
-		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar",
+		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
 		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
 		"RESPONSE_TYPE": "code",
 		"ACCESS_TYPE": "offline",

@@ -1,15 +1,16 @@
-[
+{
+	"blocks": [
 		{
 			"type": "context",
 			"elements": [
 				{
 					"type": "image",
-					"image_url": "https://wpcomputersolutions.com/wp-content/uploads/2018/01/outlook.jpg",
-					"alt_text": "cute cat"
+					"image_url": "https://apis.iceteait.com/public/icon/NEOSCORP.png",
+					"alt_text": "outlook"
 				},
 				{
 					"type": "mrkdwn",
-					"text": "*Event calendar. Type: create*"
+					"text": "*Event calendar. Type: Created*"
 				}
 			]
 		},
@@ -55,4 +56,4 @@
 			}
 		}
 	]
-
+}

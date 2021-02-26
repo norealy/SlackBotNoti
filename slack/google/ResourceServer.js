@@ -56,12 +56,22 @@ const sendWatchNoti = async (idChanel,showEvent,event)=>{
 			Env.chatServiceGet("API_URL") +
 			Env.chatServiceGet("API_POST_MESSAGE"),
 	};
+	const created = event.created.split('T')[1].split('.')[0].split('Z')[0];
+	const updated = event.updated.split('T')[1].split('.')[0].split('Z')[0];
 	options.data.blocks[1].text.text = event.summary
 	options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0]
-	options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] + "-";
-	options.data.blocks[3].fields[1].text += event.end.dateTime.split('T')[1].split('.0000000')[0];
+	options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.000')[0] + "-";
+	options.data.blocks[3].fields[1].text += event.end.dateTime.split('T')[1].split('.000')[0];
 	options.data.blocks[4].text.text = event.location
 	options.data.blocks[5].text.text = event.description
+	//options.data.blocks[0].text.text = { "type": "mrkdwn", "text": "*Createss Event*" };
+
+	if (created === updated){
+		options.data.blocks[0].elements[1].text = "*Create Event*"
+	}
+	else if(created!=updated){
+		options.data.blocks[0].elements[1].text = "*Update Event*"
+	}
 
 	return await Axios(options)
 }

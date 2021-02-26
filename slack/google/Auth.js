@@ -46,6 +46,7 @@ const getToken = (code, state) => {
 
 const watchGoogleCalendar = async (idCalendar, idAccount) => {
 	const obj = {idCalendar, idAccount}
+	const tokens = cryptoEncode(JSON.stringify(obj));
 	const googleAccountCalendar = await GoogleAccountCalendar.query().where({id_account:idAccount, id_calendar:idCalendar})
 	if(!googleAccountCalendar){
 		const tokens = cryptoEncode(JSON.stringify(obj));
@@ -61,7 +62,6 @@ const watchGoogleCalendar = async (idCalendar, idAccount) => {
 			}
 		}
 		const done = Axios(options);
-		//console.log("done", done)
 		return done
 	}
 }

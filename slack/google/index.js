@@ -122,7 +122,6 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send({"response_action": "clear"});
 			}
 		} catch (error) {
-			console.log("err",error)
 			return res.status(403).send("Error");
 		}
 	}
@@ -168,7 +167,6 @@ class SlackGoogle extends BaseServer {
 			await SaveChannelsCalendar(idCalendars, idChannel);
 			return res.send("Oke");
 		} catch (err) {
-			console.log("err",err)
 			return res.send("ERROR");
 		}
 	}
@@ -192,7 +190,6 @@ class SlackGoogle extends BaseServer {
 				})
 			return res.status(204).send("OK");
 		} catch (e) {
-			console.log("err",e)
 			return res.status(204).send("ERROR");
 		}
 	}

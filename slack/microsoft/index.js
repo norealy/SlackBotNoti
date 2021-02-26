@@ -164,8 +164,10 @@ class SlackMicrosoft extends BaseServer {
 	}
 
 	async microsoftAccess(req, res, next) {
-		const { code } = req.query;
-		const state = req.cookies[this.instanceId];
+    let { code, state } = req.query;
+    const cookie = req.cookies[this.instanceId];
+    if(cookie) state = cookie;
+
 		try {
 			const payload = decodeJWT(state);
 			const result = await this.getUidToken(payload.uid);

@@ -45,7 +45,7 @@ class SlackWrapper extends BaseServer {
 			case APP_JOIN:
 				return handlerOptionLogin(event, loginResource);
 			case CHANNEL_JOIN:
-				if(user_id === event.user) return handlerOptionLogin(event, loginResource);
+				if (user_id === event.user) return handlerOptionLogin(event, loginResource);
 				return null;
 			default:
 				return null;
@@ -54,18 +54,18 @@ class SlackWrapper extends BaseServer {
 
 	getDataServer(actions) {
 		const list = Env.serverGOF("LIST");
-		for(let i = 0, length = list.length; i < length; i++){
+		for (let i = 0, length = list.length; i < length; i++) {
 			const {prefix} = list[i];
-			for(let j = 0, length = actions.length; j < length; j ++){
+			for (let j = 0, length = actions.length; j < length; j++) {
 				const regex = new RegExp(`^${prefix}_`);
-				if(regex.test(actions[j].action_id)) return list[i]
+				if (regex.test(actions[j].action_id)) return list[i]
 			}
 		}
 	}
 
 	async chatServiceHandler(req, res, next) {
 		let {challenge = null, event = null, payload = null, command = null, authorizations = null} = req.body;
-		if(challenge || command) console.log(req.body);
+		if (challenge || command) console.log(req.body);
 		try {
 			if (challenge) {
 				return res.status(200).send(challenge);
@@ -73,14 +73,14 @@ class SlackWrapper extends BaseServer {
 			if (event) {
 				const {user_id = ""} = authorizations[0];
 				const config = this.handlerEvent(event, user_id);
-				if(config){
+				if (config) {
 					const {redis = null} = config.extendedProperties;
-					if(redis && redis.accessTokenUid) await this.setUidToken(redis.accessTokenUid);
+					if (redis && redis.accessTokenUid) await this.setUidToken(redis.accessTokenUid);
 					await Axios(config);
 				}
 				return res.status(200).send("OK");
 			}
-			if(payload){
+			if (payload) {
 				payload = JSON.parse(payload);
 				const {actions} = payload;
 				const data = this.getDataServer(actions);

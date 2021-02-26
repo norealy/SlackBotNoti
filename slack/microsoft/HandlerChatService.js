@@ -180,11 +180,11 @@ const submitAddEvent = async (payload) => {
 		"isAllDay": allDay,
 		"start": {
 			"dateTime": `${dateStart}T${timeStart}:00.0000000`,
-			"timeZone": "Asia/Ho_Chi_Minh"
+			"timeZone": "UTC"
 		},
 		"end": {
 			"dateTime": `${dateEnd}T${timeEnd}:00.0000000`,
-			"timeZone": "Asia/Ho_Chi_Minh"
+			"timeZone": "UTC"
 		},
 		"location": {
 			"displayName": values['input_location']['plain_text_input-action'].value,
@@ -233,21 +233,21 @@ const submitAddEvent = async (payload) => {
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-	const scopeAzure = ENV.resourceServerGet("SCOPE");
+	const scopeAzure = Env.resourceServerGet("SCOPE");
 	const data = {
 		idChannel,
 		idUser
 	}
 	const stateAzure = Crypto.createJWT(data);
-	let urlRequestAuthor = `${ENV.resourceServerGet(
+	let urlRequestAuthor = `${Env.resourceServerGet(
 		"API_URL_AUTH"
-	)}${ENV.resourceServerGet("API_AUTHOR")}`;
-	urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
-	urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
+	)}${Env.resourceServerGet("API_AUTHOR")}`;
+	urlRequestAuthor += `?client_id=${Env.resourceServerGet("AZURE_ID")}`;
+	urlRequestAuthor += `&response_type=code&redirect_uri=${Env.resourceServerGet(
 		"AZURE_REDIRECT"
 	)}`;
 	urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;
-	return urlRequestAuthor;
+  return urlRequestAuthor;
 };
 
 /**

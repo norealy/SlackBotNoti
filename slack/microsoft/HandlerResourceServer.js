@@ -2,6 +2,8 @@ const Env = require('../../utils/Env');
 const axios = require('axios');
 const Redis = require('../../utils/redis/index');
 const ChannelsCalendar = require('../../models/ChannelsCalendar');
+const MicrosoftAccount = require('../../models/MicrosoftAccount');
+const moment = require('moment');
 const _ = require('lodash');
 /**
  *  Lay event
@@ -39,6 +41,17 @@ function getValueRedis(key) {
     });
   })
 }
+
+/**
+ * Add hours to date
+ * @param {number} hours
+ * return {date}
+ */
+Date.prototype.addHours = function (hours) {
+  this.setHours(this.getHours() + hours);
+  return this;
+}
+
 /**
  * Gui tin nhan ve channel
  * @param {number} lv
@@ -63,9 +76,11 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   };
   options.data.blocks[0].elements[0].image_url = 'https://apis.iceteait.com/public/icon/MICROSOFT.png';
   options.data.blocks[1].text.text = `*${event.subject}*`;
-  options.data.blocks[3].fields[0].text = event.start.dateTime.split('T')[0];
-  options.data.blocks[3].fields[1].text = event.start.dateTime.split('T')[1].split('.0000000')[0] +
-    "-" + event.end.dateTime.split('T')[1].split('.0000000')[0];
+  const datetimeStart = moment(event.start.dateTime).utc(true).utcOffset(event.timezone);
+  const datetimeEnd = moment(event.end.dateTime).utc(true).utcOffset(event.timezone);
+  options.data.blocks[3].fields[0].text = datetimeStart.format("DD-MM-YYYY");
+  options.data.blocks[3].fields[1].text = datetimeStart.format("hh:ss:mm") +
+    "-" + datetimeEnd.format("hh:ss:mm");
   if (event.locations.length > 0) {
     options.data.blocks[4].text.text = event.locations.map(value => value.displayName).join(", ");
   }
@@ -133,6 +148,8 @@ const handlerCreated = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
+  const account = await MicrosoftAccount.query().findById(idUser);
+  event.timezone = account.timezone;
   Promise.all(arrChenCal.map(item => sendMessage(1, event, item.id_channel, showEvent)));
 }
 /**
@@ -149,6 +166,8 @@ const handlerUpdated = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
+  const account = await MicrosoftAccount.query().findById(idUser);
+  event.timezone = account.timezone;
   Promise.all(arrChenCal.map(item => sendMessage(2, event, item.id_channel, showEvent)));
 }
 /**
@@ -164,6 +183,8 @@ const handlerDeleted = async (idSub, resource, showEvent) => {
   const event = await checkEventExist(idEvent, idUser);
   if (!event || !idCal) return null;
   const arrChenCal = await ChannelsCalendar.query().where({ id_calendar: idCal, watch: true });
+  const account = await MicrosoftAccount.query().findById(idUser);
+  event.timezone = account.timezone;
   Promise.all(arrChenCal.map(item => sendMessage(3, event, item.id_channel, showEvent)));
 }
 /**

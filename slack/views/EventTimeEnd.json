@@ -1,4 +1,5 @@
 {
+	"block_id": "timeEnd",
 	"type": "section",
 	"text": {
 		"type": "mrkdwn",
@@ -8,6 +9,7 @@
 		"type": "timepicker",
 		"initial_time": "14:00",
 		"placeholder": {
+
 			"type": "plain_text",
 			"text": "Select time",
 			"emoji": true

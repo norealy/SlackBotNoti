@@ -3,7 +3,7 @@
 	"notify_on_close": true,
 	"title": {
 		"type": "plain_text",
-		"text": "Bot notification",
+		"text": "BOT NOTI CALENDARS ",
 		"emoji": true
 	},
 	"submit": {
@@ -105,7 +105,7 @@
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-03-03",
+				"initial_date": "2021-02-28",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select a date",
@@ -230,7 +230,7 @@
 							"text": "Nomal",
 							"emoji": true
 						},
-						"value": "nomal"
+						"value": "value-0"
 					},
 					{
 						"text": {
@@ -238,7 +238,7 @@
 							"text": "Every day",
 							"emoji": true
 						},
-						"value": "daily"
+						"value": "DAILY"
 					},
 					{
 						"text": {
@@ -246,7 +246,7 @@
 							"text": "Every week",
 							"emoji": true
 						},
-						"value": "weekly"
+						"value": "WEEKLY"
 					},
 					{
 						"text": {
@@ -254,7 +254,7 @@
 							"text": "Every month",
 							"emoji": true
 						},
-						"value": "absoluteMonthly"
+						"value": "MONTHLY"
 					}
 				],
 				"action_id": "static_select-action"

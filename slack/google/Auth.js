@@ -7,7 +7,7 @@ const Channels = require("../../models/Channels");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const Redis = require("../../utils/redis/index");
-
+const {cryptoEncode} = require('../../utils/Crypto')
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -37,6 +37,34 @@ const getToken = (code, state) => {
 			.catch((err) => reject(err));
 	});
 };
+/**
+ *
+ * @param {string} idCalendar
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
+
+const watchGoogleCalendar = async (idCalendar, idAccount) => {
+	const obj = {idCalendar, idAccount}
+	const tokens = cryptoEncode(JSON.stringify(obj));
+	const googleAccountCalendar = await GoogleAccountCalendar.query().where({id_account:idAccount, id_calendar:idCalendar})
+	if(!googleAccountCalendar){
+		const tokens = cryptoEncode(JSON.stringify(obj));
+		const options = {
+			method: 'POST',
+			url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
+			headers: {'X-Google-AccountId': idAccount},
+			data: {
+				id: Env.resourceServerGOF("ID_SUB"),
+				type: Env.resourceServerGOF("TYPE"),
+				address: Env.resourceServerGOF("ADDRESS"),
+				"token": tokens,
+			}
+		}
+		const done = Axios(options);
+		return done
+	}
+}
 
 /**
  * Thông qua accessToken để list ra calendar
@@ -116,7 +144,7 @@ const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogl
 	}
 	const data = await GoogleAccount.query().findById(account.id);
 	return new Promise((resolve, reject) => {
-		Redis.client.setex(account.id,60 * 59, accessTokenGoogle)
+		Redis.client.setex(account.id, 60 * 59, accessTokenGoogle)
 		if (!data) {
 			GoogleAccount.query()
 				.insert(account)
@@ -136,8 +164,7 @@ const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogl
  */
 const saveListCalendar = async (listCalendar) => {
 	if (!listCalendar) return null;
-	const length = listCalendar.length;
-	for (let i = 0; i < length; i++) {
+	for (let i = 0, length = listCalendar.length; i < length; i++) {
 		const calendar = await GoogleCalendar.query().findOne({id: listCalendar[i].id});
 		if (!calendar) await GoogleCalendar
 			.query()
@@ -228,4 +255,5 @@ module.exports = {
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
 	SaveChannelsCalendar,
+	watchGoogleCalendar
 };

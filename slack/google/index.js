@@ -5,6 +5,10 @@ const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
 const Redis = require('../../utils/redis')
 const AxiosConfig = require('./Axios');
+const Axios = require('axios')
+const {cryptoDecode} = require('../../utils/Crypto')
+const ChannelsCalendar = require("../../models/ChannelsCalendar")
+const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar")
 const {
 	getToken,
 	getListCalendar,
@@ -14,7 +18,8 @@ const {
 	saveInfoChannel,
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
-	SaveChannelsCalendar
+	SaveChannelsCalendar,
+	watchGoogleCalendar
 } = require("./Auth");
 
 const {
@@ -27,6 +32,10 @@ const {
 	createEvent,
 	requestBlockActionsAllDay
 } = require("./ChatService");
+const {
+	getEventUpdate,
+	sendWatchNoti
+} = require("./ResourceServer")
 
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
@@ -34,7 +43,6 @@ class SlackGoogle extends BaseServer {
 		this.authGoogle = this.authGoogle.bind(this);
 		this.template = Template();
 	}
-
 
 	/**
 	 *
@@ -51,7 +59,7 @@ class SlackGoogle extends BaseServer {
 		switch (subtype) {
 			case type.BOT_ADD:
 				return requestPostLogin(event, loginResource);
-			//case type.APP_JOIM:
+			case type.APP_JOIN:
 			case type.CHANNEL_JOIN:
 				if (user === botId) return requestPostLogin(event, loginResource);
 				return promise;
@@ -89,7 +97,6 @@ class SlackGoogle extends BaseServer {
 	async handlerPayLoad(body, payload) {
 		payload = JSON.parse(payload);
 		if (payload.type === "block_actions") {
-
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
@@ -187,10 +194,16 @@ class SlackGoogle extends BaseServer {
 			if (!user) {
 				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle);
 			}
+
 			// Xử lý danh sách calendar
 			const calendars = await getListCalendar(profileUser.sub);
-
 			const listCalendar = calendars.items;
+			for (let i = 0; i < listCalendar.length; i++) {
+				const idCalendar = listCalendar[i].id
+				await watchGoogleCalendar(idCalendar, profileUser.sub)
+
+			}
+
 			await saveListCalendar(listCalendar);
 
 			// Xử lý channel slack
@@ -216,16 +229,30 @@ class SlackGoogle extends BaseServer {
 			return res.send("ERROR");
 		}
 	}
+	getValueRedis(key) {
+		return new Promise((resolve, reject) => {
+			Redis.client.get(key, (err, reply) => {
+				if (err) reject(null);
+				resolve(reply);
+			});
+		})
+	}
 
-	resourceServerHandler(req, res, next) {
+	async resourceServerHandler(req, res, next) {
 		try {
+			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
+			const {idAccount, idCalendar} = JSON.parse(decode)
+			const event = await getEventUpdate(req.headers, idAccount);
+			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
+			Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)))
+				.then(function () {
+				})
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}
 	}
 }
-
 module.exports = SlackGoogle;
 (async function () {
 	const pipeline = new SlackGoogle(process.argv[2], {

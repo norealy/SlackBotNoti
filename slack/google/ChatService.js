@@ -29,9 +29,9 @@ const configUrlAuth = (accessToken) => {
  * @param  {string} channel
  * @returns{string} accessToken
  */
-const createJwt = (uid, channel) => {
+const createJwt = (uid, channel, idAccount) => {
 	const header = {alg: Env.getOrFail("JWT_ALG"), typ: "JWT"};
-	const payload = {idUser: uid, idChannel: channel};
+	const payload = {idUser: uid, idChannel: channel, idAccount: idAccount};
 	const iat = Math.floor(new Date());
 	const exp = iat + Env.getOrFail("JWT_DURATION") / 1000;
 	const key = Env.getOrFail("JWT_KEY");

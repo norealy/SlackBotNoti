@@ -19,6 +19,5 @@
     "GRAPH_MY_EVENT":"/v1.0/me/events",
     "SUB_CHANGETPYE":"created,updated,deleted",
 		"SUB_NOTIFICATION_URL": "https://63c36c3cfe0b.ngrok.io/watch/resource-server"
-
 	}
 }

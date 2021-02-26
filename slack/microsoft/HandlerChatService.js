@@ -1,5 +1,5 @@
 const Axios = require("axios");
-const EncodeJws = require("./Jws");
+const Crypto = require("../../utils/Crypto");
 const Env = require("../../utils/Env");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
@@ -233,13 +233,17 @@ const submitAddEvent = async (payload) => {
  * @returns {string} urlRequestAuthor
  */
 const redirectMicrosoft = (idChannel, idUser) => {
-	const scopeAzure = Env.resourceServerGet("SCOPE");
-	const stateAzure = EncodeJws.createJWS(idChannel, idUser);
-	let urlRequestAuthor = `${Env.resourceServerGet(
+	const scopeAzure = ENV.resourceServerGet("SCOPE");
+	const data = {
+		idChannel,
+		idUser
+	}
+	const stateAzure = Crypto.createJWT(data);
+	let urlRequestAuthor = `${ENV.resourceServerGet(
 		"API_URL_AUTH"
-	)}${Env.resourceServerGet("API_AUTHOR")}`;
-	urlRequestAuthor += `?client_id=${Env.resourceServerGet("AZURE_ID")}`;
-	urlRequestAuthor += `&response_type=code&redirect_uri=${Env.resourceServerGet(
+	)}${ENV.resourceServerGet("API_AUTHOR")}`;
+	urlRequestAuthor += `?client_id=${ENV.resourceServerGet("AZURE_ID")}`;
+	urlRequestAuthor += `&response_type=code&redirect_uri=${ENV.resourceServerGet(
 		"AZURE_REDIRECT"
 	)}`;
 	urlRequestAuthor += `&response_mode=query&scope=${encodeURIComponent(scopeAzure)}&state=${stateAzure}`;

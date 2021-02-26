@@ -1,7 +1,6 @@
 const qs = require("qs");
 const axios = require("axios");
 const Env = require("../../utils/Env");
-const { decodeJWS } = require("./Jws");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
@@ -65,6 +64,36 @@ const getListCalendar = (idAccount) => {
 };
 
 /**
+ * Lay tai nguyen thong tin timeZOne
+ * @param {string} accessTokenAzure
+ * @returns {Promise}
+ */
+const getTimeZoneOutlook = (accessTokenAzure) => {
+  const options = {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessTokenAzure}` },
+    url:
+      Env.resourceServerGOF("GRAPH_URL") + Env.resourceServerGOF("GRAPH_MAILBOX_SETTINGS"),
+  };
+  return axios(options);
+};
+
+/**
+ * Lay suppport timezone
+ * @param {string} accessTokenAzure
+ * @returns {Promise}
+ */
+const getTimeZoneSupport = (accessTokenAzure) => {
+  const options = {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessTokenAzure}` },
+    url: Env.resourceServerGOF("GRAPH_URL") + Env.resourceServerGOF("GRAPH_TIMEZONE_SUPPORT"),
+  };
+  return axios(options);
+};
+
+
+/**
  * Lay tai nguyen thong tin ve user Profile
  * @param {string} accessTokenAzure
  * @returns {Promise}
@@ -92,10 +121,14 @@ const getProfileUser = (accessTokenAzure) => {
  * @returns {Promise}
  */
 const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure) => {
+  const result = await getTimeZoneOutlook(accessTokenAzure);
+  const resultArr = await getTimeZoneSupport(accessTokenAzure);
+  const timeZone = resultArr.data.value.find((element) => element.alias === result.data.timeZone);
   const account = {
     id: profileUser.id,
     name: profileUser.displayName,
     refresh_token: refreshTokenAzure,
+    timezone: timeZone.displayName.split('UTC')[1].split(')')[0],
     created_at: null,
     updated_at: null,
   };

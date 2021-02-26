@@ -2,7 +2,7 @@ const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
 const {cryptoDecode} = require("../../utils/Crypto");
 const Template = require("../views/Template");
-const {decodeJWS} = require("./Jws");
+const {decodeJWT} = require("../../utils/Crypto");
 const AxiosConfig = require('./Axios');
 
 const {
@@ -25,7 +25,7 @@ const {
 const {
 	handlerCreated,
 	handlerUpdated,
-	handlerDeleted
+	handlerDeleted,
 } = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
@@ -187,7 +187,7 @@ class SlackMicrosoft extends BaseServer {
 			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
 
 			// Lay Decode jwt de lay ra data
-			const {idChannel, idUser} = await decodeJWS(state);
+			const {idChannel} = await decodeJWT(state);
 
 			// Thêm channelvào bảng channels
 			await saveInfoChannel(idChannel);

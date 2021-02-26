@@ -124,7 +124,7 @@ const requestHome = (body, homePage) => {
 	return Axios(option);
 };
 
-const requestAddEvent = async (body, template) => {
+const requestAddEvent = async (body, template, timePicker) => {
 	try {
 		let addView = JSON.stringify(template)
 		addView = JSON.parse(addView);
@@ -152,7 +152,6 @@ const requestAddEvent = async (body, template) => {
 			}
 			option.data.view.blocks[1].accessory.options.push(selectCalendars);
 		}
-		const timePicker = customDatetime();
 		option.data.view.blocks[6].accessory.options = timePicker;
 		option.data.view.blocks[7].accessory.options = timePicker;
 		option.data.view.blocks.splice(5, 1)
@@ -188,7 +187,7 @@ const handlerAddEvent = async (body, template, timePicker) => {
 	const chanCals = await ChannelsCalendar.query().where({id_channel: channel_id});
 	for (let i = 0; i < chanCals.length; i++) {
 		const item = chanCals[i];
-		const calendar = await MicrosoftCalendar.query().findById(item.id_calendar);
+		const calendar = await GoogleCalendar.query().findById(item.id_calendar);
 		const selectCalendars = {
 			"text": {
 				"type": "plain_text",
@@ -280,49 +279,7 @@ const createEvent = async (event, idCanlendar) => {
 	}
 }
 
-function customDatetime() {
-	try {
-		let arrayDT = [];
-		let i = 0;
-		while (i < 24) {
-			let j = 0
-			for (j = 0; j < 46; j++) {
 
-				let datetimePicker = {
-					"text": {
-						"type": "plain_text",
-						"text": "",
-						"emoji": true
-					},
-					"value": ""
-				}
-				let textH = "";
-				let textM = "";
-
-				if (j < 10) {
-					textM = `0${j}`;
-				} else {
-					textM = `${j}`;
-				}
-				if (i < 10) {
-					textH = `0${i}:` + textM + "AM";
-				} else if (i < 12) {
-					textH = `${i}:` + textM + "AM";
-				} else {
-					textH = `${i}:` + textM + "PM";
-				}
-				datetimePicker.text.text = textH;
-				datetimePicker.value = textH.slice(0, 5)
-				arrayDT.push(datetimePicker);
-				j += 14;
-			}
-			i++;
-		}
-		return arrayDT;
-	} catch (error) {
-		return error;
-	}
-}
 
 module.exports = {
 	requestPostLogin,

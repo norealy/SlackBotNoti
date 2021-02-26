@@ -19,7 +19,8 @@ const {
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
 	SaveChannelsCalendar,
-	watchGoogleCalendar
+	watchGoogleCalendar,
+	getTimeZoneGoogle
 } = require("./Auth");
 
 const {
@@ -42,6 +43,7 @@ class SlackGoogle extends BaseServer {
 		super(instanceId, opt);
 		this.authGoogle = this.authGoogle.bind(this);
 		this.template = Template();
+		this.timePicker = customDatetime();
 	}
 
 	/**
@@ -81,7 +83,7 @@ class SlackGoogle extends BaseServer {
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
 		} else if (chat === "add-event") {
-			return requestAddEvent(body, this.template.addEvent);
+			return requestAddEvent(body, this.template.addEvent,this.timePicker);
 		} else {
 			return promise;
 		}
@@ -100,7 +102,7 @@ class SlackGoogle extends BaseServer {
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
-				return requestAddEvent(payload, this.template.addEvent);
+				return requestAddEvent(payload, this.template.addEvent,this.timePicker);
 			} else if (payload.actions[0].action_id === "allday") {
 				requestBlockActionsAllDay(payload, this.template)
 			}
@@ -118,7 +120,7 @@ class SlackGoogle extends BaseServer {
 						"timeZone": "Asia/Ho_Chi_Minh"
 					},
 					"recurrence": [
-						`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};COUNT=2`
+						`RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};`
 					],
 					"reminders": {
 						"useDefault": false,
@@ -139,7 +141,6 @@ class SlackGoogle extends BaseServer {
 					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
 					event.start.dateTime = dateTimeStart;
 					event.end.dateTime = dateTimeEnd;
-
 				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
 					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`
 					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`
@@ -187,12 +188,16 @@ class SlackGoogle extends BaseServer {
 			const tokens = await getToken(code, state);
 			const accessTokenGoogle = tokens.access_token;
 			const refreshTokenGoogle = tokens.refresh_token;
-
+			//timeZone
+			const time = await getTimeZoneGoogle(accessTokenGoogle)
+			const data = time.data.items
+			const result = data.find( ({ id }) => id === 'timezone' );
+			const timeZone = result.value
 			// Xử lý profile user google
 			const profileUser = await getProfile(accessTokenGoogle);
 			const user = await GoogleAccount.query().findById(profileUser.sub);
 			if (!user) {
-				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle);
+				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle, timeZone);
 			}
 
 			// Xử lý danh sách calendar
@@ -201,11 +206,8 @@ class SlackGoogle extends BaseServer {
 			for (let i = 0; i < listCalendar.length; i++) {
 				const idCalendar = listCalendar[i].id
 				await watchGoogleCalendar(idCalendar, profileUser.sub)
-
 			}
-
 			await saveListCalendar(listCalendar);
-
 			// Xử lý channel slack
 			const {idChannel, idUser} = await decode(state);
 			let channel = await Channels.query().findById(idChannel);
@@ -243,6 +245,8 @@ class SlackGoogle extends BaseServer {
 			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
 			const {idAccount, idCalendar} = JSON.parse(decode)
 			const event = await getEventUpdate(req.headers, idAccount);
+			const account = await GoogleAccount.query().findById(idAccount);
+			event.timezone = account.timezone;
 			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
 			Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)))
 				.then(function () {
@@ -251,6 +255,49 @@ class SlackGoogle extends BaseServer {
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}
+	}
+}
+function customDatetime() {
+	try {
+		let arrayDT = [];
+		let i = 0;
+		while (i < 24) {
+			let j = 0
+			for (j = 0; j < 46; j++) {
+
+				let datetimePicker = {
+					"text": {
+						"type": "plain_text",
+						"text": "",
+						"emoji": true
+					},
+					"value": ""
+				}
+				let textH = "";
+				let textM = "";
+
+				if (j < 10) {
+					textM = `0${j}`;
+				} else {
+					textM = `${j}`;
+				}
+				if (i < 10) {
+					textH = `0${i}:` + textM + "AM";
+				} else if (i < 12) {
+					textH = `${i}:` + textM + "AM";
+				} else {
+					textH = `${i}:` + textM + "PM";
+				}
+				datetimePicker.text.text = textH;
+				datetimePicker.value = textH.slice(0, 5)
+				arrayDT.push(datetimePicker);
+				j += 14;
+			}
+			i++;
+		}
+		return arrayDT;
+	} catch (error) {
+		return error;
 	}
 }
 module.exports = SlackGoogle;

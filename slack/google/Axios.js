@@ -31,7 +31,8 @@ module.exports = function () {
 					return config;
 				}
 				accessToken = await newAccessToken(idAccount);
-				Redis.client.setex(idAccount,60 * 59, accessToken);
+				Redis.client.setex("IDACC_GETTOKEN_"+ idAccount,60 * 59, accessToken);
+				// Log auth
 				config.headers['Authorization'] = `Bearer ${accessToken}`;
 			} catch (error) {
 				return Promise.reject(error);

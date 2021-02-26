@@ -6,7 +6,7 @@
 		"CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",
 		"CLIENT_ID": "90881321712-8iib32ro3d46016qtor1ejg3p91mqhbu.apps.googleusercontent.com",
 		"REDIRECT_URI": "http://localhost:5001/auth/google",
-		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.settings.readonly",
 		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
 		"RESPONSE_TYPE": "code",
 		"ACCESS_TYPE": "offline",
@@ -15,9 +15,9 @@
 		"API_URL_OAUTH":"https://oauth2.googleapis.com",
 		"API_USER_INFO": "/oauth2/v3/userinfo",
 		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
+		"API_TIME_ZONE": "/calendar/v3/users/me/settings",
 		"API_TOKEN": "/token",
 		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",
-		"ID_SUB": "0030459sss1ssssdsadsassbssdsdsssbdfsfsafdsaffsfsd",
 		"TYPE": "web_hook",
 		"ADDRESS": "https://apis.iceteait.com/watch/resource-server"
 	}

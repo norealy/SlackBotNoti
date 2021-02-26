@@ -8,6 +8,8 @@ const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const Redis = require("../../utils/redis/index");
 const {cryptoEncode} = require('../../utils/Crypto')
+const {v4: uuidV4} = require("uuid");
+
 /**
  * Thực hiện việc lấy accesToken
  * @param {string}code
@@ -45,8 +47,10 @@ const getToken = (code, state) => {
  */
 
 const watchGoogleCalendar = async (idCalendar, idAccount) => {
-	const obj = {idCalendar, idAccount}
+	const iat = Date.now();
+	const obj = {idCalendar, idAccount,iat}
 	const tokens = cryptoEncode(JSON.stringify(obj));
+	const idSub = uuidV4();
 	const googleAccountCalendar = await GoogleAccountCalendar.query().where({id_account:idAccount, id_calendar:idCalendar})
 	if(!googleAccountCalendar){
 		const tokens = cryptoEncode(JSON.stringify(obj));
@@ -55,14 +59,13 @@ const watchGoogleCalendar = async (idCalendar, idAccount) => {
 			url: `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/watch`,
 			headers: {'X-Google-AccountId': idAccount},
 			data: {
-				id: Env.resourceServerGOF("ID_SUB"),
+				id: idSub,
 				type: Env.resourceServerGOF("TYPE"),
 				address: Env.resourceServerGOF("ADDRESS"),
 				"token": tokens,
 			}
 		}
-		const done = Axios(options);
-		return done
+		return Axios(options);
 	}
 }
 
@@ -127,24 +130,39 @@ const getInfoChannel = (idChannel) => {
 			.catch((err) => reject(err));
 	});
 };
+/**
+ *
+ * @param {string}accessTokenGoogle
+ * @returns {Promise}
+ */
+const getTimeZoneGoogle = async (accessTokenGoogle) => {
+	const options = {
+		method: "GET",
+		headers: { Authorization: `Bearer ${accessTokenGoogle}` },
+		url:
+			Env.resourceServerGOF("API_URL") + Env.resourceServerGOF("API_TIME_ZONE"),
+	};
 
+	return await Axios(options);
+};
 /**
  * Lưu profile end  refreshTokenGoogle
  * @param  {object} profileUser
  * @param {string} refreshTokenGoogle
  * @returns {Promise}
  */
-const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogle) => {
+const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogle,timeZone) => {
 	const account = {
 		id: profileUser.sub,
 		name: profileUser.name,
 		refresh_token: refreshTokenGoogle,
+		timezone:timeZone,
 		created_at: null,
 		updated_at: null,
 	}
 	const data = await GoogleAccount.query().findById(account.id);
 	return new Promise((resolve, reject) => {
-		Redis.client.setex(account.id, 60 * 59, accessTokenGoogle)
+		Redis.client.setex("IDACC_GETTOKEN_"+ account.id, 60 * 59, accessTokenGoogle)
 		if (!data) {
 			GoogleAccount.query()
 				.insert(account)
@@ -255,5 +273,6 @@ module.exports = {
 	saveListCalendar,
 	SaveGoogleAccountCalendar,
 	SaveChannelsCalendar,
-	watchGoogleCalendar
+	watchGoogleCalendar,
+	getTimeZoneGoogle
 };

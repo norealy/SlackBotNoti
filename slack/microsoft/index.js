@@ -1,5 +1,6 @@
 const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
+const {cryptoDecode} = require("../../utils/Crypto");
 const Template = require("../views/Template");
 const { decodeJWS } = require("./Jws");
 const AxiosConfig = require('./Axios');
@@ -107,14 +108,16 @@ class SlackMicrosoft extends BaseServer {
     try {
       const { body = null, query = null } = req;
       if (body.value) {
-        res.status(202).send("OK")
+        res.status(202).send("OK");
+        const { idAccount = null } = JSON.parse(cryptoDecode(body.value[0].clientState));
+        if(!idAccount) return;
         this.handlerNotifications(body.value[0]);
-        return null;
       }
       else if (query) {
         const { validationToken } = query;
         return res.status(200).send(validationToken);
       }
+      return null;
     } catch (e) {
       return res.status(403).send("ERROR");
     }

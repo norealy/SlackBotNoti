@@ -3,7 +3,7 @@
 	"notify_on_close": true,
 	"title": {
 		"type": "plain_text",
-		"text": "My App",
+		"text": "BOT NOTI CALENDARS ",
 		"emoji": true
 	},
 	"submit": {
@@ -40,14 +40,6 @@
 					"emoji": true
 				},
 				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-0"
-					}
 				],
 				"action_id": "select_calendar"
 			}
@@ -95,7 +87,7 @@
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-02-28",
+				"initial_date": "2021-03-03",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select a date",
@@ -133,7 +125,7 @@
 				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "02:00 AM",
+					"text": "select time start event",
 					"emoji": true
 				},
 				"options": [
@@ -176,7 +168,7 @@
 				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "02:00 AM",
+					"text": "select time end event",
 					"emoji": true
 				},
 				"options": [
@@ -290,7 +282,7 @@
 							"text": "At time of event",
 							"emoji": true
 						},
-						"value": "value-0"
+						"value": "0"
 					},
 					{
 						"text": {

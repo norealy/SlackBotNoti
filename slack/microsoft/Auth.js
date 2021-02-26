@@ -136,7 +136,7 @@ const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure)
       MicrosoftAccount.query()
         .insert(account)
         .then((res) => {
-          Redis.client.setex(res.id, 60 * 59, accessTokenAzure);
+          Redis.client.setex("IDACC_GETTOKEN_" + res.id, 60 * 59, accessTokenAzure);
           return resolve(res)
         })
         .catch((err) => reject(err));

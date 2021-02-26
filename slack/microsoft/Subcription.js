@@ -20,7 +20,8 @@ Date.prototype.addDays = function (days) {
  */
 const createSubcription = (idCalendar, idAccount) => {
   const obj = {
-    idAccount
+    idAccount,
+    iat:  Math.floor(new Date()/1000)
   }
   const state = cryptoEncode(JSON.stringify(obj));
   let date = new Date();

@@ -25,13 +25,13 @@ module.exports = function () {
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0] && !Authorization) {
       const idAccount = headers['X-Microsoft-AccountId'];
       try {
-        let accessToken = await getValueRedis(idAccount);
+        let accessToken = await getValueRedis("IDACC_GETTOKEN_" + idAccount);
         if (accessToken) {
           config.headers['Authorization'] = `Bearer ${accessToken}`;
           return config;
         }
         accessToken = await createAccessToken(idAccount);
-        Redis.client.setex(idAccount, 60 * 59, accessToken);
+        Redis.client.setex("IDACC_GETTOKEN_" + idAccount, 60 * 59, accessToken);
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       } catch (error) {
         return Promise.reject(error);

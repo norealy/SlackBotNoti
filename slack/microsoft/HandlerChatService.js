@@ -41,7 +41,7 @@ const handlerAddEvent = async (body, template, timePicker) => {
 				"text": calendar.name,
 				"emoji": true
 			},
-			"value": calendar.id
+			"value": "MCS_" + calendar.id
 		}
 		options.data.view.blocks[1].accessory.options.push(selectCalendars);
 	}
@@ -193,7 +193,7 @@ const submitAddEvent = async (payload) => {
 	if (values.select_everyday['static_select-action']['selected_option'].value !== "nomal" && !allDay) {
 		event.recurrence = getRecurrence(values.select_everyday['static_select-action']['selected_option'].value, dateStart);
 	}
-	const idCalendar = values["select_calendar"]["select_calendar"]["selected_option"].value;
+	const idCalendar = values["select_calendar"]["select_calendar"]["selected_option"].value.split('MCS_')[1];
 	const accountCal = await MicrosoftAccountCalendar.query().findOne({id_calendar: idCalendar});
 	const options = {
 		method: 'POST',

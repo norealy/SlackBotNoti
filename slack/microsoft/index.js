@@ -111,7 +111,6 @@ class SlackMicrosoft extends BaseServer {
 				await this.handlerCommand(req.body);
 				const message = `Thank you call BOT-NOTI !`;
 				return res.status(200).send(message);
-
 			} else if (payload) {
 				await this.handlerPayload(payload, res);
 				return;
@@ -157,7 +156,7 @@ class SlackMicrosoft extends BaseServer {
 				const {validationToken} = query;
 				return res.status(200).send(validationToken);
 			}
-			return null;
+			return ;
 		} catch (e) {
 			return res.status(403).send("ERROR");
 		}
@@ -201,7 +200,16 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 }
-
+/**
+ * custom customRepeat
+ * @param {Object} viewAddEvent
+ */
+function customRepeat(viewAddEvent){
+  viewAddEvent.blocks[9].element.options[0].value = "nomal";
+  viewAddEvent.blocks[9].element.options[1].value = "daily";
+  viewAddEvent.blocks[9].element.options[2].value = "weekly";
+  viewAddEvent.blocks[9].element.options[3].value = "absoluteMonthly";
+}
 /**
  * Tao array Datetime
  * @returns {Array} arrayDT
@@ -257,5 +265,6 @@ module.exports = SlackMicrosoft;
 	await Template().init();
 	await pipeline.init();
 	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
+  customRepeat(pipeline.template.addEvent);
 	AxiosConfig();
 })();

@@ -3,22 +3,20 @@ const Env = require("../../utils/Env");
 const Template = require("../views/Template");
 const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
-const Redis = require('../../utils/redis')
+const GoogleCalendar = require("../../models/GoogleCalendar");
+const Redis = require('../../utils/redis');
 const AxiosConfig = require('./Axios');
-const Axios = require('axios')
-const {cryptoDecode} = require('../../utils/Crypto')
-const ChannelsCalendar = require("../../models/ChannelsCalendar")
-const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar")
+const Axios = require('axios');
+const {cryptoDecode} = require('../../utils/Crypto');
+const ChannelsCalendar = require("../../models/ChannelsCalendar");
+const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
+
 const {
 	getToken,
 	getListCalendar,
 	getProfile,
 	getInfoChannel,
-	saveUserProfile,
 	saveInfoChannel,
-	saveListCalendar,
-	SaveGoogleAccountCalendar,
-	SaveChannelsCalendar,
 	watchGoogleCalendar,
 	getTimeZoneGoogle
 } = require("./Auth");
@@ -36,7 +34,7 @@ const {
 const {
 	getEventUpdate,
 	sendWatchNoti
-} = require("./ResourceServer")
+} = require("./ResourceServer");
 
 class SlackGoogle extends BaseServer {
 	constructor(instanceId, opt) {
@@ -52,7 +50,7 @@ class SlackGoogle extends BaseServer {
 	 * @returns {Promise}
 	 */
 	handlerEvent(event) {
-		event = JSON.parse(JSON.stringify(event))
+		event = JSON.parse(JSON.stringify(event));
 		const {subtype, user} = event;
 		const botId = Env.chatServiceGOF("BOT_USER");
 		const {loginResource} = this.template;
@@ -104,10 +102,11 @@ class SlackGoogle extends BaseServer {
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
 				return requestAddEvent(payload, this.template.addEvent,this.timePicker);
 			} else if (payload.actions[0].action_id === "allday") {
-				requestBlockActionsAllDay(payload, this.template)
+				const options = requestBlockActionsAllDay(payload, this.template);
+				await Axios(options);
 			}
 		} else if (payload.type === "view_submission") {
-			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value
+			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
 			try {
 				let event = {
 					"summary": payload.view.state.values["input_title"]["input-action"].value,
@@ -135,15 +134,15 @@ class SlackGoogle extends BaseServer {
 							}
 						]
 					}
-				}
+				};
 				if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
 					const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
 					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
 					event.start.dateTime = dateTimeStart;
 					event.end.dateTime = dateTimeEnd;
 				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
-					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`
-					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`
+					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`;
+					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`;
 					event.start.date = dateAllDayStart;
 					event.end.date = dateAllDayEnd;
 
@@ -182,124 +181,161 @@ class SlackGoogle extends BaseServer {
 		}
 	}
 
+	/**
+	 *
+	 * @param {object} calendar
+	 * @param {string} idAccount
+	 * @return {Promise<object|boolean>}
+	 */
+	async handlerCalendars(calendar, idAccount) {
+		const findCalendar = await GoogleCalendar.query().findOne({id: calendar.id});
+		if (!findCalendar) await GoogleCalendar.query()
+			.insert({id: calendar.id, name: calendar.summary});
+
+		const googleAC = {
+			id_calendar: calendar.id,
+			id_account: idAccount,
+		};
+		const findGAC = await GoogleAccountCalendar.query().findOne(googleAC);
+		if(!findGAC)return googleAC;
+		return false
+	}
+
+	/**
+	 *
+	 * @param {object} profile
+	 * @param {object} tokens
+	 * @return {Promise<void>}
+	 */
+	async handlerUser(profile, tokens) {
+		const result = await getTimeZoneGoogle(tokens.access_token);
+		const timeZone = result.data.value;
+		Redis.client.setex(`GOOGLE_ACCESS_TOKEN_` + profile.sub, 60 * 59, tokens.access_token);
+		await GoogleAccount.query().insert({
+			id: profile.sub,
+			name: profile.name,
+			refresh_token: tokens.refresh_token,
+			timezone: timeZone,
+		});
+	}
+
 	async authGoogle(req, res) {
 		const {code, state} = req.query;
 		try {
 			const tokens = await getToken(code, state);
-			const accessTokenGoogle = tokens.access_token;
-			const refreshTokenGoogle = tokens.refresh_token;
-			//timeZone
-			const time = await getTimeZoneGoogle(accessTokenGoogle)
-			const data = time.data.items
-			const result = data.find( ({ id }) => id === 'timezone' );
-			const timeZone = result.value
-			// Xử lý profile user google
-			const profileUser = await getProfile(accessTokenGoogle);
-			const user = await GoogleAccount.query().findById(profileUser.sub);
-			if (!user) {
-				await saveUserProfile(profileUser, refreshTokenGoogle, accessTokenGoogle, timeZone);
-			}
 
-			// Xử lý danh sách calendar
-			const calendars = await getListCalendar(profileUser.sub);
-			const listCalendar = calendars.items;
-			for (let i = 0; i < listCalendar.length; i++) {
-				const idCalendar = listCalendar[i].id
-				await watchGoogleCalendar(idCalendar, profileUser.sub)
-			}
-			await saveListCalendar(listCalendar);
+			// Xử lý profile user google
+			const profile = await getProfile(tokens.access_token);
+			const user = await GoogleAccount.query().findById(profile.sub);
+			if (!user) await this.handlerUser(profile, tokens);
+
 			// Xử lý channel slack
-			const {idChannel, idUser} = await decode(state);
+			const {idChannel} = await decode(state);
 			let channel = await Channels.query().findById(idChannel);
 			if (!channel) {
 				channel = await getInfoChannel(idChannel);
-				await saveInfoChannel(channel.channel)
+				await saveInfoChannel(channel)
 			}
 
-			// xử lí mảng để lưu
-			let idCalendars = [];
-			for (let calendar of listCalendar) {
-				idCalendars.push(calendar.id)
+			// Xử lý danh sách calendar
+			const {items} = await getListCalendar(profile.sub, tokens.access_token);
+			const channelCalendar = [];
+			let accountCalendar = [];
+			const regex = /writer|owner/;
+			for (let i = 0, length = items.length; i < length; i++) {
+				if(regex.test(items[i].accessRole)) {
+					channelCalendar.push({
+						id_calendar: items[i].id,
+						id_channel: idChannel,
+						watch: true,
+					});
+
+					const result = await this.handlerCalendars(items[i], profile.sub);
+					if(result) {
+						accountCalendar.push(result);
+						await watchGoogleCalendar(result);
+					}
+				}
 			}
 
-			// profileUser +  listAllCalendar
-			await SaveGoogleAccountCalendar(idCalendars, profileUser.sub);
-			await SaveChannelsCalendar(idCalendars, idChannel);
+			await GoogleAccountCalendar.transaction(async trx => {
+				try{
+					await trx.insert(accountCalendar).into(GoogleAccountCalendar.tableName)
+						.onConflict(["id_calendar", "id_account"])
+						.merge();
+				}catch (e) {
+					trx.rollback();
+				}
+			});
+
+			await ChannelsCalendar.transaction(async trx => {try {
+				await trx.insert(channelCalendar).into(ChannelsCalendar.tableName)
+					.onConflict(["id_calendar", "id_channel"])
+					.merge();
+			} catch (e) {
+				trx.rollback();
+			}});
 
 			return res.send("Oke");
 		} catch (err) {
 			return res.send("ERROR");
 		}
 	}
-	getValueRedis(key) {
-		return new Promise((resolve, reject) => {
-			Redis.client.get(key, (err, reply) => {
-				if (err) reject(null);
-				resolve(reply);
-			});
-		})
-	}
 
 	async resourceServerHandler(req, res, next) {
 		try {
 			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
-			const {idAccount, idCalendar} = JSON.parse(decode)
+			const {idAccount, idCalendar} = JSON.parse(decode);
 			const event = await getEventUpdate(req.headers, idAccount);
 			const account = await GoogleAccount.query().findById(idAccount);
 			event.timezone = account.timezone;
 			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
-			Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)))
-				.then(function () {
-				})
+			await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)));
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}
 	}
 }
+
 function customDatetime() {
-	try {
-		let arrayDT = [];
-		let i = 0;
-		while (i < 24) {
-			let j = 0
-			for (j = 0; j < 46; j++) {
-
-				let datetimePicker = {
-					"text": {
-						"type": "plain_text",
-						"text": "",
-						"emoji": true
-					},
-					"value": ""
-				}
-				let textH = "";
-				let textM = "";
-
-				if (j < 10) {
-					textM = `0${j}`;
-				} else {
-					textM = `${j}`;
-				}
-				if (i < 10) {
-					textH = `0${i}:` + textM + "AM";
-				} else if (i < 12) {
-					textH = `${i}:` + textM + "AM";
-				} else {
-					textH = `${i}:` + textM + "PM";
-				}
-				datetimePicker.text.text = textH;
-				datetimePicker.value = textH.slice(0, 5)
-				arrayDT.push(datetimePicker);
-				j += 14;
+	let arrayDT = [];
+	let i = 0;
+	while (i < 24) {
+		let j = 0;
+		for (j = 0; j < 46; j++) {
+			let datetimePicker = {
+				"text": {
+					"type": "plain_text",
+					"text": "",
+					"emoji": true
+				},
+				"value": ""
+			};
+			let textH = "";
+			let textM = "";
+			if (j < 10) {
+				textM = `0${j}`;
+			} else {
+				textM = `${j}`;
 			}
-			i++;
+			if (i < 10) {
+				textH = `0${i}:` + textM + "AM";
+			} else if (i < 12) {
+				textH = `${i}:` + textM + "AM";
+			} else {
+				textH = `${i}:` + textM + "PM";
+			}
+			datetimePicker.text.text = textH;
+			datetimePicker.value = textH.slice(0, 5);
+			arrayDT.push(datetimePicker);
+			j += 14;
 		}
-		return arrayDT;
-	} catch (error) {
-		return error;
+		i++;
 	}
+	return arrayDT;
 }
+
 module.exports = SlackGoogle;
 (async function () {
 	const pipeline = new SlackGoogle(process.argv[2], {

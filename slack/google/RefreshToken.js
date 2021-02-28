@@ -2,7 +2,6 @@ const Axios = require("axios");
 const GoogleAccount = require('../../models/GoogleAccount');
 const Env = require('../../utils/Env');
 const qs = require("qs");
-const Redis = require('../../utils/redis/index');
 
 const getRefreshToken = async (id) => {
 	return new Promise((resolve, reject) => {

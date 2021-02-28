@@ -6,14 +6,15 @@ const {v4: uuidv4} = require('uuid');
  * Cấu hình đường dẫn redirect login google
  * @returns {string} url
  */
-const configUrlAuthGoogle = () => {
+const configUrlAuthGoogle = (accessToken) => {
 	let url = Env.resourceServerGOF('GO_API_OAUTH');
-	url += `/?scope=${Env.resourceServerGOF("GO_SCOPE_CALENDAR")}`;
+	url += `?scope=${Env.resourceServerGOF("GO_SCOPE_CALENDAR")}`;
 	url += `+${Env.resourceServerGOF("GO_SCOPE_USER_INFO")}`;
 	url += `&access_type=${Env.resourceServerGOF("GO_ACCESS_TYPE")}`;
 	url += `&response_type=${Env.resourceServerGOF("GO_RESPONSE_TYPE")}`;
 	url += `&client_id=${Env.resourceServerGOF("GO_CLIENT_ID")}`;
 	url += `&redirect_uri=${Env.resourceServerGOF("GO_REDIRECT_URI")}`;
+  url += `&state=${accessToken}`;
 	return url
 };
 
@@ -21,14 +22,15 @@ const configUrlAuthGoogle = () => {
  * Cấu hình đường dẫn redirect login Microsoft
  * @returns {string} urlRequestAuthor
  */
-const configUrlAuthMicrosoft = () => {
+const configUrlAuthMicrosoft = (accessToken) => {
 	let url = Env.resourceServerGet("MI_API_URL_AUTH");
 	url += Env.resourceServerGet("MI_API_AUTHOR");
-	url += `/?scope=${encodeURIComponent(Env.resourceServerGet("MI_SCOPE"))}`;
+	url += `?scope=${encodeURIComponent(Env.resourceServerGet("MI_SCOPE"))}`;
 	url += `&response_type=${Env.resourceServerGOF("MI_RESPONSE_TYPE")}`;
 	url += `&response_mode=${Env.resourceServerGOF("MI_RESPONSE_MODE")}`;
 	url += `&client_id=${Env.resourceServerGet("MI_AZURE_ID")}`;
 	url += `&redirect_uri=${Env.resourceServerGet("MI_AZURE_REDIRECT")}`;
+  url += `&state=${accessToken}`;
 	return url;
 };
 
@@ -54,17 +56,20 @@ const handlerOptionLogin = (event, view) => {
 		iat,
 		exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
 	};
-	const accessToken = createJWT(payload);
+	const accessTokenGO = createJWT(payload);
+  payload.uid = uuidv4();
+	const accessTokenMI = createJWT(payload);
 	let urlLogin = Env.resourceServerGOF("URL");
 	urlLogin += `${Env.resourceServerGOF("URI_LOGIN")}`;
-	urlLogin += `/?accessToken=${accessToken}&redirect=`;
-	viewLogin[2].elements[0].url = urlLogin + "GOOGLE";
-	viewLogin[2].elements[1].url = urlLogin + "MICROSOFT";
+	const urlLoginGO = urlLogin + `?accessToken=${accessTokenGO}&redirect=`;
+	viewLogin[2].elements[0].url = urlLoginGO + "GOOGLE";
+  const urlLoginMI = urlLogin + `?accessToken=${accessTokenMI}&redirect=`;
+	viewLogin[2].elements[1].url = urlLoginMI + "MICROSOFT";
 	option.data = {
 		"channel": channel,
 		"blocks": viewLogin
 	};
-	option.extendedProperties = {redis: {accessTokenUid: uid}};
+	option.extendedProperties = {redis: [{key: uid}, {key: payload.uid}]};
 	return option;
 };
 

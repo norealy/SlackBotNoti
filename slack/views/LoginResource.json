@@ -34,5 +34,8 @@
 				"action_id": "MI_addMicrosoft"
 			}
 		]
-	}
+	},
+  {
+    "type": "divider"
+  }
 ]

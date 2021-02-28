@@ -74,19 +74,25 @@ class SlackWrapper extends BaseServer {
 				const {user_id = ""} = authorizations[0];
 				const config = this.handlerEvent(event, user_id);
 				if (config) {
-					const {redis = null} = config.extendedProperties;
-					if (redis && redis.accessTokenUid) await this.setUidToken(redis.accessTokenUid);
+					const {redis = []} = config.extendedProperties;
+					if (redis.length > 0){
+            for (const element of redis) {
+              await this.setUidToken(element.key);
+            }
+					}
 					await Axios(config);
 				}
 				return res.status(200).send("OK");
 			}
+			if(/\/cal/.test(command) && /^google/.test(req.body.text)){
+        proxy.web(req, res, {target: 'http://localhost:5001'})
+      }
 			if (payload) {
 				payload = JSON.parse(payload);
 				const {actions} = payload;
 				const data = this.getDataServer(actions);
 				proxy.web(req, res, {target: `http://localhost:${data.PORT}`})
 			}
-
 		} catch (e) {
 			return res.status(400).send("ERROR");
 		}
@@ -94,9 +100,24 @@ class SlackWrapper extends BaseServer {
 
 	resourceServerHandler(req, res, next) {
 		try {
-			proxy.web(req, res, {
-				target: 'http://localhost:5001'
-			})
+		  let server = "";
+      let regexGO = /^x-goog/;
+      let regexMI = /^x-microsoft/;
+		  for(let value in req.headers){
+		    if(regexGO.test(value)){
+          proxy.web(req, res, {
+            target: 'http://localhost:5001'
+          });
+		      break
+		    }
+        if(regexMI.test(value)){
+          proxy.web(req, res, {
+            target: 'http://localhost:5000'
+          });
+          break
+        }
+      }
+
 		} catch (e) {
 			return res.status(204).send("ERROR")
 		}
@@ -107,17 +128,11 @@ class SlackWrapper extends BaseServer {
 		try {
 			if (!accessToken || !redirect) return res.status(400).send("Bad request");
 			decodeJWT(accessToken);
-			const expCookie = parseInt(Env.getOrFail("JWT_DURATION"));
-			res.cookie(`SLACK-${redirect}`, accessToken, {
-				maxAge: expCookie * 1000,
-				httpOnly: true,
-				sameSite: "Strict",
-			});
 			switch (redirect) {
 				case "GOOGLE":
-					return res.status(307).redirect(configUrlAuthGoogle());
+					return res.status(307).redirect(configUrlAuthGoogle(accessToken));
 				case "MICROSOFT":
-					return res.status(307).redirect(configUrlAuthMicrosoft());
+					return res.status(307).redirect(configUrlAuthMicrosoft(accessToken));
 				default:
 					return res.status(400).send("Bad request");
 			}

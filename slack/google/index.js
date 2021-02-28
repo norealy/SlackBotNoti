@@ -26,14 +26,14 @@ const {
 	requestSettings,
 	requestHome,
 	requestButtonSettings,
-	decode,
 	requestAddEvent,
 	createEvent,
 	requestBlockActionsAllDay
 } = require("./ChatService");
 const {
 	getEventUpdate,
-	sendWatchNoti
+	sendWatchNoti,
+  getEvent,
 } = require("./ResourceServer");
 
 class SlackGoogle extends BaseServer {
@@ -80,7 +80,7 @@ class SlackGoogle extends BaseServer {
 			return requestHome(body, this.template.homePage);
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
-		} else if (chat === "add-event") {
+		} else if (chat === "google add-event") {
 			return requestAddEvent(body, this.template.addEvent,this.timePicker);
 		} else {
 			return promise;
@@ -237,7 +237,7 @@ class SlackGoogle extends BaseServer {
 			if (!user) await this.handlerUser(profile, tokens);
 
 			// Xử lý channel slack
-			const {idChannel} = await decode(state);
+			const {idChannel} = await decodeJWT(state);
 			let channel = await Channels.query().findById(idChannel);
 			if (!channel) {
 				channel = await getInfoChannel(idChannel);
@@ -285,7 +285,7 @@ class SlackGoogle extends BaseServer {
 
 			return res.send("Oke");
 		} catch (err) {
-			return res.send("ERROR");
+			return res.status(400).send("ERROR");
 		}
 	}
 
@@ -293,11 +293,15 @@ class SlackGoogle extends BaseServer {
 		try {
 			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
 			const {idAccount, idCalendar} = JSON.parse(decode);
-			const event = await getEventUpdate(req.headers, idAccount);
-			const account = await GoogleAccount.query().findById(idAccount);
-			event.timezone = account.timezone;
-			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
-			await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)));
+			let event = await getEventUpdate(req.headers, idAccount);
+      if(event.status === 'cancelled'){
+			  event = await getEvent(idCalendar, event.id, idAccount);
+			  if(!event.summary) return res.status(204).send("OK");
+      }
+      const account = await GoogleAccount.query().findById(idAccount);
+      event.timezone = account.timezone;
+      const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
+      await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent.blocks, event)));
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");

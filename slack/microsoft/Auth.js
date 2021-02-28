@@ -153,20 +153,21 @@ const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure)
 const customFormatArrayCal = (allCalendar) => {
   const arrayCal = [];
   allCalendar.forEach((item) => {
-    const cal = {
-      id: item.id,
-      name: item.name,
-      address_owner: item.owner.address,
-      created_at: null,
-    };
-    arrayCal.push(cal);
+    if (item.canEdit) {
+      const cal = {
+        id: item.id,
+        name: item.name,
+        address_owner: item.owner.address
+      };
+      arrayCal.push(cal);
+    }
   });
   return arrayCal;
 };
 
 /**
  *  Luu array calendar vao database
- * @param {string} allCalendar
+ * @param {array} allCalendar
  * @param {string} idAccount
  * @returns {Promise}
  */

@@ -45,12 +45,12 @@ const getToken = (code) => {
 
 const watchGoogleCalendar = async ({id_calendar, id_account}) => {
 	const iat = Date.now();
-	const obj = {id_calendar, id_account, iat};
+	const obj = {idCalendar: id_calendar, idAccount: id_account, iat};
 	const idSub = uuidV4();
 	const tokens = cryptoEncode(JSON.stringify(obj));
 	const options = {
 		method: 'POST',
-		url: `https://www.googleapis.com/calendar/v3/calendars/${id_calendar}/events/watch`,
+		url: `${Env.resourceServerGOF("API_URL")}/calendar/v3/calendars/${id_calendar}/events/watch`,
 		headers: {'X-Google-AccountId': id_account},
 		data: {
 			id: idSub,

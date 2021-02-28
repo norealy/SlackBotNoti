@@ -1,59 +1,69 @@
 {
-	"blocks": [
-		{
-			"type": "context",
-			"elements": [
-				{
-					"type": "image",
-					"image_url": "https://apis.iceteait.com/public/icon/NEOSCORP.png",
-					"alt_text": "outlook"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "*Event calendar. Type: Created*"
-				}
-			]
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "*Triển Khai dự án mới*"
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "Repeat : In day"
-			}
-		},
-		{
-			"type": "section",
-			"fields": [
-				{
-					"type": "mrkdwn",
-					"text": "27-02-2021"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "1:00PM-2:00PM"
-				}
-			]
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "location"
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "description"
-			}
-		}
-	]
+  "blocks": [
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "image",
+          "image_url": "https://apis.iceteait.com/public/icon/NEOSCORP.png",
+          "alt_text": "outlook"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*CALENDAR GOOGLE*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Type: Create Event*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": " "
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Triển Khai dự án mới*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "Calendar: name@calendar.com"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "27-02-2021"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "1:00PM-2:00PM"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "location"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "description"
+      }
+    },
+    {
+      "type": "divider"
+    }
+  ]
 }

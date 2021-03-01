@@ -46,7 +46,6 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
-  	if(!error.response)return Promise.reject(error);
-    return Promise.reject(error.response);
+  	return Promise.reject(error);
   });
 }

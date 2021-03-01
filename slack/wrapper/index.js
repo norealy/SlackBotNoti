@@ -100,24 +100,20 @@ class SlackWrapper extends BaseServer {
 
 	resourceServerHandler(req, res, next) {
 		try {
-		  let server = "";
+		  let proxyGoogle = false;
       let regexGO = /^x-goog/;
-      let regexMI = /^x-microsoft/;
 		  for(let value in req.headers){
 		    if(regexGO.test(value)){
           proxy.web(req, res, {
             target: 'http://localhost:5001'
           });
+          proxyGoogle = true;
 		      break
 		    }
-        if(regexMI.test(value)){
-          proxy.web(req, res, {
-            target: 'http://localhost:5000'
-          });
-          break
-        }
       }
-
+		  if(!proxyGoogle) proxy.web(req, res, {
+        target: 'http://localhost:5002'
+      });
 		} catch (e) {
 			return res.status(204).send("ERROR")
 		}

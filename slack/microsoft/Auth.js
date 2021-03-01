@@ -147,35 +147,44 @@ const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure)
 
 /**
  *  Xu ly dua array calendar ve dang
- * @param {Array} allCalendar
- * @returns {Array} array Calendar
+ * @param {array} allCalendar
+ * @param {string} idAccount
+ * @param {string} idChannel
+ * @returns {object}
  */
-const customFormatArrayCal = (allCalendar) => {
-  const arrayCal = [];
+const checkCalendar = (allCalendar, idAccount, idChannel) => {
+  const result = {calendars: [], accountCalendar: [], channelCalendar: []};
   allCalendar.forEach((item) => {
     if (item.canEdit) {
-      const cal = {
+      result.calendars.push({
         id: item.id,
         name: item.name,
         address_owner: item.owner.address
-      };
-      arrayCal.push(cal);
+      });
+      result.accountCalendar.push({
+        id_calendar: item.id,
+        id_account: idAccount,
+      })
+      result.channelCalendar.push({
+        id_calendar: item.id,
+        id_channel: idChannel,
+        watch: true,
+      })
     }
   });
-  return arrayCal;
+  return result;
 };
 
 /**
  *  Luu array calendar vao database
- * @param {array} allCalendar
+ * @param {array} calendars
  * @param {string} idAccount
- * @returns {Promise}
+ * @returns {void}
  */
-const saveListCalendar = async (allCalendar, idAccount) => {
-  const arrayCal = customFormatArrayCal(allCalendar);
-  if (!arrayCal) return null;
-  for (let i = 0; i < arrayCal.length; i++) {
-    const item = arrayCal[i];
+const saveListCalendar = async (calendars, idAccount) => {
+  if (calendars.length === 0) return null;
+  for (let i = 0, length = calendars.length; i < length; i++) {
+    const item = calendars[i];
     const data = await MicrosoftCalendar.query().findOne({
       id: item.id,
       address_owner: item.address_owner,
@@ -186,7 +195,6 @@ const saveListCalendar = async (allCalendar, idAccount) => {
       Redis.client.set(resultSub.data.id, item.id);
     }
   }
-  return null;
 };
 
 /**
@@ -249,27 +257,16 @@ const customFormatMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
 
 /**
  * Luu thong tin MicrosoftAccountCalendar vao database
- * @param {string} idAccount
- * @param {Array} arrCalendar
- * @returns {Promise}
+ * @param {Array} accountCalendar
+ * @returns {void}
  */
-const saveMicrosoftAccountCalendar = async (idAccount, arrCalendar) => {
-  const arrayAccCal = customFormatMicrosoftAccountCalendar(
-    idAccount,
-    arrCalendar
-  );
-  if (!arrayAccCal) return null;
-  for (let i = 0; i < arrayAccCal.length; i++) {
-    const item = arrayAccCal[i];
-    const data = await MicrosoftAccountCalendar.query().findOne({
-      id_account: idAccount,
-      id_calendar: item.id_calendar,
-    });
-    if (!data) {
-      await MicrosoftAccountCalendar.query().insert(item);
-    }
+const saveMicrosoftAccountCalendar = async (accountCalendar) => {
+  if (accountCalendar.length === 0) return null;
+  for (let i = 0, length = accountCalendar.length; i < length; i++) {
+    const item = accountCalendar[i];
+    const data = await MicrosoftAccountCalendar.query().findOne(item);
+    if (!data) await MicrosoftAccountCalendar.query().insert(item);
   }
-  return null;
 };
 
 /**
@@ -295,22 +292,19 @@ const customFormatChannelsCalendar = (idChannel, arrCalendar) => {
 
 /**
  * Luu thong tin saveChannelsCalendar vao database
- * @param {string} idChannel
- * @param {Array} arrCalendar
- * @returns {Promise}
+ * @param {array} channelCalendar
+ * @returns {void}
  */
-const saveChannelsCalendar = async (idChannel, arrCalendar) => {
-  const arrayChanCal = customFormatChannelsCalendar(idChannel, arrCalendar);
-  if (!arrayChanCal) return null;
-  arrayChanCal.forEach(async (item) => {
+const saveChannelsCalendar = async (channelCalendar) => {
+  if (channelCalendar.length === 0) return null;
+  for (let i = 0, length = channelCalendar.length; i < length; i++) {
+    const item = channelCalendar[i]
     const data = await ChannelsCalendar.query().findOne({
-      id_channel: idChannel,
+      id_channel: item.id_channel,
       id_calendar: item.id_calendar,
     });
-    if (!data) {
-      await ChannelsCalendar.query().insert(item);
-    }
-  });
+    if (!data) await ChannelsCalendar.query().insert(item);
+  }
 };
 
 
@@ -323,4 +317,5 @@ module.exports = {
   saveInfoChannel,
   saveMicrosoftAccountCalendar,
   saveChannelsCalendar,
+  checkCalendar,
 };

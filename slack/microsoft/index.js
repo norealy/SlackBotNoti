@@ -14,6 +14,7 @@ const {
 	saveInfoChannel,
 	saveMicrosoftAccountCalendar,
 	saveChannelsCalendar,
+  checkCalendar,
 } = require("./Auth");
 const {
 	sendMessageLogin,
@@ -167,7 +168,6 @@ class SlackMicrosoft extends BaseServer {
     let { code, state } = req.query;
     const cookie = req.cookies[this.instanceId];
     if(cookie) state = cookie;
-
 		try {
 			const payload = decodeJWT(state);
 			const result = await this.getUidToken(payload.uid);
@@ -185,22 +185,19 @@ class SlackMicrosoft extends BaseServer {
 
 			// Thuc hien lay tai nguyen list calendars
 			const allData = await getListCalendar(profileUser.id);
-			const allCalendar = allData.value;
+			const obj = checkCalendar(allData.value, profileUser.id, payload.idChannel);
 
 			// Thêm list calendar vào bảng microsoft_calendar
-			await saveListCalendar(allCalendar, profileUser.id);
+			await saveListCalendar(obj.calendars);
 
 			// Luu  vào bảng microsoft_account_calendar
-			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
-
-			// Lay Decode jwt de lay ra data
-			const {idChannel} = await decodeJWT(state);
+			await saveMicrosoftAccountCalendar(obj.accountCalendar);
 
 			// Thêm channelvào bảng channels
-			await saveInfoChannel(idChannel);
+			await saveInfoChannel(payload.idChannel);
 
 			//  Luu channels calendar vào bảng channels_calendar
-			await saveChannelsCalendar(idChannel, allCalendar);
+			await saveChannelsCalendar(obj.channelCalendar);
 
 			return res.send("Successful !");
 		} catch (e) {

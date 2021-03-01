@@ -1,9 +1,12 @@
 const Axios = require("axios");
 const Crypto = require("../../utils/Crypto");
 const Env = require("../../utils/Env");
+const { getEvent } = require("./HandlerResourceServer");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
+const MicrosoftAccount = require("../../models/MicrosoftAccount");
+const moment = require('moment');
 
 /**
  * Show modals view add event to slack
@@ -49,6 +52,21 @@ const handlerAddEvent = async (body, template, timePicker) => {
 	return Axios(options);
 };
 
+const dataToUpdateEventView = async (value,view) => {
+  console.log("value:",JSON.stringify(value));
+  const idAccount = value.split('/')[1];
+  const idEvent = value.split('/')[2];
+  const result = await getEvent(idAccount,idEvent);
+  const event = result.data;
+  const account  = await MicrosoftAccount.query().findById(idAccount);
+  const { timezone = null } = account;
+  console.log(timezone);
+  const datetimeStart = moment(event.start.dateTime).utc(true).utcOffset(timezone);
+  const datetimeEnd = moment(event.end.dateTime).utc(true).utcOffset(timezone);
+  console.log("datetimeStart:",datetimeStart,"datetimeEnd:",datetimeEnd);
+
+}
+
 /**
  * handler Blocks Actions
  * @param {Object} payload
@@ -56,9 +74,14 @@ const handlerAddEvent = async (body, template, timePicker) => {
  * @returns {Promise}
  */
 const handlerBlocksActions = async (payload, template) => {
-	const {addEvent} = template;
-	let addView = JSON.stringify(addEvent);
-	addView = JSON.parse(addView)
+  const {addEvent} = template;
+  let addView = JSON.stringify(addEvent);
+	addView = JSON.parse(addView);
+  if(payload.actions === "updateEvent"){
+    addView.blocks[0].text.text = "Update event calendar";
+    console.log("PAYLOAD :",payload)
+    await dataToUpdateEventView(payload.message.blocks[1].accessory.value,addView);
+  }
 	addView.blocks = payload.view.blocks;
 	const {action_id = null, selected_options = null} = payload.actions[0];
 	if (action_id === "allday" && selected_options.length === 0) {
@@ -315,6 +338,47 @@ const handlerSettingsMessage = (viewSystemSetting, body) => {
 			.catch((err) => reject(err));
 	});
 };
+/**
+ *
+ * @param {Object} listEvent
+ * @param {Object} body
+ */
+const handlerShowAllEvents = async (listEvent,body) => {
+  const { channel_id = null } = body;
+  const blocksView = [...listEvent];
+  const chanCals = await ChannelsCalendar.query().where({id_channel: channel_id});
+  const AccCals = await MicrosoftAccountCalendar.query().where({id_calendar: chanCals[0].id_calendar});
+  const idAccount = AccCals[0].id_account;
+  const options = {
+		method: 'GET',
+		headers: {'X-Microsoft-AccountId': idAccount},
+		url:
+			Env.resourceServerGOF("GRAPH_URL") +
+			Env.resourceServerGOF("GRAPH_CALENDARS") + `/${chanCals[0].id_calendar}/events`
+	};
+	const events = await Axios(options);
+  if(!events) return;
+  const event = events.data.value[0];
+  blocksView[1].accessory.value = `MCS_/${idAccount}/${event.id}`;
+  blocksView[1].fields[0].text = event.subject;
+  blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
+
+  const options1 = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`,
+    },
+    data: {
+      channel: channel_id,
+      blocks: blocksView,
+    },
+    url:
+      Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_POST_MESSAGE"),
+  };
+  return Axios(options1)
+}
 
 module.exports = {
 	handlerSettingsMessage,
@@ -322,4 +386,5 @@ module.exports = {
 	handlerAddEvent,
 	submitAddEvent,
 	handlerBlocksActions,
+  handlerShowAllEvents
 };

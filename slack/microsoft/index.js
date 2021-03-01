@@ -104,6 +104,7 @@ class SlackMicrosoft extends BaseServer {
 			event = null,
 			command = null,
 		} = req.body;
+    console.log(req.body);
 		try {
 			if (event) {
 				await this.handlerEvent(event);

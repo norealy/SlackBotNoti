@@ -21,6 +21,7 @@ const {
 	handlerAddEvent,
 	handlerBlocksActions,
 	submitAddEvent,
+  handlerShowEvents,
 } = require("./HandlerChatService");
 const {
 	handlerCreated,
@@ -66,6 +67,8 @@ class SlackMicrosoft extends BaseServer {
 				return handlerSettingsMessage(systemSetting, body);
 			case "add-event":
 				return handlerAddEvent(body, this.template, this.timePicker);
+      case "show-events":
+        return handlerShowEvents(body,this.template);
 			default:
 				return result;
 		}
@@ -82,6 +85,7 @@ class SlackMicrosoft extends BaseServer {
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
+        console.log(payload);
 				return handlerBlocksActions(payload, this.template, this.timePicker);
 			case "view_submission":
 				submitAddEvent(payload);
@@ -104,7 +108,6 @@ class SlackMicrosoft extends BaseServer {
 			event = null,
 			command = null,
 		} = req.body;
-    console.log(req.body);
 		try {
 			if (event) {
 				await this.handlerEvent(event);

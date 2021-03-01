@@ -23,7 +23,7 @@ const getEvent = (idUser, idEvent) => {
     axios(options).then((data) => {
       return resolve(data);
     }).catch((error) => {
-      return resolve(error.response);
+      return resolve(error);
       // return reject(error);
     });
   })
@@ -40,16 +40,6 @@ function getValueRedis(key) {
       resolve(reply);
     });
   })
-}
-
-/**
- * Add hours to date
- * @param {number} hours
- * return {date}
- */
-Date.prototype.addHours = function (hours) {
-  this.setHours(this.getHours() + hours);
-  return this;
 }
 
 /**
@@ -115,8 +105,7 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
  * @param {string} idUser
  */
 const checkEventExist = async (idEvent, idUser) => {
-  let accessToken = await getValueRedis("IDACC_GETTOKEN_" + idUser);
-  let result = await getEvent(idUser, idEvent, accessToken);
+  let result = await getEvent(idUser, idEvent);
   const { status = null } = result;
   if (status === 404) {
     const event = await getValueRedis(idEvent);

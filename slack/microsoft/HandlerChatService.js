@@ -53,7 +53,6 @@ const handlerAddEvent = async (body, template, timePicker) => {
 };
 
 const dataToUpdateEventView = async (value,view) => {
-  console.log("value:",JSON.stringify(value));
   const idAccount = value.split('/')[1];
   const idEvent = value.split('/')[2];
   const result = await getEvent(idAccount,idEvent);
@@ -79,8 +78,7 @@ const handlerBlocksActions = async (payload, template) => {
 	addView = JSON.parse(addView);
   if(payload.actions === "updateEvent"){
     addView.blocks[0].text.text = "Update event calendar";
-    console.log("PAYLOAD :",payload)
-    await dataToUpdateEventView(payload.message.blocks[1].accessory.value,addView);
+    // await dataToUpdateEventView(payload.message.blocks[1].accessory.value,addView);
   }
 	addView.blocks = payload.view.blocks;
 	const {action_id = null, selected_options = null} = payload.actions[0];
@@ -102,6 +100,7 @@ const handlerBlocksActions = async (payload, template) => {
 		data: data,
 		url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`
 	};
+  console.log(options);
 	return new Promise((resolve, reject) => {
 		Axios(options).then((resp) => {
 			return resolve(resp);

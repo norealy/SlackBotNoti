@@ -37,14 +37,15 @@ class SlackWrapper extends BaseServer {
 	 */
 	handlerEvent(event, user_id) {
 		const {subtype} = event;
-		const {BOT_ADD, APP_JOIN, CHANNEL_JOIN} = Env.chatServiceGOF("TYPE");
+		const types = Env.chatServiceGOF("TYPE");
 		const {loginResource} = this.template;
 		switch (subtype) {
-			case BOT_ADD:
+			case types.BOT_ADD:
 				return handlerOptionLogin(event, loginResource);
-			case APP_JOIN:
+			case types.APP_JOIN:
 				return handlerOptionLogin(event, loginResource);
-			case CHANNEL_JOIN:
+      case types.MEMBER_JOIN:
+			case types.CHANNEL_JOIN:
 				if (user_id === event.user) return handlerOptionLogin(event, loginResource);
 				return null;
 			default:
@@ -66,6 +67,7 @@ class SlackWrapper extends BaseServer {
 	async chatServiceHandler(req, res, next) {
 		let {challenge = null, event = null, payload = null, command = null, authorizations = null} = req.body;
 		if (challenge || command) console.log(req.body);
+    console.log(req.body);
 		try {
 			if (challenge) {
 				return res.status(200).send(challenge);
@@ -80,6 +82,7 @@ class SlackWrapper extends BaseServer {
               await this.setUidToken(element.key);
             }
 					}
+          console.log(config);
 					await Axios(config);
 				}
 				return res.status(200).send("OK");

@@ -1,11 +1,31 @@
 {
 	"blocks": [
 		{
-			"type": "header",
+			"type": "context",
+			"elements": [
+				{
+					"type": "image",
+					"image_url": "https://apis.iceteait.com/public/icon/NEOSCORP.png",
+					"alt_text": "outlook"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Event calendar. Type: Created*"
+				}
+			]
+		},
+		{
+			"type": "section",
 			"text": {
-				"type": "plain_text",
-				"text": "List event calendar",
-				"emoji": true
+				"type": "mrkdwn",
+				"text": "*Triển Khai dự án mới*"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Repeat : In day"
 			}
 		},
 		{
@@ -13,49 +33,26 @@
 			"fields": [
 				{
 					"type": "mrkdwn",
-					"text": "*Triển Khai dự án mới*"
+					"text": "27-02-2021"
 				},
 				{
 					"type": "mrkdwn",
 					"text": "1:00PM-2:00PM"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "_phòng họp số 1_"
-				},
-				{
-					"type": "mrkdwn",
-					"text": "27-02-2021"
 				}
-			],
-			"accessory": {
-				"type": "overflow",
-				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "Edit Event",
-							"emoji": true
-						},
-						"value": "edit_evennt_action"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "Delete Event",
-							"emoji": true
-						},
-						"value": "delete_evennt_action"
-					}
-				],
-				"action_id": "overflow-action"
+			]
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "location"
 			}
 		},
 		{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "<https://example.com|View request>"
+				"text": "description"
 			}
 		}
 	]

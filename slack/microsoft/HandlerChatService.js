@@ -82,7 +82,6 @@ const handlerOverflowAction = async (payload, template ,timePicker) => {
     event.data.idCalendar = blockId[1];
     payload.eventEditDT = event.data;
     payload.idAcc = blockId[0];
-    console.log("payload.eventEdit :",payload.eventEdit);
     return handlerEditEvent(payload,template,timePicker);
   }
   else if (value[0] === "delete") {
@@ -107,7 +106,6 @@ const checkAMorPM = (value) => {
  * @returns {Promise}
  */
 const handlerEditEvent = async (payload, template, timePicker) => {
-  try {
     const { trigger_id = null, channel = null ,eventEditDT = null ,idAcc = null } = payload;
   const channel_id = channel.id;
   const { editEvent } = template;
@@ -115,6 +113,7 @@ const handlerEditEvent = async (payload, template, timePicker) => {
   editEvent.blocks[7].accessory.options = timePicker;
   let editView = JSON.stringify(editEvent);
   editView = JSON.parse(editView);
+  editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
   const chanCals = await ChannelsCalendar.query().where({ id_channel: channel_id });
   for (let i = 0, length = chanCals.length; i < length; i++) {
     const item = chanCals[i];
@@ -180,14 +179,7 @@ const handlerEditEvent = async (payload, template, timePicker) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_VIEW_OPEN"),
   };
-
-  return Axios(options).then((data)=>{
-    console.log(data.data.response_metadata.messages);
-  });
-  } catch (error) {
-    console.log(error);
-  }
-
+  return Axios(options);
 };
 
 /**
@@ -309,7 +301,8 @@ const getRecurrence = (type, datetime, date) => {
  * @param {Object} payload
  * @returns {Promise}
  */
-const submitAddEvent = async (payload) => {
+const HandlerSubmitEvent = async (payload) => {
+  // "callback_id":"editEvent"
   const { values } = payload.view.state;
   const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]
@@ -359,6 +352,11 @@ const submitAddEvent = async (payload) => {
       Env.resourceServerGOF("GRAPH_URL") +
       Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
   };
+  if(payload.view.callback_id && payload.view.callback_id.split('/')[0] === "editEvent"){
+    const value = payload.view.callback_id.split('/');
+    options.method = 'PATCH';
+    options.url += "/" + value[1];
+  }
   await Axios(options);
   const { trigger_id = null, view = null } = payload;
   const data = {
@@ -492,8 +490,6 @@ const handlerShowEvents = async (body, template) => {
       Env.resourceServerGOF("GRAPH_CALENDARS") + `/${chanCals[1].id_calendar}/events`
   };
   const events = await Axios(options);
-
-  console.log(events);
   if (!events) return;
   const event = events.data.value[0];
   blocksView[1].block_id = `${idAccount}/${AccCals[0].id_calendar}`;
@@ -515,17 +511,14 @@ const handlerShowEvents = async (body, template) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
-  console.log(JSON.stringify(options1));
-  return Axios(options1).then((data) => {
-    console.log(data.data.response_metadata.messages);
-  })
+  return Axios(options1);
 };
 
 module.exports = {
   handlerSettingsMessage,
   sendMessageLogin,
   handlerAddEvent,
-  submitAddEvent,
+  HandlerSubmitEvent,
   handlerBlocksActions,
   handlerShowEvents,
 };

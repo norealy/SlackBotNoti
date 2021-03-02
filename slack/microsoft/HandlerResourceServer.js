@@ -69,8 +69,8 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
   const datetimeStart = moment(event.start.dateTime).utc(true).utcOffset(event.timezone);
   const datetimeEnd = moment(event.end.dateTime).utc(true).utcOffset(event.timezone);
   options.data.blocks[3].fields[0].text = datetimeStart.format("DD-MM-YYYY");
-  options.data.blocks[3].fields[1].text = datetimeStart.format("hh:ss:mm") +
-    "-" + datetimeEnd.format("hh:ss:mm");
+  options.data.blocks[3].fields[1].text = datetimeStart.format("hh:mm:ss") +
+    "-" + datetimeEnd.format("hh:mm:ss");
   if (event.locations.length > 0) {
     options.data.blocks[4].text.text = event.locations.map(value => value.displayName).join(", ");
   }

@@ -20,7 +20,7 @@ const {
 	handlerSettingsMessage,
 	handlerAddEvent,
 	handlerBlocksActions,
-	submitAddEvent,
+	HandlerSubmitEvent,
   handlerShowEvents,
 } = require("./HandlerChatService");
 const {
@@ -85,10 +85,9 @@ class SlackMicrosoft extends BaseServer {
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
-        console.log(payload);
 				return handlerBlocksActions(payload, this.template, this.timePicker);
 			case "view_submission":
-				submitAddEvent(payload);
+				HandlerSubmitEvent(payload);
 				return res.status(200).send({
 					"response_action": "clear"
 				});

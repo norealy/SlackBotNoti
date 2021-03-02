@@ -1,6 +1,7 @@
 {
 	"type": "modal",
-	"notify_on_close": true,
+  "notify_on_close": true,
+  "clear_on_close":true,
 	"title": {
 		"type": "plain_text",
 		"text": "BOT NOTI CALENDARS ",
@@ -16,6 +17,7 @@
 		"text": "Cancel",
 		"emoji": true
 	},
+  "callback_id":"editEvent",
 	"blocks": [
 		{
 			"type": "header",
@@ -171,6 +173,7 @@
 		{
 			"type": "input",
 			"block_id": "input_location",
+      "optional": true,
 			"element": {
 				"type": "plain_text_input",
 				"action_id": "plain_text_input-action"

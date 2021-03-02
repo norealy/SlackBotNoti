@@ -105,7 +105,7 @@
 			},
 			"accessory": {
 				"type": "datepicker",
-				"initial_date": "2021-02-03",
+				"initial_date": "2021-03-03",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select a date",
@@ -130,7 +130,15 @@
 				},
 				"options": [
 				],
-				"action_id": "time-start-action"
+				"action_id": "time-start-action",
+        "initial_option": {
+					"text": {
+						"type": "plain_text",
+						"text": "08:00AM",
+						"emoji": true
+					},
+					"value": "08:00"
+				}
 			}
 		},
 		{
@@ -149,7 +157,15 @@
 				},
 				"options": [
 				],
-				"action_id": "time-end-action"
+				"action_id": "time-end-action",
+        "initial_option": {
+					"text": {
+						"type": "plain_text",
+						"text": "08:30AM",
+						"emoji": true
+					},
+					"value": "08:30"
+				}
 			}
 		},
 		{

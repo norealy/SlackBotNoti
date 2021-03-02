@@ -187,5 +187,6 @@ function sleep(ms) {
 module.exports = {
   handlerCreated,
   handlerUpdated,
-  handlerDeleted
+  handlerDeleted,
+  getEvent
 }

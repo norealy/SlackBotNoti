@@ -1,10 +1,12 @@
 const Axios = require("axios");
 const Crypto = require("../../utils/Crypto");
 const Env = require("../../utils/Env");
+const moment = require('moment');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
-const { val } = require("objection");
+const { getEvent } = require('./HandlerResourceServer');
+const MicrosoftAccount = require("../../models/MicrosoftAccount");
 
 /**
  * Show modals view add event to slack
@@ -14,7 +16,6 @@ const { val } = require("objection");
  * @returns {Promise}
  */
 const handlerAddEvent = async (body, template, timePicker) => {
-  console.log(" handlerAddEvent ");
   const { trigger_id = null, channel_id = null } = body;
   const { addEvent } = template;
   addEvent.blocks[6].accessory.options = timePicker;
@@ -48,10 +49,7 @@ const handlerAddEvent = async (body, template, timePicker) => {
     options.data.view.blocks[1].accessory.options.push(selectCalendars);
   }
   addView.blocks.splice(5, 1);
-  console.log(JSON.stringify(options.data))
-  return Axios(options).then((data)=>{
-    console.log(data.data.response_metadata.messages);
-  });
+  return Axios(options);
 };
 
 /**
@@ -75,18 +73,123 @@ const handlerBlocksActions = (payload, template, timePicker) => {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerOverflowAction = (payload, template ,timePicker) => {
+const handlerOverflowAction = async (payload, template ,timePicker) => {
   const value = payload.actions[0].selected_option.value.split('/');
   const blockId = payload.actions[0].block_id.split('/');
 
   if (value[0] === "edit") {
-    console.log("EDIT :",value[1]);
-    return handlerAddEvent(payload,template,timePicker);
+    const event = await getEvent(blockId[0],value[1]);
+    event.data.idCalendar = blockId[1];
+    payload.eventEditDT = event.data;
+    payload.idAcc = blockId[0];
+    console.log("payload.eventEdit :",payload.eventEdit);
+    return handlerEditEvent(payload,template,timePicker);
   }
   else if (value[0] === "delete") {
     return deleteEvent(blockId[0],value[1]);
   }
 }
+/**
+ *
+ * @param {string} value
+ */
+const checkAMorPM = (value) => {
+  if(parseInt(value.split(":")[0])<12){
+    return value+"AM";
+  }
+  return value+"PM";
+}
+/**
+ * Show modals view edit event to slack
+ * @param {Object} payload
+ * @param {Object} template
+ * @param {Array} timePicker
+ * @returns {Promise}
+ */
+const handlerEditEvent = async (payload, template, timePicker) => {
+  try {
+    const { trigger_id = null, channel = null ,eventEditDT = null ,idAcc = null } = payload;
+  const channel_id = channel.id;
+  const { editEvent } = template;
+  editEvent.blocks[6].accessory.options = timePicker;
+  editEvent.blocks[7].accessory.options = timePicker;
+  let editView = JSON.stringify(editEvent);
+  editView = JSON.parse(editView);
+  const chanCals = await ChannelsCalendar.query().where({ id_channel: channel_id });
+  for (let i = 0, length = chanCals.length; i < length; i++) {
+    const item = chanCals[i];
+    const calendar = await MicrosoftCalendar.query().findById(item.id_calendar);
+    const selectCalendars = {
+      "text": {
+        "type": "plain_text",
+        "text": calendar.name,
+        "emoji": true
+      },
+      "value": calendar.id
+    }
+    if(calendar.id === eventEditDT.idCalendar){
+      editView.blocks[1].accessory.initial_option =  selectCalendars;
+    }
+    editView.blocks[1].accessory.options.push(selectCalendars);
+  }
+  editView.blocks[2].element.initial_value =  eventEditDT.subject;
+
+  if(eventEditDT.locations[0]){
+    editView.blocks[8].element.initial_value =  eventEditDT.locations[0].displayName;
+  }
+  const account = await MicrosoftAccount.query().findById(idAcc);
+  const datetimeStart = moment(eventEditDT.start.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
+  const datetimeEnd = moment(eventEditDT.end.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
+  editView.blocks[4].accessory.initial_date = datetimeStart.split('.')[0];
+
+  if(eventEditDT.isAllDay){
+    editView.blocks.splice(5, 2);
+    editView.blocks.splice(5, 0, editEvent.blocks[5]);
+    editView.blocks[5].accessory.initial_date = datetimeEnd.split('.')[0];
+  }else{
+      const initialOption = {
+        "text": {
+          "type": "plain_text",
+          "text": checkAMorPM(datetimeStart.split('.')[1]),
+          "emoji": true
+        },
+        "value": datetimeStart.split('.')[1]
+      }
+      const initialOption2 = {
+        "text": {
+          "type": "plain_text",
+          "text": checkAMorPM(datetimeEnd.split('.')[1]),
+          "emoji": true
+        },
+        "value": datetimeEnd.split('.')[1]
+      }
+      editView.blocks[6].accessory.initial_option = initialOption;
+      editView.blocks[7].accessory.initial_option = initialOption2;
+      editView.blocks.splice(5, 1);
+  }
+  const data = {
+    trigger_id: trigger_id,
+    view: editView,
+  };
+
+  const options = {
+    method: "POST",
+    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+    data: data,
+    url:
+      Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_VIEW_OPEN"),
+  };
+
+  return Axios(options).then((data)=>{
+    console.log(data.data.response_metadata.messages);
+  });
+  } catch (error) {
+    console.log(error);
+  }
+
+};
+
 /**
  * Thuc hien xoa event
  * @param {string} idAccount
@@ -101,6 +204,7 @@ const deleteEvent = (idAccount,idEvent) => {
   };
   return Axios(options);
 }
+
 /**
  * handler Blocks Actions
  * @param {Object} payload
@@ -154,7 +258,7 @@ Date.prototype.addDays = function (days) {
  *
  * @param {string} type
  * @param {dateTime} datetime
- * @param {*} date
+ * @param {date} date
  */
 const getRecurrence = (type, datetime, date) => {
   const dateStart = datetime;

@@ -23,7 +23,7 @@ const getEvent = (idUser, idEvent) => {
     axios(options).then((data) => {
       return resolve(data);
     }).catch((error) => {
-      return resolve(error.response);
+      return resolve(error);
       // return reject(error);
     });
   })
@@ -40,16 +40,6 @@ function getValueRedis(key) {
       resolve(reply);
     });
   })
-}
-
-/**
- * Add hours to date
- * @param {number} hours
- * return {date}
- */
-Date.prototype.addHours = function (hours) {
-  this.setHours(this.getHours() + hours);
-  return this;
 }
 
 /**
@@ -197,6 +187,5 @@ function sleep(ms) {
 module.exports = {
   handlerCreated,
   handlerUpdated,
-  handlerDeleted,
-  getEvent
+  handlerDeleted
 }

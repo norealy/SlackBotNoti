@@ -21,7 +21,7 @@ const {
 	handlerAddEvent,
 	handlerBlocksActions,
 	submitAddEvent,
-  handlerShowAllEvents
+  handlerShowEvents,
 } = require("./HandlerChatService");
 const {
 	handlerCreated,
@@ -68,8 +68,7 @@ class SlackMicrosoft extends BaseServer {
 			case "add-event":
 				return handlerAddEvent(body, this.template, this.timePicker);
       case "show-events":
-        const {listEvent} = this.template;
-        return handlerShowAllEvents(listEvent,body);
+        return handlerShowEvents(body,this.template);
 			default:
 				return result;
 		}
@@ -83,14 +82,10 @@ class SlackMicrosoft extends BaseServer {
 	handlerPayload(payload, res) {
 		payload = JSON.parse(payload);
 		const {type = null} = payload;
-    console.log(type);
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
-        if(payload.actions[0].action_id === "buttonUpdate"){
-          payload.actions = "updateEvent";
-          return handlerBlocksActions(payload, this.template, this.timePicker);
-        }
+        console.log(payload);
 				return handlerBlocksActions(payload, this.template, this.timePicker);
 			case "view_submission":
 				submitAddEvent(payload);
@@ -114,14 +109,13 @@ class SlackMicrosoft extends BaseServer {
 			command = null,
 		} = req.body;
 		try {
-
-      console.log("req : ",req.body);
 			if (event) {
 				await this.handlerEvent(event);
 			} else if (command && /^\/cal$/.test(command)) {
 				await this.handlerCommand(req.body);
 				const message = `Thank you call BOT-NOTI !`;
 				return res.status(200).send(message);
+
 			} else if (payload) {
 				await this.handlerPayload(payload, res);
 				return;
@@ -131,7 +125,6 @@ class SlackMicrosoft extends BaseServer {
 			const message = `Thank you call BOT-NOTI !`;
 			return res.status(200).send(message);
 		} catch (error) {
-      console.log(error);
 			const message = `Thank you call BOT-NOTI !
         If you want assistance please enter: /cal --help`;
 			return res.status(403).send(message);
@@ -160,7 +153,7 @@ class SlackMicrosoft extends BaseServer {
 		try {
 			const {body = null, query = null} = req;
 			if (body.value) {
-				// res.status(202).send("OK");
+				res.status(202).send("OK");
 				const {idAccount = null} = JSON.parse(cryptoDecode(body.value[0].clientState));
 				if (!idAccount) return;
 				this.handlerNotifications(body.value[0]);
@@ -168,7 +161,7 @@ class SlackMicrosoft extends BaseServer {
 				const {validationToken} = query;
 				return res.status(200).send(validationToken);
 			}
-			return ;
+			return null;
 		} catch (e) {
 			return res.status(403).send("ERROR");
 		}
@@ -212,16 +205,7 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 }
-/**
- * custom customRepeat
- * @param {Object} viewAddEvent
- */
-function customRepeat(viewAddEvent){
-  viewAddEvent.blocks[9].element.options[0].value = "nomal";
-  viewAddEvent.blocks[9].element.options[1].value = "daily";
-  viewAddEvent.blocks[9].element.options[2].value = "weekly";
-  viewAddEvent.blocks[9].element.options[3].value = "absoluteMonthly";
-}
+
 /**
  * Tao array Datetime
  * @returns {Array} arrayDT
@@ -277,6 +261,5 @@ module.exports = SlackMicrosoft;
 	await Template().init();
 	await pipeline.init();
 	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
-  customRepeat(pipeline.template.addEvent);
 	AxiosConfig();
 })();

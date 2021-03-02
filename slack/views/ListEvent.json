@@ -1,4 +1,20 @@
 {
+	"title": {
+		"type": "plain_text",
+		"text": "My App",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit",
+		"emoji": true
+	},
+	"type": "modal",
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
 	"blocks": [
 		{
 			"type": "header",
@@ -34,18 +50,18 @@
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Edit Event",
+							"text": "Edit event",
 							"emoji": true
 						},
-						"value": "edit_evennt_action"
+						"value": "edit-event"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Delete Event",
+							"text": "Delete event",
 							"emoji": true
 						},
-						"value": "delete_evennt_action"
+						"value": "delete-event"
 					}
 				],
 				"action_id": "overflow-action"

@@ -22,7 +22,7 @@
 						"text": "YES"
 					},
 					"style": "primary",
-					"action_id": "buttonUpdate"
+					"action_id": "btnDelete"
 				},
 				{
 					"type": "button",
@@ -32,7 +32,7 @@
 						"text": "NO !"
 					},
 					"style": "danger",
-					"action_id": "buttonDelete"
+					"action_id": "btnNo"
 				}
 			]
 		}

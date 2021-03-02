@@ -29,7 +29,11 @@ const {
 	decode,
 	requestAddEvent,
 	createEvent,
-	requestBlockActionsAllDay
+	deleteEvent,
+	handarlerShowListEvent,
+	requestBlockActionsAllDay,
+	requestBlockActionsEditEvent,
+	handlerDeleteEvent
 } = require("./ChatService");
 const {
 	getEventUpdate,
@@ -81,7 +85,9 @@ class SlackGoogle extends BaseServer {
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
 		} else if (chat === "add-event") {
-			return requestAddEvent(body, this.template.addEvent,this.timePicker);
+			return requestAddEvent(body, this.template.addEvent, this.timePicker);
+		} else if (chat === "show-events") {
+			return handarlerShowListEvent(body, this.template)
 		} else {
 			return promise;
 		}
@@ -97,13 +103,37 @@ class SlackGoogle extends BaseServer {
 	async handlerPayLoad(body, payload) {
 		payload = JSON.parse(payload);
 		if (payload.type === "block_actions") {
+			const value = payload.actions[0].selected_option.value.split('/');
+			const blockId = payload.actions[0].block_id.split('/');
+			console.log("value",value);
+			console.log("blockId",blockId)
+			console.log("idCalendar :", blockId[1]);
+			console.log("idAccount :", blockId[0]);
+			console.log("idEvent :", value[1]);
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
-				return requestAddEvent(payload, this.template.addEvent,this.timePicker);
+				return requestAddEvent(payload, this.template.addEvent, this.timePicker);
 			} else if (payload.actions[0].action_id === "allday") {
 				const options = requestBlockActionsAllDay(payload, this.template);
 				await Axios(options);
+			} else if (payload.actions[0].action_id === "overflow-action") {
+				if (value[0] === "edit") {
+					console.log("edit")
+					console.log("id :", value[1]);
+					return requestAddEvent(payload, this.template.addEvent, this.timePicker);
+				} else if (value[0] === "delete") {
+					console.log("payload",payload)
+					console.log("delete")
+					return handlerDeleteEvent(payload,this.template.deleteEvent)
+				}
+			}
+			else if(payload.actions[0].action_id === "btnDelete"){
+				console.log("delete oke")
+				return deleteEvent(blockId[0],blockId[1], value[1])
+			}
+			else if(payload.actions[0].action_id ==="btnNo"){
+				console.log("delete no oke")
 			}
 		} else if (payload.type === "view_submission") {
 			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
@@ -145,7 +175,6 @@ class SlackGoogle extends BaseServer {
 					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`;
 					event.start.date = dateAllDayStart;
 					event.end.date = dateAllDayEnd;
-
 				}
 				return createEvent(event, idCalendar)
 			} catch (e) {
@@ -173,10 +202,12 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send("OK");
 			}
 			if (payload) {
+				console.log("payload",payload)
 				await this.handlerPayLoad(req.body, payload);
 				return res.status(200).send({"response_action": "clear"});
 			}
 		} catch (error) {
+			console.log("err", error)
 			return res.status(403).send("Error");
 		}
 	}
@@ -197,7 +228,7 @@ class SlackGoogle extends BaseServer {
 			id_account: idAccount,
 		};
 		const findGAC = await GoogleAccountCalendar.query().findOne(googleAC);
-		if(!findGAC)return googleAC;
+		if (!findGAC) return googleAC;
 		return false
 	}
 
@@ -243,7 +274,7 @@ class SlackGoogle extends BaseServer {
 			let accountCalendar = [];
 			const regex = /writer|owner/;
 			for (let i = 0, length = items.length; i < length; i++) {
-				if(regex.test(items[i].accessRole)) {
+				if (regex.test(items[i].accessRole)) {
 					channelCalendar.push({
 						id_calendar: items[i].id,
 						id_channel: idChannel,
@@ -251,7 +282,7 @@ class SlackGoogle extends BaseServer {
 					});
 
 					const result = await this.handlerCalendars(items[i], profile.sub);
-					if(result) {
+					if (result) {
 						accountCalendar.push(result);
 						await watchGoogleCalendar(result);
 					}
@@ -259,22 +290,24 @@ class SlackGoogle extends BaseServer {
 			}
 
 			await GoogleAccountCalendar.transaction(async trx => {
-				try{
+				try {
 					await trx.insert(accountCalendar).into(GoogleAccountCalendar.tableName)
 						.onConflict(["id_calendar", "id_account"])
 						.merge();
-				}catch (e) {
+				} catch (e) {
 					trx.rollback();
 				}
 			});
 
-			await ChannelsCalendar.transaction(async trx => {try {
-				await trx.insert(channelCalendar).into(ChannelsCalendar.tableName)
-					.onConflict(["id_calendar", "id_channel"])
-					.merge();
-			} catch (e) {
-				trx.rollback();
-			}});
+			await ChannelsCalendar.transaction(async trx => {
+				try {
+					await trx.insert(channelCalendar).into(ChannelsCalendar.tableName)
+						.onConflict(["id_calendar", "id_channel"])
+						.merge();
+				} catch (e) {
+					trx.rollback();
+				}
+			});
 
 			return res.send("Oke");
 		} catch (err) {
@@ -292,6 +325,7 @@ class SlackGoogle extends BaseServer {
 			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
 			await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)));
 			return res.status(204).send("OK");
+
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}

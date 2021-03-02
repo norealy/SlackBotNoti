@@ -39,7 +39,29 @@
 					"type": "mrkdwn",
 					"text": "1:00PM-2:00PM"
 				}
-			]
+			],
+			"accessory": {
+				"type": "overflow",
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Edit event",
+							"emoji": true
+						},
+						"value": "edit-event"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Delete event",
+							"emoji": true
+						},
+						"value": "delete-event"
+					}
+				],
+				"action_id": "overflow-action"
+			}
 		},
 		{
 			"type": "section",

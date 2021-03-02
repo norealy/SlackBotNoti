@@ -47,7 +47,7 @@ const getToken = (code, state) => {
 
 const watchGoogleCalendar = async ({id_calendar, id_account}) => {
 	const iat = Date.now();
-	const obj = {id_calendar, id_account, iat};
+	const obj = {idCalendar: id_calendar, idAccount: id_account, iat};
 	const idSub = uuidV4();
 	const tokens = cryptoEncode(JSON.stringify(obj));
 	const options = {

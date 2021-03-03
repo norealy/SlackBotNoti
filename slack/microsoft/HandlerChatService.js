@@ -64,7 +64,7 @@ const handlerBlocksActions = (payload, template, timePicker) => {
     case "allday":
       return handlerAllDay(payload, template);
     case "overflow-action":
-      return handlerOverflowAction(payload, template ,timePicker);
+      return handlerOverflowAction(payload, template, timePicker);
   }
 };
 /**
@@ -73,19 +73,19 @@ const handlerBlocksActions = (payload, template, timePicker) => {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerOverflowAction = async (payload, template ,timePicker) => {
+const handlerOverflowAction = async (payload, template, timePicker) => {
   const value = payload.actions[0].selected_option.value.split('/');
   const blockId = payload.actions[0].block_id.split('/');
 
   if (value[0] === "edit") {
-    const event = await getEvent(blockId[0],value[1]);
+    const event = await getEvent(blockId[0], value[1]);
     event.data.idCalendar = blockId[1];
     payload.eventEditDT = event.data;
     payload.idAcc = blockId[0];
-    return handlerEditEvent(payload,template,timePicker);
+    return handlerEditEvent(payload, template, timePicker);
   }
   else if (value[0] === "delete") {
-    return deleteEvent(blockId[0],value[1]);
+    return deleteEvent(blockId[0], value[1]);
   }
 }
 /**
@@ -93,10 +93,10 @@ const handlerOverflowAction = async (payload, template ,timePicker) => {
  * @param {string} value
  */
 const checkAMorPM = (value) => {
-  if(parseInt(value.split(":")[0])<12){
-    return value+"AM";
+  if (parseInt(value.split(":")[0]) < 12) {
+    return value + "AM";
   }
-  return value+"PM";
+  return value + "PM";
 }
 /**
  * Show modals view edit event to slack
@@ -106,7 +106,8 @@ const checkAMorPM = (value) => {
  * @returns {Promise}
  */
 const handlerEditEvent = async (payload, template, timePicker) => {
-    const { trigger_id = null, channel = null ,eventEditDT = null ,idAcc = null } = payload;
+  try {
+    const { trigger_id = null, channel = null, eventEditDT = null, idAcc = null } = payload;
   const channel_id = channel.id;
   const { editEvent } = template;
   editEvent.blocks[6].accessory.options = timePicker;
@@ -126,45 +127,56 @@ const handlerEditEvent = async (payload, template, timePicker) => {
       },
       "value": calendar.id
     }
-    if(calendar.id === eventEditDT.idCalendar){
-      editView.blocks[1].accessory.initial_option =  selectCalendars;
+    if (calendar.id === eventEditDT.idCalendar) {
+      editView.blocks[1].accessory.initial_option = selectCalendars;
     }
     editView.blocks[1].accessory.options.push(selectCalendars);
   }
-  editView.blocks[2].element.initial_value =  eventEditDT.subject;
+  editView.blocks[2].element.initial_value = eventEditDT.subject;
 
-  if(eventEditDT.locations[0]){
-    editView.blocks[8].element.initial_value =  eventEditDT.locations[0].displayName;
+  if (eventEditDT.locations[0]) {
+    editView.blocks[8].element.initial_value = eventEditDT.locations[0].displayName;
   }
   const account = await MicrosoftAccount.query().findById(idAcc);
   const datetimeStart = moment(eventEditDT.start.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
   const datetimeEnd = moment(eventEditDT.end.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
   editView.blocks[4].accessory.initial_date = datetimeStart.split('.')[0];
 
-  if(eventEditDT.isAllDay){
-    editView.blocks.splice(5, 2);
-    editView.blocks.splice(5, 0, editEvent.blocks[5]);
+  if (eventEditDT.isAllDay) {
+    editView.blocks.splice(6, 2);
+    // editView.blocks.splice(5, 0, editEvent.blocks[5]);
     editView.blocks[5].accessory.initial_date = datetimeEnd.split('.')[0];
-  }else{
-      const initialOption = {
+    editView.blocks[3].accessory.initial_options =
+    [
+      {
+        "value": "true",
         "text": {
           "type": "plain_text",
-          "text": checkAMorPM(datetimeStart.split('.')[1]),
-          "emoji": true
-        },
-        "value": datetimeStart.split('.')[1]
+          "text": "All day"
+        }
       }
-      const initialOption2 = {
-        "text": {
-          "type": "plain_text",
-          "text": checkAMorPM(datetimeEnd.split('.')[1]),
-          "emoji": true
-        },
-        "value": datetimeEnd.split('.')[1]
-      }
-      editView.blocks[6].accessory.initial_option = initialOption;
-      editView.blocks[7].accessory.initial_option = initialOption2;
-      editView.blocks.splice(5, 1);
+    ]
+
+  } else {
+    const initialOption = {
+      "text": {
+        "type": "plain_text",
+        "text": checkAMorPM(datetimeStart.split('.')[1]),
+        "emoji": true
+      },
+      "value": datetimeStart.split('.')[1]
+    }
+    const initialOption2 = {
+      "text": {
+        "type": "plain_text",
+        "text": checkAMorPM(datetimeEnd.split('.')[1]),
+        "emoji": true
+      },
+      "value": datetimeEnd.split('.')[1]
+    }
+    editView.blocks[6].accessory.initial_option = initialOption;
+    editView.blocks[7].accessory.initial_option = initialOption2;
+    editView.blocks.splice(5, 1);
   }
   const data = {
     trigger_id: trigger_id,
@@ -179,7 +191,13 @@ const handlerEditEvent = async (payload, template, timePicker) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_VIEW_OPEN"),
   };
-  return Axios(options);
+  console.log(JSON.stringify(options));
+  await Axios(options);
+  return;
+  } catch (error) {
+    console.log(error.data.response_metadata);
+    return;
+  }
 };
 
 /**
@@ -188,7 +206,7 @@ const handlerEditEvent = async (payload, template, timePicker) => {
  * @param {string} idEvent
  * @returns {Promise}
  */
-const deleteEvent = (idAccount,idEvent) => {
+const deleteEvent = (idAccount, idEvent) => {
   const options = {
     method: 'DELETE',
     headers: { 'X-Microsoft-AccountId': idAccount },
@@ -229,6 +247,7 @@ const handlerAllDay = async (payload, template) => {
   };
   return new Promise((resolve, reject) => {
     Axios(options).then((resp) => {
+      console.log("RESP ; ",resp.data.response_metadata.messages)
       return resolve(resp);
     }).catch((err) => {
       return reject(err);
@@ -352,7 +371,7 @@ const HandlerSubmitEvent = async (payload) => {
       Env.resourceServerGOF("GRAPH_URL") +
       Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
   };
-  if(payload.view.callback_id && payload.view.callback_id.split('/')[0] === "editEvent"){
+  if (payload.view.callback_id && payload.view.callback_id.split('/')[0] === "editEvent") {
     const value = payload.view.callback_id.split('/');
     options.method = 'PATCH';
     options.url += "/" + value[1];

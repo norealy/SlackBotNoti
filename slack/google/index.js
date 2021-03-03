@@ -46,26 +46,36 @@ class SlackGoogle extends BaseServer {
 
 	/**
 	 *
-	 * @param {object} event
-	 * @returns {Promise}
+	 * @param {object} req
+	 * @param {object} res
 	 */
-	handlerEvent(event) {
-		event = JSON.parse(JSON.stringify(event));
-		const {subtype, user} = event;
-		const botId = Env.chatServiceGOF("BOT_USER");
-		const {loginResource} = this.template;
-		const promise = new Promise((resolve) => resolve(event));
-		const type = Env.chatServiceGOF("TYPE");
-		switch (subtype) {
-			case type.BOT_ADD:
-				return requestPostLogin(event, loginResource);
-			case type.APP_JOIN:
-			case type.CHANNEL_JOIN:
-				if (user === botId) return requestPostLogin(event, loginResource);
-				return promise;
-			default:
-				return promise;
-		}
+	async handlerEvent(req, res) {
+	  try{
+      let {event, authorizations} = req.body;
+      const types = Env.chatServiceGOF("TYPE");
+      let option = null;
+
+      switch (event.subtype) {
+        case types.BOT_ADD:
+          option = requestPostLogin(event, this.template, this.setUidToken);
+          break;
+        case types.APP_JOIN:
+        case types.MEMBER_JOIN:
+        case types.CHANNEL_JOIN:
+          if (authorizations[0].user_id === event.user){
+            option = requestPostLogin(event, this.template, this.setUidToken);
+          }
+          break;
+        default:
+          break;
+      }
+
+      if(option) await Axios(option);
+
+      return res.status(200).send("OK");
+    } catch (e) {
+      return res.status(204).send("Error");
+    }
 	}
 
 	/**
@@ -166,8 +176,7 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send(challenge);
 			}
 			if (event) {
-				await this.handlerEvent(event);
-				return res.status(200).send("OK");
+        return this.handlerEvent(req, res);
 			} else if (command && /^\/cal$/.test(command)) {
 				await this.handlerBodyText(req.body);
 				return res.status(200).send("OK");

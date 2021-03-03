@@ -26,23 +26,34 @@ const configUrlAuth = (accessToken) => {
 /**
  * Thực thi việc requestLogin gửi về một Post Message
  * @param {object} event
- * @param {view} loginResource
- * @returns {Promise }
+ * @param {object} template
+ * @param {function} setUidToken
+ * @returns {object}
  */
-const requestPostLogin = (event, loginResource) => {
+const requestPostLogin = (event, template, setUidToken) => {
+  const blocks = [...template.loginResource];
 	const option = {method: "POST"};
 	option.url = Env.chatServiceGOF('API_URL');
 	option.url += Env.chatServiceGOF('API_POST_MESSAGE');
 	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
 	const {inviter, channel} = event;
-	const accessToken = createJwt(inviter, channel);
-	loginResource[2].elements[0].url = configUrlAuth(accessToken);
+  const iat = Math.floor(new Date() / 1000);
+  const uid = uuidv4();
+  const payload = {
+    uid,
+    idUser: inviter,
+    idChannel: channel,
+    iat,
+    exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
+  };
+  setUidToken(uid);
+  const accessToken = createJWT(payload);
+  blocks[2].elements[0].url = configUrlAuth(accessToken);
 	option.data = {
 		"channel": event.channel,
-		"blocks": loginResource
+    blocks
 	};
-
-	return Axios(option);
+	return option
 };
 
 /**

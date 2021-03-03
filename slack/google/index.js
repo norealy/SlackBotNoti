@@ -116,7 +116,7 @@ class SlackGoogle extends BaseServer {
 			} else if (payload.actions[0].action_id === "overflow-action") {
 				const value = payload.actions[0].selected_option.value.split('/');
 				const blockId = payload.actions[0].block_id.split('/');
-				const idAccount = blockId[0];
+
 
 				if (value[0] === "edit") {
 					console.log("edit")
@@ -126,21 +126,20 @@ class SlackGoogle extends BaseServer {
 					const date = payload.message.blocks[1].fields[3].text
 					const idEvent = value[1];
 					console.log(idEvent)
-					return handlerUpdateEvent(payload, this.template.editEvent,this.timePicker);
+					console.log("payload,",)
+					return handlerUpdateEvent(payload, this.template.editEvent, this.timePicker);
 				} else if (value[0] === "delete") {
 					return handlerDeleteEvent(payload, this.template.deleteEvent)
 				}
-			} else if (payload.actions[0].action_id === "btnDeleteYes") {
-				const value = payload.actions[0].value.split('/');
-				const blockId = payload.actions[0].block_id.split('/');
-				const idEvent = value[1]
-				const idAccount = blockId[0];
-				return await deleteEvent(idAccount, idEvent)
-
-			} else if (payload.actions[0].action_id === "btnDeleteNo") {
-				return null
 			}
-		} else if (payload.type === "view_submission"  && payload.view.callback_id === 'addEvent') {
+		} else if (payload.type === "view_submission" && payload.view.callback_id === 'deleteEvent') {
+			console.log("delete ne")
+			const event = payload.view.blocks[1].block_id.split('/');
+			const idEvent = event[1];
+			const blockId = payload.view.blocks[0].block_id.split('/');
+			const idAccount = blockId[0]
+			return deleteEvent(idAccount,idEvent)
+		} else if (payload.type === "view_submission" && payload.view.callback_id === 'addEvent') {
 			console.log("oke")
 			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
 			try {
@@ -186,9 +185,11 @@ class SlackGoogle extends BaseServer {
 			} catch (e) {
 				return e
 			}
-		}
-		else if(payload.type === "view_submission" && payload.view.callback_id === 'editEvent'){
+		} else if (payload.type === "view_submission" && payload.view.callback_id === 'editEvent') {
 			const value = payload.view.blocks[0].block_id.split('/')
+
+			console.log("payload",payload.view.blocks)
+			const idAccount = value[2]
 			const idEvent = value[1];
 			const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
 			let event = {
@@ -229,8 +230,8 @@ class SlackGoogle extends BaseServer {
 				event.start.date = dateAllDayStart;
 				event.end.date = dateAllDayEnd;
 			}
-		console.log("update")
-			return updateEvent(event,idCalendar,idEvent)
+			console.log(idCalendar,idEvent,idAccount)
+			return updateEvent(event, idCalendar, idEvent,idAccount)
 		}
 	}
 
@@ -370,7 +371,6 @@ class SlackGoogle extends BaseServer {
 			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
 			const {idAccount, idCalendar} = JSON.parse(decode);
 			const event = await getEventUpdate(req.headers, idAccount);
-			console.log("event",event)
 			const account = await GoogleAccount.query().findById(idAccount);
 			event.timezone = account.timezone;
 			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});

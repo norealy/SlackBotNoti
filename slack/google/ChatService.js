@@ -157,7 +157,6 @@ const requestAddEvent = async (body, template, timePicker) => {
 		const result = await Axios(option);
 		return result
 	} catch (e) {
-		console.log("e",e)
 		throw e
 	}
 };
@@ -244,7 +243,6 @@ const handarlerShowListEvent = async (body,template) =>{
 			Env.chatServiceGet("API_URL") +
 			Env.chatServiceGet("API_POST_MESSAGE"),
 	};
-	//console.log(JSON.stringify(options1));
 	return Axios(options1)
 }
 const handlerUpdateEvent = async (payload,template,timePicker) =>{
@@ -276,10 +274,10 @@ const handlerUpdateEvent = async (payload,template,timePicker) =>{
 		option.data.view.blocks[1].accessory.options.push(selectCalendars);
 	}
 	option.data.view.blocks[0].block_id =payload.actions[0].selected_option.value
+	option.data.view.blocks[0].block_id += '/'+`${payload.actions[0].block_id}`
 	option.data.view.blocks[6].accessory.options = timePicker;
 	option.data.view.blocks[7].accessory.options = timePicker;
 	option.data.view.blocks.splice(5, 1);
-
 	return  Axios(option)
 
 }
@@ -294,7 +292,7 @@ const handlerDeleteEvent = (payload,deteleEvent)=>{
 		"view": deteleEvent
 	};
 	option.data.view.blocks[0].block_id = payload.actions[0].block_id;
-	option.data.view.blocks[0].elements[0].value = payload.actions[0]["selected_option"].value
+	option.data.view.blocks[1].block_id = payload.actions[0]["selected_option"].value
 	return Axios(option);
 }
 /**
@@ -335,15 +333,12 @@ const deleteEvent = async (idAccount,idEvent)=>{
 		throw e
 	}
 }
-const updateEvent  = async (event, idCalendar, idEvent)=>{
+const updateEvent  = async (event, idCalendar, idEvent,idAccount)=>{
 	try {
-		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
-		const idAccount = googleAccountCalendar.id_account;
 		const option = {method: "PUT"};
-		option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`;
+		option.url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${idEvent}`;
 		option.headers = {'content-type': 'application/json', 'X-Google-AccountId': idAccount};
 		option.data = event;
-		console.log("optin",option)
 		return Axios(option);
 	}
 	catch (e) {

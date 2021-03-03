@@ -85,6 +85,7 @@ class SlackMicrosoft extends BaseServer {
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
+        res.status(200).send();
 				return handlerBlocksActions(payload, this.template, this.timePicker);
 			case "view_submission":
 				HandlerSubmitEvent(payload);
@@ -114,7 +115,6 @@ class SlackMicrosoft extends BaseServer {
 				await this.handlerCommand(req.body);
 				const message = `Thank you call BOT-NOTI !`;
 				return res.status(200).send(message);
-
 			} else if (payload) {
 				await this.handlerPayload(payload, res);
 				return;

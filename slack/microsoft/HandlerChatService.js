@@ -85,7 +85,7 @@ const handlerOverflowAction = async (payload, template, timePicker) => {
     return handlerEditEvent(payload, template, timePicker);
   }
   else if (value[0] === "delete") {
-    return deleteEvent(blockId[0], value[1]);
+    return ;
   }
 }
 /**
@@ -144,7 +144,6 @@ const handlerEditEvent = async (payload, template, timePicker) => {
 
   if (eventEditDT.isAllDay) {
     editView.blocks.splice(6, 2);
-    // editView.blocks.splice(5, 0, editEvent.blocks[5]);
     editView.blocks[5].accessory.initial_date = datetimeEnd.split('.')[0];
     editView.blocks[3].accessory.initial_options =
     [
@@ -191,29 +190,12 @@ const handlerEditEvent = async (payload, template, timePicker) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_VIEW_OPEN"),
   };
-  console.log(JSON.stringify(options));
   await Axios(options);
   return;
   } catch (error) {
-    console.log(error.data.response_metadata);
     return;
   }
 };
-
-/**
- * Thuc hien xoa event
- * @param {string} idAccount
- * @param {string} idEvent
- * @returns {Promise}
- */
-const deleteEvent = (idAccount, idEvent) => {
-  const options = {
-    method: 'DELETE',
-    headers: { 'X-Microsoft-AccountId': idAccount },
-    url: `${Env.resourceServerGOF("GRAPH_URL")}${Env.resourceServerGOF("GRAPH_MY_EVENT")}/${idEvent}`
-  };
-  return Axios(options);
-}
 
 /**
  * handler Blocks Actions
@@ -247,7 +229,6 @@ const handlerAllDay = async (payload, template) => {
   };
   return new Promise((resolve, reject) => {
     Axios(options).then((resp) => {
-      console.log("RESP ; ",resp.data.response_metadata.messages)
       return resolve(resp);
     }).catch((err) => {
       return reject(err);

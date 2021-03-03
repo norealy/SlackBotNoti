@@ -41,7 +41,6 @@ class SlackGoogle extends BaseServer {
 		super(instanceId, opt);
 		this.authGoogle = this.authGoogle.bind(this);
 		this.template = Template();
-		this.timePicker = customDatetime();
 	}
 
 	/**
@@ -91,7 +90,7 @@ class SlackGoogle extends BaseServer {
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
 		} else if (chat === "google add-event") {
-			return requestAddEvent(body, this.template.addEvent,this.timePicker);
+			return requestAddEvent(body, this.template.addEvent);
 		} else {
 			return promise;
 		}
@@ -110,7 +109,7 @@ class SlackGoogle extends BaseServer {
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
-				return requestAddEvent(payload, this.template.addEvent,this.timePicker);
+				return requestAddEvent(payload, this.template.addEvent);
 			} else if (payload.actions[0].action_id === "allday") {
 				const options = requestBlockActionsAllDay(payload, this.template);
 				await Axios(options);
@@ -326,7 +325,11 @@ module.exports = SlackGoogle;
 			appRoot: __dirname,
 		},
 	});
-	await Template().init();
+  let prefix = process.argv[2]
+    .split("-")[1]
+    .split("");
+  prefix.length = 2;
+  await Template().init(prefix.join(""));
 	await pipeline.init();
 	pipeline.app.get("/auth/google", pipeline.authGoogle);
 	AxiosConfig();

@@ -108,7 +108,7 @@ const requestHome = (body, homePage) => {
 	return Axios(option);
 };
 
-const requestAddEvent = async (body, template, timePicker) => {
+const requestAddEvent = async (body, template) => {
 	try {
 		let addView = JSON.stringify(template);
 		addView = JSON.parse(addView);
@@ -136,8 +136,6 @@ const requestAddEvent = async (body, template, timePicker) => {
 			};
 			option.data.view.blocks[1].accessory.options.push(selectCalendars);
 		}
-		option.data.view.blocks[6].accessory.options = timePicker;
-		option.data.view.blocks[7].accessory.options = timePicker;
 		option.data.view.blocks.splice(5, 1);
 		const result = await Axios(option);
 		return result

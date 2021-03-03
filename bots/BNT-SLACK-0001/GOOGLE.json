@@ -16,6 +16,7 @@
 		"API_URL_OAUTH":"https://oauth2.googleapis.com",
 		"API_USER_INFO": "/oauth2/v3/userinfo",
 		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
+		"API_CALENDAR": "/calendar/v3/calendars",
 		"API_TIME_ZONE": "/calendar/v3/users/me/settings/timezone",
 		"API_TOKEN": "/token",
 		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",

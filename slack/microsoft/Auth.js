@@ -12,10 +12,9 @@ const { createSubcription } = require('./Subcription');
 /**
  * Lay tai nguyen tokens
  * @param {string} code
- * @param {string} state
  * @returns {Promise}
  */
-const getToken = (code, state) => {
+const getToken = (code) => {
   return new Promise((resolve, reject) => {
     let data = {
       client_id: Env.resourceServerGOF("AZURE_ID"),
@@ -25,7 +24,6 @@ const getToken = (code, state) => {
       grant_type: "authorization_code",
       client_secret: Env.resourceServerGOF("AZURE_SECRET"),
       response_mode: "form_post",
-      state,
     };
     const options = {
       method: "POST",
@@ -148,46 +146,21 @@ const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure)
 };
 
 /**
- *  Xu ly dua array calendar ve dang
- * @param {Array} allCalendar
- * @returns {Array} array Calendar
- */
-const customFormatArrayCal = (allCalendar) => {
-  const arrayCal = [];
-  allCalendar.forEach((item) => {
-    const cal = {
-      id: item.id,
-      name: item.name,
-      address_owner: item.owner.address,
-      created_at: null,
-    };
-    arrayCal.push(cal);
-  });
-  return arrayCal;
-};
-
-/**
  *  Luu array calendar vao database
- * @param {string} allCalendar
+ * @param {object} calendar
  * @param {string} idAccount
- * @returns {Promise}
+ * @returns {void}
  */
-const saveListCalendar = async (allCalendar, idAccount) => {
-  const arrayCal = customFormatArrayCal(allCalendar);
-  if (!arrayCal) return null;
-  for (let i = 0; i < arrayCal.length; i++) {
-    const item = arrayCal[i];
-    const data = await MicrosoftCalendar.query().findOne({
-      id: item.id,
-      address_owner: item.address_owner,
-    });
-    if (!data) {
-      await MicrosoftCalendar.query().insert(item);
-      const resultSub = await createSubcription(item.id, idAccount);
-      Redis.client.set(resultSub.data.id, item.id);
-    }
+const saveCalendar = async (calendar, idAccount) => {
+  const data = await MicrosoftCalendar.query().findOne({
+    id: calendar.id,
+    address_owner: calendar.address_owner,
+  });
+  if (!data) {
+    await MicrosoftCalendar.query().insert(calendar);
+    const resultSub = await createSubcription(calendar.id, idAccount);
+    Redis.client.set(resultSub.data.id, calendar.id);
   }
-  return null;
 };
 
 /**
@@ -230,88 +203,26 @@ const saveInfoChannel = async (idChannel) => {
 };
 
 /**
- * Đưa về định dạng giống với bảng microsoft_account_calendar
- * @param {string} idAccount
- * @param {Array} arrCalendar
- * @returns {Array}
- */
-const customFormatMicrosoftAccountCalendar = (idAccount, arrCalendar) => {
-  const arrayAccCal = [];
-  arrCalendar.forEach((item) => {
-    const msAccCal = {
-      id_calendar: item.id,
-      id_account: idAccount,
-      created_at: null,
-    };
-    arrayAccCal.push(msAccCal);
-  });
-  return arrayAccCal;
-};
-
-/**
  * Luu thong tin MicrosoftAccountCalendar vao database
- * @param {string} idAccount
- * @param {Array} arrCalendar
- * @returns {Promise}
+ * @param {object} accountCalendar
+ * @returns {void}
  */
-const saveMicrosoftAccountCalendar = async (idAccount, arrCalendar) => {
-  const arrayAccCal = customFormatMicrosoftAccountCalendar(
-    idAccount,
-    arrCalendar
-  );
-  if (!arrayAccCal) return null;
-  for (let i = 0; i < arrayAccCal.length; i++) {
-    const item = arrayAccCal[i];
-    const data = await MicrosoftAccountCalendar.query().findOne({
-      id_account: idAccount,
-      id_calendar: item.id_calendar,
-    });
-    if (!data) {
-      await MicrosoftAccountCalendar.query().insert(item);
-    }
-  }
-  return null;
-};
-
-/**
- * Đưa về định dạng giống với bảng channels_calendar
- * @param {string} idChannel
- * @param {Array} arrCalendar
- * @returns {Array}
- */
-const customFormatChannelsCalendar = (idChannel, arrCalendar) => {
-  const arrayChannelCal = [];
-  arrCalendar.forEach((item) => {
-    const msChenCal = {
-      id_calendar: item.id,
-      id_channel: idChannel,
-      watch: true,
-      created_at: null,
-      updated_at: null,
-    };
-    arrayChannelCal.push(msChenCal);
-  });
-  return arrayChannelCal;
+const saveAccountCalendar = async (accountCalendar) => {
+  const data = await MicrosoftAccountCalendar.query().findOne(accountCalendar);
+  if (!data) await MicrosoftAccountCalendar.query().insert(accountCalendar);
 };
 
 /**
  * Luu thong tin saveChannelsCalendar vao database
- * @param {string} idChannel
- * @param {Array} arrCalendar
- * @returns {Promise}
+ * @param {array} channelCalendar
+ * @returns {void}
  */
-const saveChannelsCalendar = async (idChannel, arrCalendar) => {
-  const arrayChanCal = customFormatChannelsCalendar(idChannel, arrCalendar);
-  if (!arrayChanCal) return null;
-  arrayChanCal.forEach(async (item) => {
-    const data = await ChannelsCalendar.query().findOne({
-      id_channel: idChannel,
-      id_calendar: item.id_calendar,
-    });
-    if (!data) {
-      await ChannelsCalendar.query().insert(item);
-    }
+const saveChannelCalendar = async (channelCalendar) => {
+  const data = await ChannelsCalendar.query().findOne({
+    id_channel: channelCalendar.id_channel,
+    id_calendar: channelCalendar.id_calendar,
   });
+  if (!data) await ChannelsCalendar.query().insert(channelCalendar);
 };
 
 
@@ -320,8 +231,8 @@ module.exports = {
   getListCalendar,
   getProfileUser,
   saveUserProfile,
-  saveListCalendar,
+  saveCalendar,
   saveInfoChannel,
-  saveMicrosoftAccountCalendar,
-  saveChannelsCalendar,
+  saveAccountCalendar,
+  saveChannelCalendar,
 };

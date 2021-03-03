@@ -9,14 +9,11 @@ const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar"
  * Show modals view add event to slack
  * @param {Object} body
  * @param {Object} template
- * @param {Array} timePicker
  * @returns {Promise}
  */
-const handlerAddEvent = async (body, template, timePicker) => {
+const handlerAddEvent = async (body, template) => {
 	const {trigger_id = null, channel_id = null} = body;
 	const {addEvent} = template;
-	addEvent.blocks[6].accessory.options = timePicker;
-	addEvent.blocks[7].accessory.options = timePicker;
 	let addView = JSON.stringify(addEvent);
 	addView = JSON.parse(addView);
 	const data = {

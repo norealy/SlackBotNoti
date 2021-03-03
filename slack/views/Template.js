@@ -27,21 +27,85 @@ class TemplateSlack {
 	readFileTemplate(pathFile) {
 		return new Promise((resolve, reject) => {
 			Fs.readJson(Path.join(pathFile), (err, text) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(text);
-				}
+				if (err) reject(err);
+				resolve(text)
 			});
 		});
 	}
 
-	async init() {
+	renameBlockId(prefix) {
+		const props = Object.keys(this);
+		props.forEach((value, i) => {
+			if(this[value].blocks && this[value].blocks.length > 0){
+				this[value].blocks.forEach((element, idx) => {
+					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
+					else element.block_id = `${prefix}_${element.type}_${idx}`
+				})
+			} else if(this[value] instanceof Array) {
+				this[value].forEach((element, idx) => {
+					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
+					else element.block_id = `${prefix}_${element.type}_${idx}`
+				})
+			} else {
+				if(this[value].block_id) this[value].block_id = `${prefix}_${this[value].block_id}`;
+				else this[value].block_id = `${prefix}_${this[value].type}_${i}`
+			}
+		})
+	}
+
+	getBlockId(id) {
+		return `${this._prefix}_${id}`
+	}
+
+
+  customDatetime() {
+    let arrayDT = [];
+    let i = 0;
+    while (i < 24) {
+      let j = 0;
+      for (j = 0; j < 46; j++) {
+        let datetimePicker = {
+          "text": {
+            "type": "plain_text",
+            "text": "",
+            "emoji": true
+          },
+          "value": ""
+        };
+        let textH = "";
+        let textM = "";
+        if (j < 10) {
+          textM = `0${j}`;
+        } else {
+          textM = `${j}`;
+        }
+        if (i < 10) {
+          textH = `0${i}:` + textM;
+        } else if (i < 12) {
+          textH = `${i}:` + textM;
+        } else {
+          textH = `${i}:` + textM;
+        }
+        datetimePicker.text.text = textH;
+        datetimePicker.value = textH.slice(0, 5);
+        arrayDT.push(datetimePicker);
+        j += 14;
+      }
+      i++;
+    }
+    return arrayDT;
+  }
+
+	async init(prefix) {
 		try {
 			let pathFile = Env.appRoot + '/slack/views';
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`);
+			this.addEvent.blocks[6].accessory.options = this.customDatetime();
+			this.addEvent.blocks[7].accessory.options = this.customDatetime();
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
+      this.editEvent.blocks[6].accessory.options = this.customDatetime();
+      this.editEvent.blocks[7].accessory.options = this.customDatetime();
 			this.eventEndDate = await this.readFileTemplate(`${pathFile}/EventEndDate.json`);
 			this.eventTimeStart = await this.readFileTemplate(`${pathFile}/EventTimeStart.json`);
 			this.eventTimeEnd = await this.readFileTemplate(`${pathFile}/EventTimeEnd.json`);
@@ -52,6 +116,8 @@ class TemplateSlack {
 			this.showEvent = await this.readFileTemplate(`${pathFile}/ShowEvent.json`);
 			this.systemSetting = await this.readFileTemplate(`${pathFile}/SystemSetting.json`);
 			this.eventStartDate = await this.readFileTemplate(`${pathFile}/EventStartDate.json`);
+			this.renameBlockId(prefix);
+			this._prefix = prefix;
 			return this;
 		} catch (err) {
 			throw err

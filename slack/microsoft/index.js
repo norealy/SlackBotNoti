@@ -85,8 +85,7 @@ class SlackMicrosoft extends BaseServer {
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
-        console.log(payload);
-				return handlerBlocksActions(payload, this.template, this.timePicker);
+				return handlerBlocksActions(res, payload, this.template);
 			case "view_submission":
 				submitAddEvent(payload);
 				return res.status(200).send({

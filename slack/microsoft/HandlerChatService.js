@@ -56,14 +56,24 @@ const handlerAddEvent = async (body, template, timePicker) => {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerBlocksActions = (payload, template) => {
+const handlerBlocksActions = async (res, payload, template) => {
   const { actions = null } = payload;
   switch (actions[0].action_id) {
     case "allday":
       return handlerAllDay(payload, template);
     case "overflow-action":
       return handlerOverflowAction(payload, template);
-
+    case "btnDeleteYes":
+      actionDeleteEvent(payload);
+      return res.status(200).send({
+        "response_action": "clear"
+      });
+    case "btnDeleteNo":
+      return res.status(200).send({
+					"response_action": "clear"
+				});
+    default:
+      break;
   }
 };
 /**
@@ -74,22 +84,52 @@ const handlerBlocksActions = (payload, template) => {
  */
 const handlerOverflowAction = (payload, template) => {
   const value = payload.actions[0].selected_option.value.split('/');
-  const blockId = payload.actions[0].block_id.split('/');
-
   if (value[0] === "edit") {
     return null;
   }
   else if (value[0] === "delete") {
-    return deleteEvent(blockId[0],value[1]);
+    return showDeleteEventView(payload,template);
   }
 }
+
 /**
  * Thuc hien xoa event
  * @param {string} idAccount
  * @param {string} idEvent
  * @returns {Promise}
  */
-const deleteEvent = (idAccount,idEvent) => {
+const showDeleteEventView = (payload, template) => {
+  const value = payload.actions[0].selected_option.value.split('/');
+  const blockId = payload.actions[0].block_id.split('/');
+  const { trigger_id = null } = payload;
+  const { deleteEvent } = template;
+  let view = JSON.stringify(deleteEvent);
+  view = JSON.parse(view);
+  view.blocks[0].block_id = blockId[0];
+  view.blocks[0].elements[0].value = value[1];
+  const data = {
+    trigger_id: trigger_id,
+    view: view,
+  };
+  const options = {
+    method: "POST",
+    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+    data: data,
+    url:
+      Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_VIEW_OPEN"),
+  };
+  return Axios(options);
+}
+
+/**
+ * Thuc hien xoa event
+ * @param {string} payload
+ * @returns {Promise}
+ */
+const actionDeleteEvent = (payload) => {
+  const idAccount = payload.actions[0].block_id;
+  const idEvent = payload.actions[0].value;
   const options = {
     method: 'DELETE',
     headers: { 'X-Microsoft-AccountId': idAccount },
@@ -405,10 +445,7 @@ const handlerShowEvents = async (body, template) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
-  console.log(JSON.stringify(options1));
-  return Axios(options1).then((data) => {
-    console.log(data.data.response_metadata.messages);
-  })
+  return Axios(options1);
 };
 
 module.exports = {

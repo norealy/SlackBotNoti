@@ -1,9 +1,10 @@
 const Env = require('../../utils/Env');
-const Jwt = require('jsonwebtoken');
 const Axios = require('axios');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const GoogleCalendar = require("../../models/GoogleCalendar");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
+const {createJWT} = require('../../utils/Crypto');
+const {v4: uuidv4} = require('uuid');
 
 /**
  * Cấu hình đường dẫn redirect login google
@@ -20,21 +21,6 @@ const configUrlAuth = (accessToken) => {
 	url += `&redirect_uri=${Env.resourceServerGOF("REDIRECT_URI")}`;
 	url += `&state=${accessToken}`;
 	return url
-};
-
-/**
- * Thực hiện JWT để người dùng biết login từ channel và người gửi
- * @param {string} uid
- * @param  {string} channel
- * @returns{string} accessToken
- */
-const createJwt = (uid, channel, idAccount) => {
-	const header = {alg: Env.getOrFail("JWT_ALG"), typ: "JWT"};
-	const payload = {idUser: uid, idChannel: channel, idAccount: idAccount};
-	const iat = Math.floor(new Date());
-	const exp = iat + Env.getOrFail("JWT_DURATION") / 1000;
-	const key = Env.getOrFail("JWT_KEY");
-	return Jwt.sign({header, payload, exp}, key)
 };
 
 /**
@@ -73,7 +59,14 @@ const requestSettings = (body, systemSetting) => {
 		option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
 		const {user_id, channel_id} = body;
 		const {trigger_id} = body;
-		const accessToken = createJwt(user_id, channel_id);
+    const iat = Math.floor(new Date() / 1000);
+    const payload = {
+      idUser: user_id,
+      idChannel: channel_id,
+      iat,
+      exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
+    };
+    const accessToken = createJWT(payload);
 		systemSetting.blocks[3].elements[0].url = configUrlAuth(accessToken);
 		option.data = {
 			"trigger_id": trigger_id,
@@ -180,7 +173,14 @@ const requestButtonSettings = (payload, systemSetting,) => {
 	option.url += Env.chatServiceGOF('API_VIEW_OPEN');
 	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
 	const {user, trigger_id} = payload;
-	const accessToken = createJwt(user.id, user.name);
+  const iat = Math.floor(new Date() / 1000);
+  const data = {
+    idUser: user.id,
+    idChannel:  user.name,
+    iat,
+    exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
+  };
+  const accessToken = createJWT(data);
 	option.data = {
 		"trigger_id": trigger_id,
 		"view": systemSetting

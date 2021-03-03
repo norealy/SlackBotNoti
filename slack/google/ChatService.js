@@ -209,13 +209,13 @@ const requestButtonSettings = (payload, systemSetting,) => {
 	return Axios(option);
 };
 const handarlerShowListEvent = async (body,template) =>{
+	console.log("oke",)
 	const { channel_id = null } = body;
 	const blocksView = [...template.listEvent.blocks];
 	const idChannel = await ChannelsCalendar.query().where({ id_channel: channel_id });
-		const idCalendars = await GoogleAccountCalendar.query().where({ id_calendar: idChannel[0].id_calendar });
-
+	const idCalendars = await GoogleAccountCalendar.query().where({ id_calendar: idChannel[0].id_calendar });
 	const idAccount = idCalendars[0].id_account;
-	const idCalendar = idChannel[0].id_calendar;
+	//const idCalendar = idChannel[0].id_calendar;
 	const options = {
 		method: 'GET',
 		headers: { 'X-Google-AccountId': idAccount },
@@ -281,7 +281,7 @@ const handlerUpdateEvent = async (payload,template,timePicker) =>{
 	return  Axios(option)
 
 }
-const handlerDeleteEvent = (payload,deteleEvent)=>{
+const handlerDeleteEvent = async (payload,deteleEvent)=>{
 	const option = {method: "POST"};
 	option.url = Env.chatServiceGOF('API_URL');
 	option.url += Env.chatServiceGOF('API_VIEW_OPEN');
@@ -291,9 +291,14 @@ const handlerDeleteEvent = (payload,deteleEvent)=>{
 		"trigger_id": trigger_id,
 		"view": deteleEvent
 	};
-	option.data.view.blocks[0].block_id = payload.actions[0].block_id;
-	option.data.view.blocks[1].block_id = payload.actions[0]["selected_option"].value
-	return Axios(option);
+	const blockId = payload.actions[0].block_id.split('/')
+	option.data.view.blocks[0].text.text += payload.message.blocks[1].fields[0].text
+	option.data.view.blocks[0].block_id = payload.actions[0]["selected_option"].value
+	option.data.view.blocks[1].block_id = payload.actions[0].block_id;
+	option.data.view.blocks[1].text.text += blockId[1]
+	const test = await Axios(option);
+	console.log("e",test.data.view.blocks)
+	return test
 }
 /**
  *

@@ -114,30 +114,32 @@ class SlackGoogle extends BaseServer {
 				const options = requestBlockActionsAllDay(payload, this.template);
 				await Axios(options);
 			} else if (payload.actions[0].action_id === "overflow-action") {
+
 				const value = payload.actions[0].selected_option.value.split('/');
 				const blockId = payload.actions[0].block_id.split('/');
 
-
 				if (value[0] === "edit") {
+
 					console.log("edit")
 					const title = payload.message.blocks[1].fields[0].text;
 					const time = payload.message.blocks[1].fields[1].text;
 					const location = payload.message.blocks[1].fields[2].text;
 					const date = payload.message.blocks[1].fields[3].text
-					const idEvent = value[1];
-					console.log(idEvent)
-					console.log("payload,",)
+
+
 					return handlerUpdateEvent(payload, this.template.editEvent, this.timePicker);
 				} else if (value[0] === "delete") {
+
 					return handlerDeleteEvent(payload, this.template.deleteEvent)
 				}
 			}
 		} else if (payload.type === "view_submission" && payload.view.callback_id === 'deleteEvent') {
 			console.log("delete ne")
-			const event = payload.view.blocks[1].block_id.split('/');
-			const idEvent = event[1];
 			const blockId = payload.view.blocks[0].block_id.split('/');
-			const idAccount = blockId[0]
+			const idEvent = blockId[1]
+
+			const event = payload.view.blocks[1].block_id.split('/');
+			const idAccount = event[0]
 			return deleteEvent(idAccount,idEvent)
 		} else if (payload.type === "view_submission" && payload.view.callback_id === 'addEvent') {
 			console.log("oke")
@@ -254,6 +256,7 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send("OK");
 			}
 			if (payload) {
+				console.log("payload,",payload)
 				await this.handlerPayLoad(req.body, payload);
 				return res.status(200).send({"response_action": "clear"});
 			}

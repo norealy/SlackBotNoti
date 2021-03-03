@@ -1,6 +1,7 @@
 {
 	"type": "modal",
 	"notify_on_close": true,
+	"clear_on_close":true,
 	"title": {
 		"type": "plain_text",
 		"text": "BOT NOTI CALENDARS ",
@@ -30,7 +31,7 @@
 			"type": "section",
 			"text": {
 				"type": "plain_text",
-				"text": "Event of calendar : ",
+				"text": "Event of calendar: ",
 				"emoji": true
 			}
 		}

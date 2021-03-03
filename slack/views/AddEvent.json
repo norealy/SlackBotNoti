@@ -16,6 +16,7 @@
 		"text": "Cancel",
 		"emoji": true
 	},
+  "callback_id":"addEvent",
 	"blocks": [
 		{
 			"type": "header",

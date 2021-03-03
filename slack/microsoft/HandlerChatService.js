@@ -4,7 +4,6 @@ const Env = require("../../utils/Env");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
-const { val } = require("objection");
 
 /**
  * Show modals view add event to slack
@@ -56,22 +55,13 @@ const handlerAddEvent = async (body, template, timePicker) => {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerBlocksActions = async (res, payload, template) => {
+const handlerBlocksActions = async (payload, template) => {
   const { actions = null } = payload;
   switch (actions[0].action_id) {
     case "allday":
       return handlerAllDay(payload, template);
     case "overflow-action":
       return handlerOverflowAction(payload, template);
-    case "btnDeleteYes":
-      actionDeleteEvent(payload);
-      return res.status(200).send({
-        "response_action": "clear"
-      });
-    case "btnDeleteNo":
-      return res.status(200).send({
-					"response_action": "clear"
-				});
     default:
       break;
   }
@@ -98,15 +88,16 @@ const handlerOverflowAction = (payload, template) => {
  * @param {string} idEvent
  * @returns {Promise}
  */
-const showDeleteEventView = (payload, template) => {
-  const value = payload.actions[0].selected_option.value.split('/');
-  const blockId = payload.actions[0].block_id.split('/');
+const showDeleteEventView = async (payload, template) => {
   const { trigger_id = null } = payload;
   const { deleteEvent } = template;
   let view = JSON.stringify(deleteEvent);
   view = JSON.parse(view);
-  view.blocks[0].block_id = blockId[0];
-  view.blocks[0].elements[0].value = value[1];
+  view.private_metadata = payload.actions[0].block_id;
+  view.private_metadata += "/" + payload.actions[0].selected_option.value;
+  const calendar = await MicrosoftCalendar.query().findById(payload.actions[0].block_id.split('/')[1]);
+  view.blocks[0].text.text += payload.actions[0].block_id.split('/')[2];
+  view.blocks[1].text.text += calendar.name;
   const data = {
     trigger_id: trigger_id,
     view: view,
@@ -127,9 +118,9 @@ const showDeleteEventView = (payload, template) => {
  * @param {string} payload
  * @returns {Promise}
  */
-const actionDeleteEvent = (payload) => {
-  const idAccount = payload.actions[0].block_id;
-  const idEvent = payload.actions[0].value;
+const actionDelEvent = (payload) => {
+  const idAccount = payload.view.private_metadata.split("/")[0];
+  const idEvent =  payload.view.private_metadata.split("/")[4];
   const options = {
     method: 'DELETE',
     headers: { 'X-Microsoft-AccountId': idAccount },
@@ -426,11 +417,10 @@ const handlerShowEvents = async (body, template) => {
   const events = await Axios(options);
   if (!events) return;
   const event = events.data.value[0];
-  blocksView[1].block_id = `${idAccount}/${AccCals[0].id_calendar}`;
+  blocksView[1].block_id = `${idAccount}/${AccCals[0].id_calendar}/${event.subject}`;
   blocksView[1].accessory.options[0].value = `edit/${event.id}`;
   blocksView[1].accessory.options[1].value = `delete/${event.id}`;
   blocksView[1].fields[0].text = event.subject;
-  blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
   const options1 = {
     method: "POST",
     headers: {
@@ -455,4 +445,5 @@ module.exports = {
   submitAddEvent,
   handlerBlocksActions,
   handlerShowEvents,
+  actionDelEvent
 };

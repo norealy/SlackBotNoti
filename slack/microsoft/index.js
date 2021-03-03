@@ -22,6 +22,7 @@ const {
 	handlerBlocksActions,
 	submitAddEvent,
   handlerShowEvents,
+  actionDelEvent
 } = require("./HandlerChatService");
 const {
 	handlerCreated,
@@ -74,20 +75,39 @@ class SlackMicrosoft extends BaseServer {
 		}
 	}
 
+  /**
+	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
+	 * @param {object} payload
+	 * @returns {Promise}
+	 */
+	handlerSubmission(payload) {
+    const {callback_id} = payload.view;
+		switch (callback_id) {
+			case "deleteEvent":
+        return actionDelEvent(payload);
+      case "addEvent":
+          return submitAddEvent(payload);
+			default:
+				break;
+		}
+	}
+
 	/**
 	 *
 	 * @param {Object} payload
 	 * @param {object} res
 	 */
-	handlerPayload(payload, res) {
+  	handlerPayload(payload, res) {
 		payload = JSON.parse(payload);
 		const {type = null} = payload;
 		const result = new Promise((resolve) => resolve(payload));
 		switch (type) {
 			case "block_actions":
-				return handlerBlocksActions(res, payload, this.template);
+        res.status(200).send();
+				return handlerBlocksActions(payload, this.template);
 			case "view_submission":
-				submitAddEvent(payload);
+        this.handlerSubmission(payload);
+
 				return res.status(200).send({
 					"response_action": "clear"
 				});
@@ -117,7 +137,7 @@ class SlackMicrosoft extends BaseServer {
 
 			} else if (payload) {
 				await this.handlerPayload(payload, res);
-				return;
+				return ;
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}

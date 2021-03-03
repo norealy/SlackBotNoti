@@ -33,7 +33,6 @@ class SlackMicrosoft extends BaseServer {
     super(instanceId, opt);
     this.microsoftAccess = this.microsoftAccess.bind(this);
     this.template = Template();
-    this.timePicker = customDatetime();
   }
 
   /**
@@ -65,7 +64,7 @@ class SlackMicrosoft extends BaseServer {
       case "settings":
         return handlerSettingsMessage(systemSetting, body);
       case "add-event":
-        return handlerAddEvent(body, this.template, this.timePicker);
+        return handlerAddEvent(body, this.template);
       default:
         return result;
     }
@@ -82,7 +81,7 @@ class SlackMicrosoft extends BaseServer {
     const result = new Promise((resolve) => resolve(payload));
     switch (type) {
       case "block_actions":
-        return handlerBlocksActions(payload, this.template, this.timePicker);
+        return handlerBlocksActions(payload, this.template);
       case "view_submission":
         submitAddEvent(payload);
         return res.status(200).send({
@@ -226,49 +225,6 @@ class SlackMicrosoft extends BaseServer {
   }
 }
 
-/**
- * Tao array Datetime
- * @returns {Array} arrayDT
- */
-function customDatetime() {
-  let arrayDT = [];
-  let i = 0;
-  while (i < 24) {
-    let j = 0
-    for (j = 0; j < 46; j++) {
-      let datetimePicker = {
-        "text": {
-          "type": "plain_text",
-          "text": "",
-          "emoji": true
-        },
-        "value": ""
-      }
-      let textH = "";
-      let textM = "";
-
-      if (j < 10) {
-        textM = `0${j}`;
-      } else {
-        textM = `${j}`;
-      }
-      if (i < 10) {
-        textH = `0${i}:` + textM + "AM";
-      } else if (i < 12) {
-        textH = `${i}:` + textM + "AM";
-      } else {
-        textH = `${i}:` + textM + "PM";
-      }
-      datetimePicker.text.text = textH;
-      datetimePicker.value = textH.slice(0, 5);
-      arrayDT.push(datetimePicker);
-      j += 14;
-    }
-    i++;
-  }
-  return arrayDT;
-}
-
 module.exports = SlackMicrosoft;
 
 (async function () {
@@ -278,7 +234,11 @@ module.exports = SlackMicrosoft;
       appRoot: __dirname,
     },
   });
-  await Template().init();
+  let prefix = process.argv[2]
+    .split("-")[1]
+    .split("");
+  prefix.length = 2;
+  await Template().init(prefix.join(""));
   await pipeline.init();
   pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
   AxiosConfig();

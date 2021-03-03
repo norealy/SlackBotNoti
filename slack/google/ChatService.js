@@ -125,6 +125,8 @@ const requestHome = (body, homePage) => {
 
 const requestAddEvent = async (body, template, timePicker) => {
 	try {
+		template.blocks[6].accessory.options = timePicker;
+		template.blocks[7].accessory.options = timePicker;
 		let addView = JSON.stringify(template);
 		addView = JSON.parse(addView);
 		let option = {method: "POST"};
@@ -150,12 +152,12 @@ const requestAddEvent = async (body, template, timePicker) => {
 			};
 			option.data.view.blocks[1].accessory.options.push(selectCalendars);
 		}
-		option.data.view.blocks[6].accessory.options = timePicker;
-		option.data.view.blocks[7].accessory.options = timePicker;
+
 		option.data.view.blocks.splice(5, 1);
 		const result = await Axios(option);
 		return result
 	} catch (e) {
+		console.log("e",e)
 		throw e
 	}
 };
@@ -186,21 +188,7 @@ const requestBlockActionsAllDay = (payload, template) => {
 	return options
 };
 
-const requestBlockActionsEditEvent = (payload,editEvent)=>{
-	const {trigger_id} = payload;
-	let data = {
-		"trigger_id":trigger_id,
-		"view": editEvent
-	};
-	const options = {
-		method: 'POST',
-		headers: {'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
-		data: data,
-		url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_OPEN")}`
-	};
-	//console.log(options)
-	return options
-}
+
 /**
  *  khi người dùng thực hiện click vào button login google ở home view
  * @param  {object} payload
@@ -228,15 +216,13 @@ const handarlerShowListEvent = async (body,template) =>{
 		const idCalendars = await GoogleAccountCalendar.query().where({ id_calendar: idChannel[0].id_calendar });
 
 	const idAccount = idCalendars[0].id_account;
-const idCalendar = idChannel[0].id_calendar;
+	const idCalendar = idChannel[0].id_calendar;
 	const options = {
 		method: 'GET',
 		headers: { 'X-Google-AccountId': idAccount },
 		url: `https://www.googleapis.com/calendar/v3/calendars/primary/events`
 	}
-	console.log("options",options)
 	const events = await Axios(options);
-	console.log(events.data.items[0]);
 	if (!events) return;
 	const event = events.data.items[0];
 		blocksView[1].block_id = `${idAccount}/${idCalendars[0].id_calendar}`;
@@ -258,8 +244,44 @@ const idCalendar = idChannel[0].id_calendar;
 			Env.chatServiceGet("API_URL") +
 			Env.chatServiceGet("API_POST_MESSAGE"),
 	};
-	console.log(JSON.stringify(options1));
+	//console.log(JSON.stringify(options1));
 	return Axios(options1)
+}
+const handlerUpdateEvent = async (payload,template,timePicker) =>{
+	template.blocks[6].accessory.options = timePicker;
+	template.blocks[7].accessory.options = timePicker;
+	let editEvent = JSON.stringify(template);
+	editEvent = JSON.parse(editEvent);
+	const option = {method: "POST"};
+	option.url = Env.chatServiceGOF('API_URL');
+	option.url += Env.chatServiceGOF('API_VIEW_OPEN');
+	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
+	const {trigger_id = null, channel = null} = payload;
+	option.data = {
+		"trigger_id": trigger_id,
+		"view": editEvent
+	};
+	const chanCals = await ChannelsCalendar.query().where({id_channel: channel.id});
+	for (let i = 0; i < chanCals.length; i++) {
+		const item = chanCals[i];
+		const calendar = await GoogleCalendar.query().findById(item.id_calendar);
+		const selectCalendars = {
+			"text": {
+				"type": "plain_text",
+				"text": calendar.name,
+				"emoji": true
+			},
+			"value": calendar.id
+		};
+		option.data.view.blocks[1].accessory.options.push(selectCalendars);
+	}
+	option.data.view.blocks[0].block_id =payload.actions[0].selected_option.value
+	option.data.view.blocks[6].accessory.options = timePicker;
+	option.data.view.blocks[7].accessory.options = timePicker;
+	option.data.view.blocks.splice(5, 1);
+
+	return  Axios(option)
+
 }
 const handlerDeleteEvent = (payload,deteleEvent)=>{
 	const option = {method: "POST"};
@@ -271,6 +293,8 @@ const handlerDeleteEvent = (payload,deteleEvent)=>{
 		"trigger_id": trigger_id,
 		"view": deteleEvent
 	};
+	option.data.view.blocks[0].block_id = payload.actions[0].block_id;
+	option.data.view.blocks[0].elements[0].value = payload.actions[0]["selected_option"].value
 	return Axios(option);
 }
 /**
@@ -299,26 +323,27 @@ const createEvent = async (event, idCanlendar) => {
  * @param idEvent
  * @returns {Promise}
  */
-const deleteEvent = async (idAccount,idCalendar, idEvent)=>{
+const deleteEvent = async (idAccount,idEvent)=>{
 	try {
-
 		const option = {method: "DELETE"};
-		option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`;
+		option.url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${idEvent}`;
 		option.headers = {'X-Google-AccountId': idAccount};
 		return Axios(option);
 	}
+
 	catch (e) {
 		throw e
 	}
 }
 const updateEvent  = async (event, idCalendar, idEvent)=>{
 	try {
-		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar: idCanlendar});
+		const googleAccountCalendar = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
 		const idAccount = googleAccountCalendar.id_account;
 		const option = {method: "PUT"};
 		option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`;
 		option.headers = {'content-type': 'application/json', 'X-Google-AccountId': idAccount};
 		option.data = event;
+		console.log("optin",option)
 		return Axios(option);
 	}
 	catch (e) {
@@ -340,6 +365,6 @@ module.exports = {
 	updateEvent,
 	handarlerShowListEvent,
 	handlerDeleteEvent,
+	handlerUpdateEvent,
 	requestBlockActionsAllDay,
-	requestBlockActionsEditEvent
 };

@@ -87,6 +87,10 @@ const sendWatchNoti = async (idChanel, showEvent, event) => {
 	} else if (created != updated) {
 		options.data.blocks[0].elements[1].text = "*Update Event*"
 	}
+	if(event.status ==="cancelled"){
+		console.log("delete")
+		options.data.blocks[0].elements[1].text = "*Delete Event*"
+	}
 
 	return await Axios(options)
 }

@@ -12,11 +12,10 @@ const {v4: uuidV4} = require("uuid");
 
 /**
  * Thực hiện việc lấy accesToken
- * @param {string}code
- * @param {string}state
+ * @param {string} code
  * @returns {Promise}
  */
-const getToken = (code, state) => {
+const getToken = (code) => {
 	return new Promise((resolve, reject) => {
 		let url = Env.resourceServerGet("API_URL_OAUTH");
 		url += `${Env.resourceServerGet("API_TOKEN")}`;
@@ -26,7 +25,6 @@ const getToken = (code, state) => {
 			code,
 			grant_type: Env.resourceServerGet("GRANT_TYPE"),
 			redirect_uri: Env.resourceServerGet("REDIRECT_URI"),
-			state,
 		};
 		const options = {
 			method: "POST",
@@ -47,12 +45,12 @@ const getToken = (code, state) => {
 
 const watchGoogleCalendar = async ({id_calendar, id_account}) => {
 	const iat = Date.now();
-	const obj = {id_calendar, id_account, iat};
+	const obj = {idCalendar: id_calendar, idAccount: id_account, iat};
 	const idSub = uuidV4();
 	const tokens = cryptoEncode(JSON.stringify(obj));
 	const options = {
 		method: 'POST',
-		url: `https://www.googleapis.com/calendar/v3/calendars/${id_calendar}/events/watch`,
+		url: `${Env.resourceServerGOF("API_URL")}/calendar/v3/calendars/${id_calendar}/events/watch`,
 		headers: {'X-Google-AccountId': id_account},
 		data: {
 			id: idSub,

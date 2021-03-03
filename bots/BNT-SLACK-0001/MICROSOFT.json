@@ -3,21 +3,23 @@
 		"PORT": 5002
 	},
 	"resourceServer": {
-		"AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
-		"AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
-		"AZURE_REDIRECT": "http://localhost:5002/auth/microsoft",
+		"AZURE_ID": "bcf01002-3495-4b05-9d9b-9259b08c6958",
+		"AZURE_SECRET": "2Wd-N0bVY.IFWV6E1lB2-BkR6BOt7rkA--",
+		"AZURE_REDIRECT": "http://localhost:5000/auth/microsoft",
 		"SCOPE": "offline_access user.read calendars.readwrite mailboxsettings.read",
-		"API_URL_AUTH":"https://login.microsoftonline.com/common/oauth2",
-		"API_TOKEN":"/v2.0/token",
-		"API_AUTHOR":"/v2.0/authorize",
-		"GRAPH_URL":"https://graph.microsoft.com",
-		"GRAPH_CALENDARS":"/v1.0/me/calendars",
-    "GRAPH_MAILBOX_SETTINGS":"/v1.0/me/mailboxSettings",
-    "GRAPH_TIMEZONE_SUPPORT":"/v1.0/me/outlook/supportedTimeZones",
-		"GRAPH_USER":"/v1.0/me",
-    "GRAPH_SUB":"/v1.0/subscriptions",
-    "GRAPH_MY_EVENT":"/v1.0/me/events",
-    "SUB_CHANGETPYE":"created,updated,deleted",
-		"SUB_NOTIFICATION_URL": "https://e57896aa06b8.ngrok.io/watch/resource-server"
+		"API_URL_AUTH": "https://login.microsoftonline.com/common/oauth2",
+		"API_TOKEN": "/v2.0/token",
+		"API_AUTHOR": "/v2.0/authorize",
+		"GRAPH_URL": "https://graph.microsoft.com",
+		"GRAPH_CALENDARS": "/v1.0/me/calendars",
+		"GRAPH_MAILBOX_SETTINGS": "/v1.0/me/mailboxSettings",
+		"GRAPH_TIMEZONE_SUPPORT": "/v1.0/me/outlook/supportedTimeZones",
+		"GRAPH_USER": "/v1.0/me",
+		"GRAPH_SUB": "/v1.0/subscriptions",
+		"GRAPH_MY_EVENT": "/v1.0/me/events",
+		"SUB_CHANGETPYE": "created,updated,deleted",
+		"SUB_NOTIFICATION_URL": "https://e57896aa06b8.ngrok.io/watch/resource-server",
+		"RESPONSE_TYPE": "code",
+		"RESPONSE_MODE": "query"
 	}
 }

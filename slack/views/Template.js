@@ -27,16 +27,37 @@ class TemplateSlack {
 	readFileTemplate(pathFile) {
 		return new Promise((resolve, reject) => {
 			Fs.readJson(Path.join(pathFile), (err, text) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(text);
-				}
+				if (err) reject(err);
+				resolve(text)
 			});
 		});
 	}
 
-	async init() {
+	renameBlockId(prefix) {
+		const props = Object.keys(this);
+		props.forEach((value, i) => {
+			if(this[value].blocks && this[value].blocks.length > 0){
+				this[value].blocks.forEach((element, idx) => {
+					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
+					else element.block_id = `${prefix}_${element.type}_${idx}`
+				})
+			} else if(this[value] instanceof Array) {
+				this[value].forEach((element, idx) => {
+					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
+					else element.block_id = `${prefix}_${element.type}_${idx}`
+				})
+			} else {
+				if(this[value].block_id) this[value].block_id = `${prefix}_${this[value].block_id}`;
+				else this[value].block_id = `${prefix}_${this[value].type}_${i}`
+			}
+		})
+	}
+
+	getBlockId(id) {
+		return `${this._prefix}_${id}`
+	}
+
+	async init(prefix) {
 		try {
 			let pathFile = Env.appRoot + '/slack/views';
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`);
@@ -52,6 +73,8 @@ class TemplateSlack {
 			this.showEvent = await this.readFileTemplate(`${pathFile}/ShowEvent.json`);
 			this.systemSetting = await this.readFileTemplate(`${pathFile}/SystemSetting.json`);
 			this.eventStartDate = await this.readFileTemplate(`${pathFile}/EventStartDate.json`);
+			this.renameBlockId(prefix);
+			this._prefix = prefix;
 			return this;
 		} catch (err) {
 			throw err

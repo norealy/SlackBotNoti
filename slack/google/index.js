@@ -7,7 +7,7 @@ const GoogleCalendar = require("../../models/GoogleCalendar");
 const Redis = require('../../utils/redis');
 const AxiosConfig = require('./Axios');
 const Axios = require('axios');
-const {cryptoDecode} = require('../../utils/Crypto');
+const {cryptoDecode, decodeJWT} = require('../../utils/Crypto');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 
@@ -26,14 +26,14 @@ const {
 	requestSettings,
 	requestHome,
 	requestButtonSettings,
-	decode,
 	requestAddEvent,
 	createEvent,
 	requestBlockActionsAllDay
 } = require("./ChatService");
 const {
 	getEventUpdate,
-	sendWatchNoti
+	sendWatchNoti,
+  getEvent,
 } = require("./ResourceServer");
 
 class SlackGoogle extends BaseServer {
@@ -46,26 +46,36 @@ class SlackGoogle extends BaseServer {
 
 	/**
 	 *
-	 * @param {object} event
-	 * @returns {Promise}
+	 * @param {object} req
+	 * @param {object} res
 	 */
-	handlerEvent(event) {
-		event = JSON.parse(JSON.stringify(event));
-		const {subtype, user} = event;
-		const botId = Env.chatServiceGOF("BOT_USER");
-		const {loginResource} = this.template;
-		const promise = new Promise((resolve) => resolve(event));
-		const type = Env.chatServiceGOF("TYPE");
-		switch (subtype) {
-			case type.BOT_ADD:
-				return requestPostLogin(event, loginResource);
-			case type.APP_JOIN:
-			case type.CHANNEL_JOIN:
-				if (user === botId) return requestPostLogin(event, loginResource);
-				return promise;
-			default:
-				return promise;
-		}
+	async handlerEvent(req, res) {
+	  try{
+      let {event, authorizations} = req.body;
+      const types = Env.chatServiceGOF("TYPE");
+      let option = null;
+
+      switch (event.subtype) {
+        case types.BOT_ADD:
+          option = requestPostLogin(event, this.template, this.setUidToken);
+          break;
+        case types.APP_JOIN:
+        case types.MEMBER_JOIN:
+        case types.CHANNEL_JOIN:
+          if (authorizations[0].user_id === event.user){
+            option = requestPostLogin(event, this.template, this.setUidToken);
+          }
+          break;
+        default:
+          break;
+      }
+
+      if(option) await Axios(option);
+
+      return res.status(200).send("OK");
+    } catch (e) {
+      return res.status(204).send("Error");
+    }
 	}
 
 	/**
@@ -80,7 +90,7 @@ class SlackGoogle extends BaseServer {
 			return requestHome(body, this.template.homePage);
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
-		} else if (chat === "add-event") {
+		} else if (chat === "google add-event") {
 			return requestAddEvent(body, this.template.addEvent,this.timePicker);
 		} else {
 			return promise;
@@ -166,8 +176,7 @@ class SlackGoogle extends BaseServer {
 				return res.status(200).send(challenge);
 			}
 			if (event) {
-				await this.handlerEvent(event);
-				return res.status(200).send("OK");
+        return this.handlerEvent(req, res);
 			} else if (command && /^\/cal$/.test(command)) {
 				await this.handlerBodyText(req.body);
 				return res.status(200).send("OK");
@@ -220,9 +229,16 @@ class SlackGoogle extends BaseServer {
 	}
 
 	async authGoogle(req, res) {
-		const {code, state} = req.query;
+		let { code, state } = req.query;
+		const cookie = req.cookies[this.instanceId];
+		if(cookie) state = cookie;
+
 		try {
-			const tokens = await getToken(code, state);
+      const payload = decodeJWT(state);
+      const result = await this.getUidToken(payload.uid);
+      if(!result) return res.status(401).send("jwt expired");
+      const tokens = await getToken(code);
+      await this.delUidToken(result);
 
 			// Xử lý profile user google
 			const profile = await getProfile(tokens.access_token);
@@ -230,7 +246,7 @@ class SlackGoogle extends BaseServer {
 			if (!user) await this.handlerUser(profile, tokens);
 
 			// Xử lý channel slack
-			const {idChannel} = await decode(state);
+			const {idChannel} = await decodeJWT(state);
 			let channel = await Channels.query().findById(idChannel);
 			if (!channel) {
 				channel = await getInfoChannel(idChannel);
@@ -278,7 +294,7 @@ class SlackGoogle extends BaseServer {
 
 			return res.send("Oke");
 		} catch (err) {
-			return res.send("ERROR");
+			return res.status(400).send("ERROR");
 		}
 	}
 
@@ -286,54 +302,20 @@ class SlackGoogle extends BaseServer {
 		try {
 			const decode = cryptoDecode(req.headers['x-goog-channel-token']);
 			const {idAccount, idCalendar} = JSON.parse(decode);
-			const event = await getEventUpdate(req.headers, idAccount);
-			const account = await GoogleAccount.query().findById(idAccount);
-			event.timezone = account.timezone;
-			const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
-			await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent, event)));
+			let event = await getEventUpdate(req.headers, idAccount);
+      if(event.status === 'cancelled'){
+			  event = await getEvent(idCalendar, event.id, idAccount);
+			  if(!event.summary) return res.status(204).send("OK");
+      }
+      const account = await GoogleAccount.query().findById(idAccount);
+      event.timezone = account.timezone;
+      const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
+      await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent.blocks, event)));
 			return res.status(204).send("OK");
 		} catch (e) {
 			return res.status(204).send("ERROR");
 		}
 	}
-}
-
-function customDatetime() {
-	let arrayDT = [];
-	let i = 0;
-	while (i < 24) {
-		let j = 0;
-		for (j = 0; j < 46; j++) {
-			let datetimePicker = {
-				"text": {
-					"type": "plain_text",
-					"text": "",
-					"emoji": true
-				},
-				"value": ""
-			};
-			let textH = "";
-			let textM = "";
-			if (j < 10) {
-				textM = `0${j}`;
-			} else {
-				textM = `${j}`;
-			}
-			if (i < 10) {
-				textH = `0${i}:` + textM + "AM";
-			} else if (i < 12) {
-				textH = `${i}:` + textM + "AM";
-			} else {
-				textH = `${i}:` + textM + "PM";
-			}
-			datetimePicker.text.text = textH;
-			datetimePicker.value = textH.slice(0, 5);
-			arrayDT.push(datetimePicker);
-			j += 14;
-		}
-		i++;
-	}
-	return arrayDT;
 }
 
 module.exports = SlackGoogle;

@@ -59,14 +59,14 @@
 		},
 		{
 			"type": "section",
-			"block_id": "check_allday",
+			"block_id": "check_all_day",
 			"text": {
 				"type": "plain_text",
 				"text": " "
 			},
 			"accessory": {
 				"type": "checkboxes",
-				"action_id": "allday",
+				"action_id": "allDay",
 				"options": [
 					{
 						"value": "true",
@@ -211,7 +211,8 @@
 				"type": "plain_text",
 				"text": "Location",
 				"emoji": true
-			}
+			},
+      "optional": true
 		},
 		{
 			"type": "input",
@@ -223,6 +224,14 @@
 					"text": "Select an item",
 					"emoji": true
 				},
+        "initial_option": {
+          "text": {
+            "type": "plain_text",
+            "text": "Nomal",
+            "emoji": true
+          },
+          "value": "value-0"
+        },
 				"options": [
 					{
 						"text": {
@@ -275,6 +284,14 @@
 					"text": "Select an item",
 					"emoji": true
 				},
+        "initial_option": {
+          "text": {
+            "type": "plain_text",
+            "text": "At time of event",
+            "emoji": true
+          },
+          "value": "0"
+        },
 				"options": [
 					{
 						"text": {

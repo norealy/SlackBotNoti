@@ -57,10 +57,51 @@ class TemplateSlack {
 		return `${this._prefix}_${id}`
 	}
 
+
+  customDatetime() {
+    let arrayDT = [];
+    let i = 0;
+    while (i < 24) {
+      let j = 0;
+      for (j = 0; j < 46; j++) {
+        let datetimePicker = {
+          "text": {
+            "type": "plain_text",
+            "text": "",
+            "emoji": true
+          },
+          "value": ""
+        };
+        let textH = "";
+        let textM = "";
+        if (j < 10) {
+          textM = `0${j}`;
+        } else {
+          textM = `${j}`;
+        }
+        if (i < 10) {
+          textH = `0${i}:` + textM;
+        } else if (i < 12) {
+          textH = `${i}:` + textM;
+        } else {
+          textH = `${i}:` + textM;
+        }
+        datetimePicker.text.text = textH;
+        datetimePicker.value = textH.slice(0, 5);
+        arrayDT.push(datetimePicker);
+        j += 14;
+      }
+      i++;
+    }
+    return arrayDT;
+  }
+
 	async init(prefix) {
 		try {
 			let pathFile = Env.appRoot + '/slack/views';
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`);
+			this.addEvent.blocks[6].accessory.options = this.customDatetime();
+			this.addEvent.blocks[7].accessory.options = this.customDatetime();
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
 			this.eventEndDate = await this.readFileTemplate(`${pathFile}/EventEndDate.json`);

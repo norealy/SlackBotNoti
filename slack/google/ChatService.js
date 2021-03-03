@@ -282,20 +282,28 @@ const handlerUpdateEvent = async (payload,template,timePicker) =>{
 
 }
 const handlerDeleteEvent = async (payload,deteleEvent)=>{
+
 	const option = {method: "POST"};
 	option.url = Env.chatServiceGOF('API_URL');
 	option.url += Env.chatServiceGOF('API_VIEW_OPEN');
 	option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
+
+	let deleteEvents = JSON.stringify(deteleEvent);
+	deleteEvents = JSON.parse(deleteEvents)
+
 	const {trigger_id} = payload;
 	option.data = {
 		"trigger_id": trigger_id,
-		"view": deteleEvent
+		"view": deleteEvents
 	};
 	const blockId = payload.actions[0].block_id.split('/')
+	const idCalendar = await GoogleCalendar.query().where({ id: blockId[1] });
+	const nameCalendar = await GoogleCalendar.query().where({ name: idCalendar[0].name });
+	const names = nameCalendar[0].name;
 	option.data.view.blocks[0].text.text += payload.message.blocks[1].fields[0].text
 	option.data.view.blocks[0].block_id = payload.actions[0]["selected_option"].value
 	option.data.view.blocks[1].block_id = payload.actions[0].block_id;
-	option.data.view.blocks[1].text.text += blockId[1]
+	option.data.view.blocks[1].text.text += names
 	const test = await Axios(option);
 	console.log("e",test.data.view.blocks)
 	return test

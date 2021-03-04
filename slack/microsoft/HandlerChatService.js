@@ -5,52 +5,9 @@ const moment = require('moment');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
-const { getEvent } = require('./HandlerResourceServer');
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
-
-/**
- * Show modals view add event to slack
- * @param {Object} body
- * @param {Object} template
- * @param {Array} timePicker
- * @returns {Promise}
- */
-const handlerAddEvent = async (body, template, timePicker) => {
-  const { trigger_id = null, channel_id = null } = body;
-  const { addEvent } = template;
-  addEvent.blocks[6].accessory.options = timePicker;
-  addEvent.blocks[7].accessory.options = timePicker;
-  let addView = JSON.stringify(addEvent);
-  addView = JSON.parse(addView);
-  const data = {
-    trigger_id: trigger_id,
-    view: addView,
-  };
-  const options = {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data,
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_VIEW_OPEN"),
-  };
-  const chanCals = await ChannelsCalendar.query().where({ id_channel: channel_id });
-  for (let i = 0; i < chanCals.length; i++) {
-    const item = chanCals[i];
-    const calendar = await MicrosoftCalendar.query().findById(item.id_calendar);
-    const selectCalendars = {
-      "text": {
-        "type": "plain_text",
-        "text": calendar.name,
-        "emoji": true
-      },
-      "value": calendar.id
-    }
-    options.data.view.blocks[1].accessory.options.push(selectCalendars);
-  }
-  addView.blocks.splice(5, 1);
-  return Axios(options);
-};
+const { getEvent } = require('./HandlerResourceServer');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * handler Blocks Actions
@@ -61,7 +18,7 @@ const handlerAddEvent = async (body, template, timePicker) => {
 const handlerBlocksActions = (payload, template, timePicker) => {
   const { actions = null } = payload;
   switch (actions[0].action_id) {
-    case "allday":
+    case "allDay":
       return handlerAllDay(payload, template);
     case "overflow-action":
       return handlerOverflowAction(payload, template, timePicker);
@@ -73,7 +30,7 @@ const handlerBlocksActions = (payload, template, timePicker) => {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerOverflowAction = async (payload, template, timePicker) => {
+const handlerOverflowAction = async (payload, template) => {
   const value = payload.actions[0].selected_option.value.split('/');
   const blockId = payload.actions[0].block_id.split('/');
 
@@ -82,22 +39,80 @@ const handlerOverflowAction = async (payload, template, timePicker) => {
     event.data.idCalendar = blockId[1];
     payload.eventEditDT = event.data;
     payload.idAcc = blockId[0];
-    return handlerEditEvent(payload, template, timePicker);
+    return handlerEditEvent(payload, template);
   }
   else if (value[0] === "delete") {
-    return ;
+    return;
+  }
+}
+
+/**
+ * init option remider
+ * @param {number} number
+ * @returns {Object}
+ */
+const reminderStartInitOptions = (number) => {
+  const initialOption = {
+    "text": {
+      "type": "plain_text",
+      "text": "At time of event",
+      "emoji": true
+    },
+    "value": "0"
+  }
+  if (number >= 60) {
+    initialOption.text.text = "1 hours before";
+    initialOption.value = "60";
+    return initialOption;
+  } else if (number >= 30) {
+    initialOption.text.text = "30 minutes before";
+    initialOption.value = "30";
+    return initialOption;
+  } else if (number >= 15) {
+    initialOption.text.text = "15 minutes before";
+    initialOption.value = "15";
+    return initialOption;
+  } else {
+    return initialOption;
   }
 }
 /**
- *
- * @param {string} value
+ * init option repeat
+ * @param {string} type
+ * @returns {Object}
  */
-const checkAMorPM = (value) => {
-  if (parseInt(value.split(":")[0]) < 12) {
-    return value + "AM";
+const repeatInitOption = (type) => {
+
+  console.log("type....",type);
+  const initialOption = {
+    "text": {
+      "type": "plain_text",
+      "text": "Nomal",
+      "emoji": true
+    },
+    "value": "nomal"
   }
-  return value + "PM";
+  switch(type){
+    case "nomal":
+      return initialOption;
+    case "daily":
+      initialOption.text.text = "Every day";
+      initialOption.value = "daily"
+      return initialOption;
+    case "weekly":
+      initialOption.text.text = "Every week";
+      initialOption.value = "weekly"
+      return initialOption;
+    case "absoluteMonthly":
+      initialOption.text.text = "Every month";
+      initialOption.value = "absoluteMonthly"
+      return initialOption;
+    default:
+      return initialOption;
+  }
 }
+
+
 /**
  * Show modals view edit event to slack
  * @param {Object} payload
@@ -105,13 +120,13 @@ const checkAMorPM = (value) => {
  * @param {Array} timePicker
  * @returns {Promise}
  */
-const handlerEditEvent = async (payload, template, timePicker) => {
-  try {
-    const { trigger_id = null, channel = null, eventEditDT = null, idAcc = null } = payload;
+const handlerEditEvent = async (payload, template) => {
+  const { trigger_id = null, channel = null, eventEditDT = null, idAcc = null } = payload;
+
+  // console.log("eventEditDT :", eventEditDT);
+
   const channel_id = channel.id;
   const { editEvent } = template;
-  editEvent.blocks[6].accessory.options = timePicker;
-  editEvent.blocks[7].accessory.options = timePicker;
   let editView = JSON.stringify(editEvent);
   editView = JSON.parse(editView);
   editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
@@ -133,7 +148,6 @@ const handlerEditEvent = async (payload, template, timePicker) => {
     editView.blocks[1].accessory.options.push(selectCalendars);
   }
   editView.blocks[2].element.initial_value = eventEditDT.subject;
-
   if (eventEditDT.locations[0]) {
     editView.blocks[8].element.initial_value = eventEditDT.locations[0].displayName;
   }
@@ -141,26 +155,30 @@ const handlerEditEvent = async (payload, template, timePicker) => {
   const datetimeStart = moment(eventEditDT.start.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
   const datetimeEnd = moment(eventEditDT.end.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
   editView.blocks[4].accessory.initial_date = datetimeStart.split('.')[0];
-
+  const lengthEditBlocks = editView.blocks.length;
+  if(eventEditDT.recurrence){
+    editView.blocks[lengthEditBlocks -2].element.initial_option = repeatInitOption(eventEditDT.recurrence.pattern.type);
+  }
+  editView.blocks[lengthEditBlocks -1].element.initial_option = reminderStartInitOptions(eventEditDT.reminderMinutesBeforeStart);
   if (eventEditDT.isAllDay) {
     editView.blocks.splice(6, 2);
     editView.blocks[5].accessory.initial_date = datetimeEnd.split('.')[0];
     editView.blocks[3].accessory.initial_options =
-    [
-      {
-        "value": "true",
-        "text": {
-          "type": "plain_text",
-          "text": "All day"
+      [
+        {
+          "value": "true",
+          "text": {
+            "type": "plain_text",
+            "text": "All day"
+          }
         }
-      }
-    ]
+      ]
 
   } else {
     const initialOption = {
       "text": {
         "type": "plain_text",
-        "text": checkAMorPM(datetimeStart.split('.')[1]),
+        "text": datetimeStart.split('.')[1],
         "emoji": true
       },
       "value": datetimeStart.split('.')[1]
@@ -168,7 +186,7 @@ const handlerEditEvent = async (payload, template, timePicker) => {
     const initialOption2 = {
       "text": {
         "type": "plain_text",
-        "text": checkAMorPM(datetimeEnd.split('.')[1]),
+        "text": datetimeEnd.split('.')[1],
         "emoji": true
       },
       "value": datetimeEnd.split('.')[1]
@@ -190,11 +208,7 @@ const handlerEditEvent = async (payload, template, timePicker) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_VIEW_OPEN"),
   };
-  await Axios(options);
-  return;
-  } catch (error) {
-    return;
-  }
+  return Axios(options);
 };
 
 /**
@@ -209,13 +223,15 @@ const handlerAllDay = async (payload, template) => {
   addView = JSON.parse(addView)
   addView.blocks = payload.view.blocks;
   const { action_id = null, selected_options = null } = payload.actions[0];
-  if (action_id === "allday" && selected_options.length === 0) {
-    addView.blocks.splice(5, 1);
-    addView.blocks.splice(5, 0, addEvent.blocks[7]);
-    addView.blocks.splice(5, 0, addEvent.blocks[6]);
-  } else if (action_id === "allday" && selected_options.length > 0) {
-    addView.blocks.splice(5, 2);
-    addView.blocks.splice(5, 0, addEvent.blocks[5]);
+  if (action_id === "allDay" && selected_options.length === 0) {
+    console.log("ALL DAY FALSE");
+    addView.blocks.splice(6, 1);
+    addView.blocks.splice(6, 0, addEvent.blocks[8]);
+    addView.blocks.splice(6, 0, addEvent.blocks[7]);
+  } else if (action_id === "allDay" && selected_options.length > 0) {
+    console.log("ALL DAY TRUE");
+    addView.blocks.splice(6, 2);
+    addView.blocks.splice(6, 0, addEvent.blocks[6]);
   }
   let data = {
     "view_id": payload["container"]["view_id"],
@@ -303,29 +319,30 @@ const getRecurrence = (type, datetime, date) => {
  */
 const HandlerSubmitEvent = async (payload) => {
   // "callback_id":"editEvent"
+  console.log("callback_id :>>>> ", payload.view.callback_id);
   const { values } = payload.view.state;
-  const dateStart = values["select-date-start"]["datepicker-action-start"]["selected_date"]
-  let dateEnd = values["select-date-start"]["datepicker-action-start"]["selected_date"]
+  const dateStart = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
+  let dateEnd = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
   let timeStart = "00:00";
   let timeEnd = "00:00";
-  if (values['select-date-end']) {
-    dateEnd = values["select-date-end"]["datepicker-action-end"]["selected_date"]
+  if (values['MI_select-date-end']) {
+    dateEnd = values["MI_select-date-end"]["datepicker-action-end"]["selected_date"]
   } else {
-    timeStart = values["select-time-start"]["time-start-action"]["selected_option"].value
-    timeEnd = values["select-time-end"]["time-end-action"]["selected_option"].value
+    timeStart = values["MI_select-time-start"]["time-start-action"]["selected_option"].value
+    timeEnd = values["MI_select-time-end"]["time-end-action"]["selected_option"].value
   }
   let allDay = false;
 
-  if (values['check_allday']['allday'].selected_options.length > 0) {
+  if (values['MI_check_all_day']['allDay'].selected_options.length > 0) {
     allDay = true;
     timeStart = "00:00";
     timeEnd = "00:00";
-    dateEnd = values["select-date-end"]["datepicker-action-end"]["selected_date"];
+    dateEnd = values["MI_select-date-end"]["datepicker-action-end"]["selected_date"];
   }
   const event = {
-    "reminderMinutesBeforeStart": values['select_before_notification']['static_select-action'].selected_option.value,
+    "reminderMinutesBeforeStart": values['MI_select_before_notification']['static_select-action'].selected_option.value,
     "isReminderOn": true,
-    "subject": values['input_title']['input-action'].value,
+    "subject": values['MI_input_title']['input-action'].value,
     "isAllDay": allDay,
     "start": {
       "dateTime": `${dateStart}T${timeStart}:00.0000000`,
@@ -336,13 +353,13 @@ const HandlerSubmitEvent = async (payload) => {
       "timeZone": "UTC"
     },
     "location": {
-      "displayName": values['input_location']['plain_text_input-action'].value,
+      "displayName": values['MI_input_location']['plain_text_input-action'].value,
     }
   }
-  if (values.select_everyday['static_select-action']['selected_option'].value !== "nomal" && !allDay) {
-    event.recurrence = getRecurrence(values.select_everyday['static_select-action']['selected_option'].value, dateStart);
+  if (values.MI_select_everyday['static_select-action']['selected_option'].value !== "nomal" && !allDay) {
+    event.recurrence = getRecurrence(values.MI_select_everyday['static_select-action']['selected_option'].value, dateStart);
   }
-  const idCalendar = values["select_calendar"]["select_calendar"]["selected_option"].value;
+  const idCalendar = values["MI_select_calendar"]["select_calendar"]["selected_option"].value;
   const accountCal = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
   const options = {
     method: 'POST',
@@ -384,15 +401,19 @@ const HandlerSubmitEvent = async (payload) => {
  * Tao url request author
  * @param {string} idChannel
  * @param {string} idUser
+ * @param {function} setUidToken
  * @returns {string} urlRequestAuthor
  */
-const redirectMicrosoft = (idChannel, idUser) => {
+const redirectMicrosoft = (idChannel, idUser, setUidToken) => {
+  console.log(setUidToken);
   const scopeAzure = Env.resourceServerGet("SCOPE");
   const data = {
+    uid: uuidv4(),
     idChannel,
     idUser
   }
   const stateAzure = Crypto.createJWT(data);
+  setUidToken(data.uid);
   let urlRequestAuthor = `${Env.resourceServerGet(
     "API_URL_AUTH"
   )}${Env.resourceServerGet("API_AUTHOR")}`;
@@ -408,9 +429,10 @@ const redirectMicrosoft = (idChannel, idUser) => {
  * Xu ly gui tin nhan yeu cau login
  * @param {object} event
  * @param {view} viewLoginResource
+ * @param {function} setUidToken
  * @returns {Promise}
  */
-const sendMessageLogin = (event, viewLoginResource) => {
+const sendMessageLogin = (event, viewLoginResource, setUidToken) => {
   return new Promise((resolve, reject) => {
     const options = {
       method: "POST",
@@ -429,7 +451,8 @@ const sendMessageLogin = (event, viewLoginResource) => {
     const { channel, inviter } = event;
     options.data.blocks[2].elements[1].url = redirectMicrosoft(
       channel,
-      inviter
+      inviter,
+      setUidToken
     );
     Axios(options)
       .then((result) => resolve(result))
@@ -438,42 +461,9 @@ const sendMessageLogin = (event, viewLoginResource) => {
 };
 
 /**
- * Xu ly nguoi dung goi den settings
- * @param {object} viewSystemSetting
+ * Xu ly view show events
  * @param {object} body
- * @returns {Promise}
- */
-const handlerSettingsMessage = (viewSystemSetting, body) => {
-  return new Promise((resolve, reject) => {
-    const data = {
-      trigger_id: body.trigger_id,
-      view: viewSystemSetting,
-    };
-    const options = {
-      method: "POST",
-      headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-      data: data,
-      url:
-        Env.chatServiceGet("API_URL") +
-        Env.chatServiceGet("API_VIEW_OPEN"),
-    };
-    const { channel_id, user_id } = body;
-    options.data.view.blocks[3].elements[1].url = redirectMicrosoft(
-      channel_id,
-      user_id
-    );
-    Axios(options)
-      .then((data) => {
-        return resolve(data);
-      })
-      .catch((err) => reject(err));
-  });
-};
-
-/**
- * Xu ly nguoi dung goi den settings
- * @param {object} viewSystemSetting
- * @param {object} body
+ * @param {object} template
  * @returns {Promise}
  */
 const handlerShowEvents = async (body, template) => {
@@ -492,11 +482,10 @@ const handlerShowEvents = async (body, template) => {
   const events = await Axios(options);
   if (!events) return;
   const event = events.data.value[0];
-  blocksView[1].block_id = `${idAccount}/${AccCals[0].id_calendar}`;
+  blocksView[1].block_id = `${idAccount}/${AccCals[0].id_calendar}/${event.subject}`;
   blocksView[1].accessory.options[0].value = `edit/${event.id}`;
   blocksView[1].accessory.options[1].value = `delete/${event.id}`;
   blocksView[1].fields[0].text = event.subject;
-  blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
   const options1 = {
     method: "POST",
     headers: {
@@ -515,9 +504,7 @@ const handlerShowEvents = async (body, template) => {
 };
 
 module.exports = {
-  handlerSettingsMessage,
   sendMessageLogin,
-  handlerAddEvent,
   HandlerSubmitEvent,
   handlerBlocksActions,
   handlerShowEvents,

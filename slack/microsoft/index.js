@@ -1,32 +1,30 @@
 const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
-const {cryptoDecode} = require("../../utils/Crypto");
+const { cryptoDecode } = require("../../utils/Crypto");
 const Template = require("../views/Template");
-const {decodeJWT} = require("../../utils/Crypto");
+const { decodeJWT } = require("../../utils/Crypto");
 const AxiosConfig = require('./Axios');
 
 const {
-	getToken,
-	getListCalendar,
-	getProfileUser,
-	saveUserProfile,
-	saveListCalendar,
-	saveInfoChannel,
-	saveMicrosoftAccountCalendar,
-	saveChannelsCalendar,
+  getToken,
+  getListCalendar,
+  getProfileUser,
+  saveUserProfile,
+  saveCalendar,
+  saveInfoChannel,
+  saveAccountCalendar,
+  saveChannelCalendar,
 } = require("./Auth");
 const {
 	sendMessageLogin,
-	handlerSettingsMessage,
-	handlerAddEvent,
 	handlerBlocksActions,
 	HandlerSubmitEvent,
   handlerShowEvents,
 } = require("./HandlerChatService");
 const {
-	handlerCreated,
-	handlerUpdated,
-	handlerDeleted,
+  handlerCreated,
+  handlerUpdated,
+  handlerDeleted,
 } = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
@@ -34,7 +32,6 @@ class SlackMicrosoft extends BaseServer {
 		super(instanceId, opt);
 		this.microsoftAccess = this.microsoftAccess.bind(this);
 		this.template = Template();
-		this.timePicker = customDatetime();
 	}
 
 	/**
@@ -50,7 +47,7 @@ class SlackMicrosoft extends BaseServer {
 			subtype === type.BOT_ADD ||
 			(subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
 		)
-			return sendMessageLogin(event, loginResource);
+			return sendMessageLogin(event, loginResource, this.setUidToken);
 	}
 
 	/**
@@ -60,13 +57,8 @@ class SlackMicrosoft extends BaseServer {
 	 */
 	handlerCommand(body) {
 		let text = body.text.trim();
-		const {systemSetting} = this.template;
 		const result = new Promise((resolve) => resolve(body));
 		switch (text) {
-			case "settings":
-				return handlerSettingsMessage(systemSetting, body);
-			case "add-event":
-				return handlerAddEvent(body, this.template, this.timePicker);
       case "show-events":
         return handlerShowEvents(body,this.template);
 			default:
@@ -129,7 +121,10 @@ class SlackMicrosoft extends BaseServer {
 			return res.status(403).send(message);
 		}
 	}
-
+/**
+ * handler Notifications
+ * @param {object} value
+ */
 	handlerNotifications(value) {
 		const {subscriptionId, changeType, resource} = value;
 		const {showEvent} = this.template;
@@ -165,112 +160,97 @@ class SlackMicrosoft extends BaseServer {
 			return res.status(403).send("ERROR");
 		}
 	}
+  /**
+   *
+   * @param {array} listCalendar
+   * @param {string} idAccount
+   * @param {string} idChannel
+   */
+  async handlerCalendars(listCalendar, idAccount, idChannel) {
+    for (let i = 0, length = listCalendar.length; i < length; i++) {
+      const item = listCalendar[i];
+      if (item.canEdit) {
+        await saveCalendar({
+          id: item.id,
+          name: item.name,
+          address_owner: item.owner.address
+        }, idAccount);
+        await saveAccountCalendar({
+          id_calendar: item.id,
+          id_account: idAccount,
+        });
+        await saveChannelCalendar({
+          id_calendar: item.id,
+          id_channel: idChannel,
+          watch: true,
+        });
+      }
+    }
+  }
 
-	async microsoftAccess(req, res, next) {
-		const {code, state} = req.query;
-		try {
-			const tokens = await getToken(code, state);
-			const accessTokenAzure = tokens.access_token;
-			const refreshTokenAzure = tokens.refresh_token;
+  async microsoftAccess(req, res, next) {
+    let { code, state } = req.query;
+    try {
+      const payload = decodeJWT(state);
+      const result = await this.getUidToken(payload.uid);
+      if (!result) return res.status(401).send("jwt expired");
+      const tokens = await getToken(code);
+      await this.delUidToken(result);
+      const accessTokenAzure = tokens.access_token;
+      const refreshTokenAzure = tokens.refresh_token;
 
-			// Thuc hien lay tai nguyen user profile
-			const profileUser = await getProfileUser(accessTokenAzure);
+      // Thuc hien lay tai nguyen user profile
+      const profileUser = await getProfileUser(accessTokenAzure);
 
-			// Thêm đối tượng microsoftAccount và bảng microsoft_account
-			await saveUserProfile(profileUser, refreshTokenAzure, accessTokenAzure);
+      // Thêm đối tượng microsoftAccount và bảng microsoft_account
+      await saveUserProfile(profileUser, refreshTokenAzure, accessTokenAzure);
 
-			// Thuc hien lay tai nguyen list calendars
-			const allData = await getListCalendar(profileUser.id);
-			const allCalendar = allData.value;
+      // Thêm channelvào bảng channels
+      await saveInfoChannel(payload.idChannel);
 
-			// Thêm list calendar vào bảng microsoft_calendar
-			await saveListCalendar(allCalendar, profileUser.id);
+      // Thuc hien lay tai nguyen list calendars
+      const allData = await getListCalendar(profileUser.id);
+      await this.handlerCalendars(
+        allData.value,
+        profileUser.id,
+        payload.idChannel
+      );
 
-			// Luu  vào bảng microsoft_account_calendar
-			await saveMicrosoftAccountCalendar(profileUser.id, allCalendar);
-
-			// Lay Decode jwt de lay ra data
-			const {idChannel} = await decodeJWT(state);
-
-			// Thêm channelvào bảng channels
-			await saveInfoChannel(idChannel);
-
-			//  Luu channels calendar vào bảng channels_calendar
-			await saveChannelsCalendar(idChannel, allCalendar);
-
-			return res.send("Successful !");
-		} catch (e) {
-			return res.send("Login Error !");
-		}
-	}
+      return res.send("Successful !");
+    } catch (e) {
+      return res.send("Login Error !");
+    }
+  }
 }
+
 /**
  * custom customRepeat
  * @param {Object} viewAddEvent
  */
-function customRepeat(viewAddEvent){
-  viewAddEvent.blocks[9].element.options[0].value = "nomal";
-  viewAddEvent.blocks[9].element.options[1].value = "daily";
-  viewAddEvent.blocks[9].element.options[2].value = "weekly";
-  viewAddEvent.blocks[9].element.options[3].value = "absoluteMonthly";
-  viewAddEvent.blocks[9].element.initial_option.value = "nomal";
-}
-/**
- * Tao array Datetime
- * @returns {Array} arrayDT
- */
-function customDatetime() {
-	let arrayDT = [];
-	let i = 0;
-	while (i < 24) {
-		let j = 0
-		for (j = 0; j < 46; j++) {
-			let datetimePicker = {
-				"text": {
-					"type": "plain_text",
-					"text": "",
-					"emoji": true
-				},
-				"value": ""
-			}
-			let textH = "";
-			let textM = "";
-
-			if (j < 10) {
-				textM = `0${j}`;
-			} else {
-				textM = `${j}`;
-			}
-			if (i < 10) {
-				textH = `0${i}:` + textM + "AM";
-			} else if (i < 12) {
-				textH = `${i}:` + textM + "AM";
-			} else {
-				textH = `${i}:` + textM + "PM";
-			}
-			datetimePicker.text.text = textH;
-			datetimePicker.value = textH.slice(0, 5);
-			arrayDT.push(datetimePicker);
-			j += 14;
-		}
-		i++;
-	}
-	return arrayDT;
+function customRepeat(viewEvent){
+  viewEvent.blocks[9].element.options[0].value = "nomal";
+  viewEvent.blocks[9].element.options[1].value = "daily";
+  viewEvent.blocks[9].element.options[2].value = "weekly";
+  viewEvent.blocks[9].element.options[3].value = "absoluteMonthly";
+  viewEvent.blocks[9].element.initial_option.value = "nomal";
 }
 
 module.exports = SlackMicrosoft;
 
 (async function () {
-	const pipeline = new SlackMicrosoft(process.argv[2], {
-		config: {
-			path: process.argv[3],
-			appRoot: __dirname,
-		},
-	});
-	await Template().init();
-	await pipeline.init();
-	pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
-  customRepeat(pipeline.template.addEvent);
+  const pipeline = new SlackMicrosoft(process.argv[2], {
+    config: {
+      path: process.argv[3],
+      appRoot: __dirname,
+    },
+  });
+  let prefix = process.argv[2]
+    .split("-")[1]
+    .split("");
+  prefix.length = 2;
+  await Template().init(prefix.join(""));
+  await pipeline.init();
+  pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
   customRepeat(pipeline.template.editEvent);
-	AxiosConfig();
+  AxiosConfig();
 })();

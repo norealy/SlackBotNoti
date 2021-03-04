@@ -28,8 +28,8 @@ const createJWT = (payload) => {
  * @param {string} token
  * @returns {object} payload
  */
-const decodeJWT = async (token) => {
-  const verified = await jws.verify(
+const decodeJWT = (token) => {
+  const verified = jws.verify(
     token,
     Env.getOrFail("JWT_ALG"),
     Env.getOrFail("JWT_KEY")
@@ -37,6 +37,12 @@ const decodeJWT = async (token) => {
   if (!verified) return false;
   const jwsData = jws.decode(token);
   const payload = jwsData.payload;
+	const clockTimestamp = Math.floor(new Date() / 1000);
+	if(clockTimestamp >= payload.exp){
+		const error = new Error("jwt expired");
+		error.code = "TokenExpiredError";
+		throw error
+	}
   return payload;
 };
 

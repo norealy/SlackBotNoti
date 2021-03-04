@@ -38,9 +38,10 @@ const configUrlAuthMicrosoft = (accessToken) => {
  * Thực thi việc requestLogin gửi về một Post Message
  * @param {object} event
  * @param {array} view
+ * @param {function} setUidToken
  * @returns {object}
  */
-const handlerOptionLogin = (event, view) => {
+const handlerOptionLogin = (event, view, setUidToken) => {
 	const viewLogin = [...view];
 	const option = {};
 	option.method = "POST";
@@ -69,7 +70,8 @@ const handlerOptionLogin = (event, view) => {
 		"channel": channel,
 		"blocks": viewLogin
 	};
-	option.extendedProperties = {redis: [{key: uid}, {key: payload.uid}]};
+  setUidToken(uid);
+  setUidToken(payload.uid);
 	return option;
 };
 

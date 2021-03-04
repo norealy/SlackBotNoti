@@ -33,32 +33,63 @@ class TemplateSlack {
 		});
 	}
 
-	renameBlockId(prefix) {
-		const props = Object.keys(this);
-		props.forEach((value, i) => {
-			if(this[value].blocks && this[value].blocks.length > 0){
-				this[value].blocks.forEach((element, idx) => {
-					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
-					else element.block_id = `${prefix}_${element.type}_${idx}`
-				})
-			} else if(this[value] instanceof Array) {
-				this[value].forEach((element, idx) => {
-					if(element.block_id) element.block_id = `${prefix}_${element.block_id}`;
-					else element.block_id = `${prefix}_${element.type}_${idx}`
-				})
-			} else {
-				if(this[value].block_id) this[value].block_id = `${prefix}_${this[value].block_id}`;
-				else this[value].block_id = `${prefix}_${this[value].type}_${i}`
-			}
-		})
-	}
+  /**
+   * Add prefix for block_id and callback_id
+   * @param {string} prefix
+   * @private
+   */
+  _renameBlockAndCallbackID(prefix) {
+    const props = Object.keys(this);
+    props.forEach((value, i) => {
+      const {callback_id, blocks, block_id} = this[value];
 
+      if(callback_id){
+        this[value].callback_id = `${prefix}_${callback_id}`;
+      } else {
+        this[value].callback_id = `${prefix}_callback-id-${i}`;
+      }
+
+      if(blocks && blocks.length > 0){
+        blocks.forEach((element, idx) => {
+          if(element.block_id) {
+            element.block_id = `${prefix}_${element.block_id}`;
+          } else {
+            element.block_id = `${prefix}_${element.type}_${idx}`
+          }
+        })
+      } else if (this[value] instanceof Array) {
+        this[value].forEach((element, idx) => {
+          if(element.block_id) {
+            element.block_id = `${prefix}_${element.block_id}`;
+          }	else {
+            element.block_id = `${prefix}_${element.type}_${idx}`
+          }
+        })
+      } else {
+        if(block_id){
+          this[value].block_id = `${prefix}_${block_id}`;
+        }	else {
+          this[value].block_id = `${prefix}_${this[value].type}_${i}`
+        }
+      }
+    })
+  }
+
+  /**
+   *
+   * @param {string} id
+   * @return {string}
+   */
 	getBlockId(id) {
 		return `${this._prefix}_${id}`
 	}
 
-
-  customDatetime() {
+  /**
+   * Create time picker
+   * @return {[]}
+   * @private
+   */
+  _customDatetime() {
     let arrayDT = [];
     let i = 0;
     while (i < 24) {
@@ -96,12 +127,21 @@ class TemplateSlack {
     return arrayDT;
   }
 
+  /**
+   * Init template slack
+   * @param {string} prefix
+   * @return {TemplateSlack}
+   */
 	async init(prefix) {
 		try {
 			let pathFile = Env.appRoot + '/slack/views';
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`);
-			this.addEvent.blocks[6].accessory.options = this.customDatetime();
-			this.addEvent.blocks[7].accessory.options = this.customDatetime();
+			let timeStart = [...this._customDatetime()];
+      const timeEnd = [...timeStart];
+      timeStart.pop();
+      timeEnd.shift();
+			this.addEvent.blocks[6].accessory.options = timeStart;
+			this.addEvent.blocks[7].accessory.options = timeEnd;
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
       this.editEvent.blocks[6].accessory.options = this.customDatetime();
@@ -116,7 +156,7 @@ class TemplateSlack {
 			this.showEvent = await this.readFileTemplate(`${pathFile}/ShowEvent.json`);
 			this.systemSetting = await this.readFileTemplate(`${pathFile}/SystemSetting.json`);
 			this.eventStartDate = await this.readFileTemplate(`${pathFile}/EventStartDate.json`);
-			this.renameBlockId(prefix);
+			this._renameBlockAndCallbackID(prefix);
 			this._prefix = prefix;
 			return this;
 		} catch (err) {

@@ -41,7 +41,6 @@ class SlackGoogle extends BaseServer {
 		super(instanceId, opt);
 		this.authGoogle = this.authGoogle.bind(this);
 		this.template = Template();
-		this.timePicker = customDatetime();
 	}
 
 	/**
@@ -91,7 +90,7 @@ class SlackGoogle extends BaseServer {
 		} else if (chat === "settings") {
 			return requestSettings(body, this.template.systemSetting);
 		} else if (chat === "google add-event") {
-			return requestAddEvent(body, this.template.addEvent,this.timePicker);
+			return requestAddEvent(body, this.template.addEvent);
 		} else {
 			return promise;
 		}
@@ -110,8 +109,8 @@ class SlackGoogle extends BaseServer {
 			if (payload.actions[0].action_id === "btnSettings") {
 				return requestButtonSettings(payload, this.template.systemSetting);
 			} else if (payload.actions[0].action_id === "btnEventAdd") {
-				return requestAddEvent(payload, this.template.addEvent,this.timePicker);
-			} else if (payload.actions[0].action_id === "allday") {
+				return requestAddEvent(payload, this.template.addEvent);
+			} else if (payload.actions[0].action_id === "allDay") {
 				const options = requestBlockActionsAllDay(payload, this.template);
 				await Axios(options);
 			}
@@ -145,12 +144,12 @@ class SlackGoogle extends BaseServer {
 						]
 					}
 				};
-				if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
+				if (payload.view.state.values["check_allday"]["allDay"].selected_options.length === 0) {
 					const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
 					const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
 					event.start.dateTime = dateTimeStart;
 					event.end.dateTime = dateTimeEnd;
-				} else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
+				} else if (payload.view.state.values["check_allday"]["allDay"].selected_options[0].value === 'true') {
 					const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`;
 					const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`;
 					event.start.date = dateAllDayStart;
@@ -326,7 +325,11 @@ module.exports = SlackGoogle;
 			appRoot: __dirname,
 		},
 	});
-	await Template().init();
+  let prefix = process.argv[2]
+    .split("-")[1]
+    .split("");
+  prefix.length = 2;
+  await Template().init(prefix.join(""));
 	await pipeline.init();
 	pipeline.app.get("/auth/google", pipeline.authGoogle);
 	AxiosConfig();

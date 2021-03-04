@@ -108,7 +108,7 @@ const requestHome = (body, homePage) => {
 	return Axios(option);
 };
 
-const requestAddEvent = async (body, template, timePicker) => {
+const requestAddEvent = async (body, template) => {
 	try {
 		let addView = JSON.stringify(template);
 		addView = JSON.parse(addView);
@@ -136,8 +136,6 @@ const requestAddEvent = async (body, template, timePicker) => {
 			};
 			option.data.view.blocks[1].accessory.options.push(selectCalendars);
 		}
-		option.data.view.blocks[6].accessory.options = timePicker;
-		option.data.view.blocks[7].accessory.options = timePicker;
 		option.data.view.blocks.splice(5, 1);
 		const result = await Axios(option);
 		return result
@@ -150,11 +148,11 @@ const requestBlockActionsAllDay = (payload, template) => {
 	let view = {...template.addEvent};
 	view.blocks = payload.view.blocks;
 	const {action_id = null, selected_options = null} = payload.actions[0];
-	if (action_id === "allday" && selected_options.length === 0) {
+	if (action_id === "allDay" && selected_options.length === 0) {
 		view.blocks.splice(5, 1);
 		view.blocks.splice(5, 0, template.addEvent.blocks[7]);
 		view.blocks.splice(5, 0, template.addEvent.blocks[6]);
-	} else if (action_id === "allday" && selected_options.length > 0) {
+	} else if (action_id === "allDay" && selected_options.length > 0) {
 		view.blocks.splice(5, 2);
 		view.blocks.splice(5, 0, template.addEvent.blocks[5]);
 	}

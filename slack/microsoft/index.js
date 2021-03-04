@@ -50,7 +50,7 @@ class SlackMicrosoft extends BaseServer {
       subtype === type.BOT_ADD ||
       (subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
     )
-      return sendMessageLogin(event, loginResource);
+      return sendMessageLogin(event, loginResource, this.setUidToken);
   }
 
 	/**
@@ -259,7 +259,11 @@ module.exports = SlackMicrosoft;
       appRoot: __dirname,
     },
   });
-  await Template().init();
+  let prefix = process.argv[2]
+    .split("-")[1]
+    .split("");
+  prefix.length = 2;
+  await Template().init(prefix.join(""));
   await pipeline.init();
   pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
   AxiosConfig();

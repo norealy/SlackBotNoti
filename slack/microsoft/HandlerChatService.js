@@ -232,7 +232,6 @@ const getRecurrence = (type, datetime, date) => {
  */
 const submitAddEvent = async (payload) => {
   const { values } = payload.view.state;
-  console.log(JSON.stringify(values));
   const dateStart = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
   let dateEnd = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
   let timeStart = "00:00";
@@ -244,7 +243,6 @@ const submitAddEvent = async (payload) => {
     timeEnd = values["MI_select-time-end"]["time-end-action"]["selected_option"].value
   }
   let allDay = false;
-  console.log("ALL DAY",JSON.stringify(values['MI_check_all_day']));
   if (values['MI_check_all_day']['allDay'].selected_options.length > 0) {
     allDay = true;
     timeStart = "00:00";

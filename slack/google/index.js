@@ -120,41 +120,31 @@ class SlackGoogle extends BaseServer {
         return requestButtonSettings(payload, this.template.systemSetting);
       } else if (payload.actions[0].action_id === "btnEventAdd") {
         return requestAddEvent(payload, this.template.addEvent);
-      } else if (payload.actions[0].action_id === "allday") {
+      } else if (payload.actions[0].action_id === "allDay") {
         const options = requestBlockActionsAllDay(payload, this.template);
         await Axios(options);
       } else if (payload.actions[0].action_id === "overflow-action") {
-
         const value = payload.actions[0].selected_option.value.split('/');
         const blockId = payload.actions[0].block_id.split('/');
-
         if (value[0] === "edit") {
-          console.log("edit")
-          const title = payload.message.blocks[1].fields[0].text;
-          const time = payload.message.blocks[1].fields[1].text;
-          const location = payload.message.blocks[1].fields[2].text;
-          const date = payload.message.blocks[1].fields[3].text
           return handlerUpdateEvent(payload, this.template.editEvent);
         } else if (value[0] === "delete") {
-
           return handlerDeleteEvent(payload, this.template.deleteEvent)
         }
       }
     } else if (payload.type === "view_submission" && payload.view.callback_id === 'deleteEvent') {
-      console.log("delete ne")
       const blockId = payload.view.blocks[0].block_id.split('/');
       const idEvent = blockId[1]
-
       const event = payload.view.blocks[1].block_id.split('/');
       const idAccount = event[0]
       return deleteEvent(idAccount, idEvent)
     } else if (payload.type === "view_submission" && payload.view.callback_id === 'addEvent') {
-      console.log("oke")
-      const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
+      console.log("add-event")
+      const idCalendar = payload.view.state.values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
       try {
         let event = {
-          "summary": payload.view.state.values["input_title"]["input-action"].value,
-          "location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
+          "summary": payload.view.state.values["GO_input_title"]["input-action"].value,
+          "location": payload.view.state.values["GO_input_location"]["plain_text_input-action"].value,
 
           "start": {
             "timeZone": "Asia/Ho_Chi_Minh"
@@ -163,47 +153,49 @@ class SlackGoogle extends BaseServer {
             "timeZone": "Asia/Ho_Chi_Minh"
           },
           "recurrence": [
-            `RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};`
+            `RRULE:FREQ=${payload.view.state.values["GO_select_everyday"]["static_select-action"]["selected_option"].value};`
           ],
           "reminders": {
             "useDefault": false,
             "overrides": [
               {
                 "method": "email",
-                "minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+                "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
               },
               {
                 "method": "popup",
-                "minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+                "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
               }
             ]
           }
         };
-        if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
-          const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
-          const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
+
+        if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options.length === 0) {
+          const dateTimeStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
+          const dateTimeEnd = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
           event.start.dateTime = dateTimeStart;
           event.end.dateTime = dateTimeEnd;
-        } else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
-          const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`;
-          const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`;
+        } else if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options[0].value === 'true') {
+          const dateAllDayStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}`;
+          const dateAllDayEnd = `${payload.view.state.values["GO_select-date-end"]["datepicker-action-end"]["selected_date"]}`;
           event.start.date = dateAllDayStart;
           event.end.date = dateAllDayEnd;
         }
+
+        console.log("event Create", event)
         return createEvent(event, idCalendar)
       } catch (e) {
         return e
       }
     } else if (payload.type === "view_submission" && payload.view.callback_id === 'editEvent') {
+      console.log("edit nef")
       const value = payload.view.blocks[0].block_id.split('/')
-
-      console.log("payload", payload.view.blocks)
       const idAccount = value[2]
       const idEvent = value[1];
-      const idCalendar = payload.view.state.values["select_calendar"]["select_calendar"]["selected_option"].value;
+      const idCalendar = payload.view.state.values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
       let event = {
-        "summary": payload.view.state.values["input_title"]["input-action"].value,
-        "location": payload.view.state.values["input_location"]["plain_text_input-action"].value,
+        "summary": payload.view.state.values["GO_input_title"]["input-action"].value,
+        "location": payload.view.state.values["GO_input_location"]["plain_text_input-action"].value,
 
         "start": {
           "timeZone": "Asia/Ho_Chi_Minh"
@@ -212,34 +204,35 @@ class SlackGoogle extends BaseServer {
           "timeZone": "Asia/Ho_Chi_Minh"
         },
         "recurrence": [
-          `RRULE:FREQ=${payload.view.state.values["select_everyday"]["static_select-action"]["selected_option"].value};`
+          `RRULE:FREQ=${payload.view.state.values["GO_select_everyday"]["static_select-action"]["selected_option"].value};`
         ],
         "reminders": {
           "useDefault": false,
           "overrides": [
             {
               "method": "email",
-              "minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+              "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
             },
             {
               "method": "popup",
-              "minutes": parseInt(payload.view.state.values["select_before_notification"]["static_select-action"]["selected_option"].value),
+              "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
             }
           ]
         }
       };
-      if (payload.view.state.values["check_allday"]["allday"].selected_options.length === 0) {
-        const dateTimeStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
-        const dateTimeEnd = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
+
+      if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options.length === 0) {
+        const dateTimeStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
+        const dateTimeEnd = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
         event.start.dateTime = dateTimeStart;
         event.end.dateTime = dateTimeEnd;
-      } else if (payload.view.state.values["check_allday"]["allday"].selected_options[0].value === 'true') {
-        const dateAllDayStart = `${payload.view.state.values["select-date-start"]["datepicker-action-start"]["selected_date"]}`;
-        const dateAllDayEnd = `${payload.view.state.values["select-date-end"]["datepicker-action-end"]["selected_date"]}`;
+      } else if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options[0].value === 'true') {
+        const dateAllDayStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}`;
+        const dateAllDayEnd = `${payload.view.state.values["GO_select-date-end"]["datepicker-action-end"]["selected_date"]}`;
         event.start.date = dateAllDayStart;
         event.end.date = dateAllDayEnd;
       }
-      console.log(idCalendar, idEvent, idAccount)
+      console.log("event", event)
       return updateEvent(event, idCalendar, idEvent, idAccount)
     }
   }
@@ -262,12 +255,11 @@ class SlackGoogle extends BaseServer {
         return res.status(200).send("OK");
       }
       if (payload) {
-        console.log("payload,", payload)
         await this.handlerPayLoad(req.body, payload);
         return res.status(200).send({"response_action": "clear"});
       }
     } catch (error) {
-      console.log("err", error)
+      console.log("err", error.response.data)
       return res.status(403).send("Error");
     }
   }
@@ -318,7 +310,6 @@ class SlackGoogle extends BaseServer {
     try {
       const payload = decodeJWT(state);
       const result = await this.getUidToken(payload.uid);
-      console.log("result",result)
       if (!result) return res.status(401).send("jwt expired");
       const tokens = await getToken(code);
       await this.delUidToken(result);
@@ -388,6 +379,7 @@ class SlackGoogle extends BaseServer {
       const decode = cryptoDecode(req.headers['x-goog-channel-token']);
       const {idAccount, idCalendar} = JSON.parse(decode);
       let event = await getEventUpdate(req.headers, idAccount);
+      console.log("eventgoogle", event)
       if (event.status === 'cancelled') {
         event = await getEvent(idCalendar, event.id, idAccount);
         if (!event.summary) return res.status(204).send("OK");

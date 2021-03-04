@@ -6,23 +6,23 @@ const IV = Env.getOrFail("CRYPTO_IV"); // phai la 16 ky tu
 
 /**
  * Tao jwt
+ * @param {object} payload
+ * @returns {string} JWT
  *
-  * @param {object} payload
-  * @returns {string} JWT
-  *
  */
 const createJWT = (payload) => {
-  const { exp = null } = payload;
+  const {exp = null} = payload;
   if (!exp) {
     payload.exp = Math.floor(new Date()) + (Env.getOrFail("JWT_DURATION") / 1000);
   }
   const jwt = jws.sign({
-    header: { alg: Env.getOrFail("JWT_ALG"), typ: "JWT" },
+    header: {alg: Env.getOrFail("JWT_ALG"), typ: "JWT"},
     payload: payload,
     secret: Env.getOrFail("JWT_KEY"),
   });
   return jwt;
 };
+
 /**
  * Decode jwt tra ve payload
  * @param {string} token
@@ -37,12 +37,12 @@ const decodeJWT = (token) => {
   if (!verified) return false;
   const jwsData = jws.decode(token);
   const payload = jwsData.payload;
-	const clockTimestamp = Math.floor(new Date() / 1000);
-	if(clockTimestamp >= payload.exp){
-		const error = new Error("jwt expired");
-		error.code = "TokenExpiredError";
-		throw error
-	}
+  const clockTimestamp = Math.floor(new Date() / 1000);
+  if (clockTimestamp >= payload.exp) {
+    const error = new Error("jwt expired");
+    error.code = "TokenExpiredError";
+    throw error
+  }
   return payload;
 };
 
@@ -53,7 +53,7 @@ const decodeJWT = (token) => {
  */
 const cryptoEncode = function (value) {
   let cipher = crypto.Cipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
-  let encodeString = cipher.update(value, 'utf8', 'hex')
+  let encodeString = cipher.update(value, 'utf8', 'hex');
   encodeString += cipher.final('hex');
   return encodeString;
 };

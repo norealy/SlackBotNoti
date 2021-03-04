@@ -1,6 +1,7 @@
 {
 	"type": "modal",
 	"notify_on_close": true,
+  "callback_id": "add-event",
 	"title": {
 		"type": "plain_text",
 		"text": "BOT NOTI CALENDARS ",
@@ -39,8 +40,7 @@
 					"text": "Select an item",
 					"emoji": true
 				},
-				"options": [
-				],
+				"options": [],
 				"action_id": "select_calendar"
 			}
 		},
@@ -83,7 +83,7 @@
 			"block_id": "select-date-start",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Date time event"
+				"text": "Date start"
 			},
 			"accessory": {
 				"type": "datepicker",
@@ -101,7 +101,7 @@
 			"block_id": "select-date-end",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Date end event"
+				"text": "Date end"
 			},
 			"accessory": {
 				"type": "datepicker",
@@ -119,7 +119,7 @@
 			"block_id": "select-time-start",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Time start event"
+				"text": "Time start"
 			},
 			"accessory": {
 				"type": "static_select",
@@ -128,32 +128,7 @@
 					"text": "select time start event",
 					"emoji": true
 				},
-				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-0"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-1"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-2"
-					}
-				],
+				"options": [],
 				"action_id": "time-start-action"
 			}
 		},
@@ -162,7 +137,7 @@
 			"block_id": "select-time-end",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Time end event"
+				"text": "Time end"
 			},
 			"accessory": {
 				"type": "static_select",
@@ -171,32 +146,7 @@
 					"text": "select time end event",
 					"emoji": true
 				},
-				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-0"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-1"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "*this is plain_text text*",
-							"emoji": true
-						},
-						"value": "value-2"
-					}
-				],
+				"options": [],
 				"action_id": "time-end-action"
 			}
 		},
@@ -227,19 +177,19 @@
         "initial_option": {
           "text": {
             "type": "plain_text",
-            "text": "Nomal",
+            "text": "No",
             "emoji": true
           },
-          "value": "value-0"
+          "value": "no"
         },
 				"options": [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Nomal",
+							"text": "No",
 							"emoji": true
 						},
-						"value": "value-0"
+						"value": "no"
 					},
 					{
 						"text": {
@@ -287,12 +237,20 @@
         "initial_option": {
           "text": {
             "type": "plain_text",
-            "text": "At time of event",
+            "text": "default",
             "emoji": true
           },
-          "value": "0"
+          "value": "default"
         },
 				"options": [
+          {
+            "text": {
+              "type": "plain_text",
+              "text": "default",
+              "emoji": true
+            },
+            "value": "default"
+          },
 					{
 						"text": {
 							"type": "plain_text",

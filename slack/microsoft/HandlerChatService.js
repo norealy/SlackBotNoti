@@ -6,7 +6,7 @@ const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
-const { getEvent } = require('./HandlerResourceServer');
+
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -32,13 +32,7 @@ const handlerBlocksActions = (payload, template, timePicker) => {
  */
 const handlerOverflowAction = async (payload, template) => {
   const value = payload.actions[0].selected_option.value.split('/');
-  const blockId = payload.actions[0].block_id.split('/');
-
   if (value[0] === "edit") {
-    const event = await getEvent(blockId[0], value[1]);
-    event.data.idCalendar = blockId[1];
-    payload.eventEditDT = event.data;
-    payload.idAcc = blockId[0];
     return handlerEditEvent(payload, template);
   }
   else if (value[0] === "delete") {

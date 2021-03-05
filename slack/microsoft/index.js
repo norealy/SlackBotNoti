@@ -78,6 +78,15 @@ class SlackMicrosoft extends BaseServer {
 		switch (type) {
 			case "block_actions":
         res.status(200).send();
+        if(payload.actions[0].action_id && payload.actions[0].action_id === "overflow-action" ){
+          const { getEvent } = require('./HandlerResourceServer');
+          const blockId = payload.actions[0].block_id.split('/');
+          const value = payload.actions[0].selected_option.value.split('/');
+          const event = await getEvent(blockId[0], value[1]);
+          event.data.idCalendar = blockId[1];
+          payload.eventEditDT = event.data;
+          payload.idAcc = blockId[0];
+        }
 				return handlerBlocksActions(payload, this.template, this.timePicker);
 			case "view_submission":
 				HandlerSubmitEvent(payload);
@@ -105,15 +114,13 @@ class SlackMicrosoft extends BaseServer {
 				await this.handlerEvent(event);
 			} else if (command && /^\/cal$/.test(command)) {
 				await this.handlerCommand(req.body);
-				const message = `Thank you call BOT-NOTI !`;
-				return res.status(200).send(message);
+				return res.status(200).send();
 			} else if (payload) {
 				await this.handlerPayload(payload, res);
 				return;
 			} else if (challenge) {
 				return res.status(200).send(challenge);
 			}
-			const message = `Thank you call BOT-NOTI !`;
 			return res.status(200).send();
 		} catch (error) {
 			const message = `Thank you call BOT-NOTI !
@@ -215,7 +222,6 @@ class SlackMicrosoft extends BaseServer {
         profileUser.id,
         payload.idChannel
       );
-
       return res.send("Successful !");
     } catch (e) {
       return res.send("Login Error !");

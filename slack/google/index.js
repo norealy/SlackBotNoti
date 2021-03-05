@@ -10,7 +10,6 @@ const Axios = require('axios');
 const {cryptoDecode, decodeJWT} = require('../../utils/Crypto');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
-const Moment = require('moment');
 
 const {
   getToken,
@@ -26,15 +25,12 @@ const {
   requestPostLogin,
   requestSettings,
   requestHome,
-  requestButtonSettings,
-  requestAddEvent,
+  configAddEvent,
+  configShowEvent,
   createEvent,
-  deleteEvent,
   updateEvent,
-  handarlerShowListEvent,
-  requestBlockActionsAllDay,
-  handlerDeleteEvent,
-  handlerUpdateEvent
+  deleteEvent,
+  handlerAction,
 } = require("./ChatService");
 const {
   getEventUpdate,
@@ -50,7 +46,28 @@ class SlackGoogle extends BaseServer {
   }
 
   /**
-   *
+   * lấy ra thông tin người dùng slack
+   * @param {string} id
+   * @return {Promise<unknown>}
+   */
+  getUserInfo(id) {
+    return new Promise((resolve, reject) => {
+      const option = {
+        method: 'Get',
+        headers: {'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
+        url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_USER_INFO")}?user=${id}`,
+      };
+      Axios(option)
+        .then(res => {
+          if (!res.data.ok) reject(res.data);
+          resolve(res.data)
+        })
+        .catch(reject)
+    })
+  }
+
+  /**
+   * Xử lý event
    * @param {object} req
    * @param {object} res
    */
@@ -62,10 +79,9 @@ class SlackGoogle extends BaseServer {
 
       switch (event.subtype) {
         case types.BOT_ADD:
+        case types.APP_JOIN:
           option = requestPostLogin(event, this.template, this.setUidToken);
           break;
-        // case types.APP_JOIN:
-        // case types.MEMBER_JOIN:
         case types.CHANNEL_JOIN:
           if (authorizations[0].user_id === event.user) {
             option = requestPostLogin(event, this.template, this.setUidToken);
@@ -75,7 +91,9 @@ class SlackGoogle extends BaseServer {
           break;
       }
 
-      if (option) await Axios(option);
+      if (option) await Axios(option).then(({data}) => {
+        if (!data.ok) throw data
+      });
 
       return res.status(200).send("OK");
     } catch (e) {
@@ -84,183 +102,200 @@ class SlackGoogle extends BaseServer {
   }
 
   /**
-   *
+   * Lấy danh sách calendar
+   * @param {string} channelId
+   * @return {Promise<[]>}
+   */
+  async getCalendarsInChannel(channelId) {
+    const channelCalendar = await ChannelsCalendar.query().where({id_channel: channelId});
+    const calendars = [];
+    for (let i = 0, length = channelCalendar.length; i < length; i++) {
+      const calendar = await GoogleCalendar.query().findById(channelCalendar[i].id_calendar);
+      calendars.push({
+        "text": {
+          "type": "plain_text",
+          "text": calendar.name,
+          "emoji": true
+        },
+        "value": calendar.id
+      });
+    }
+    return calendars
+  }
+
+  /**
+   * Xử lý sự kện add event
    * @param {object} body
+   * @return {Promise<{object}>}
+   */
+  async handlerAddEvent(body) {
+    const {user_id} = body;
+    body.userInfo = await this.getUserInfo(user_id);
+    body.calendars = await this.getCalendarsInChannel(body.channel_id);
+    return configAddEvent(body, this.template)
+  }
+
+  async handlerShowEvents(body) {
+    const {channel_id = null} = body;
+    const idChannel = await ChannelsCalendar.query().findOne({id_channel: channel_id});
+    const idCalendars = await GoogleAccountCalendar.query().findOne({id_calendar: idChannel.id_calendar});
+    body.idAccount = idCalendars.id_account;
+    const options = {
+      method: 'GET',
+      headers: {'X-Google-AccountId': body.idAccount},
+      url: `https://www.googleapis.com/calendar/v3/calendars/${idChannel.id_calendar}/events`
+    }
+    const events = await Axios(options);
+    if (events.data.items.length === 0) return null;
+    body.event = events.data.items[0];
+    body.idCalendar = idChannel.id_calendar;
+    return configShowEvent(body, this.template)
+  }
+
+  /**
+   * Xử lý command
+   * @param {object} req
+   * @param {object} res
    * @returns {Promise}
    */
-  handlerBodyText(body) {
-    const chat = body.text.trim();
-    const promise = new Promise((resolve) => resolve());
-    if (chat === "home") {
-      return requestHome(body, this.template.homePage);
-    } else if (chat === "settings") {
-      return requestSettings(body, this.template.systemSetting, this.setUidToken);
+  async handlerCommand(req, res) {
+    try {
+      res.status(200).send("OK");
+      const {text} = req.body;
+      let option = null;
+      const type = text.trim();
 
-    } else if (chat === "google add-event") {
-      return requestAddEvent(body, this.template.addEvent);
-    } else if (chat === "show-events") {
-      return handarlerShowListEvent(body, this.template)
-    } else {
-      return promise;
+      switch (type) {
+        case "home":
+          option = requestHome(req.body, this.template.homePage);
+          break;
+        case "settings":
+          option = requestSettings(req.body, this.template.systemSetting, this.setUidToken);
+          break;
+        case "go add-event":
+          option = await this.handlerAddEvent(req.body);
+          break;
+        case "show-events":
+          option = await this.handlerShowEvents(req.body);
+          break;
+        default:
+          option = null;
+          break
+      }
+
+      if (option) await Axios(option)
+        .then(({data}) => {
+          if (!data.ok) throw data
+        });
+    } catch (e) {
+      console.log("err", e)
+      res.status(204).send("Error");
     }
   }
 
   /**
-   *
-   * @param {object} body
-   * @param {object} payload
-   * @param {string} accessToken
-   * @returns {Promise}
+   * Xử lý submit open view
+   * @param payload
+   * @return {Promise<{object|null}>}
    */
-  async handlerPayLoad(body, payload) {
-    payload = JSON.parse(payload);
-    if (payload.type === "block_actions") {
+  async handlerSubmit(payload) {
+    const {callback_id} = payload.view;
+    const {values} = payload.view.state;
 
-      if (payload.actions[0].action_id === "btnSettings") {
-        return requestButtonSettings(payload, this.template.systemSetting);
-      } else if (payload.actions[0].action_id === "btnEventAdd") {
-        return requestAddEvent(payload, this.template.addEvent);
-      } else if (payload.actions[0].action_id === "allDay") {
-        const options = requestBlockActionsAllDay(payload, this.template);
-        await Axios(options);
-      } else if (payload.actions[0].action_id === "overflow-action") {
-        const value = payload.actions[0].selected_option.value.split('/');
-        const blockId = payload.actions[0].block_id.split('/');
-        if (value[0] === "edit") {
-          return handlerUpdateEvent(payload, this.template.editEvent);
-        } else if (value[0] === "delete") {
-          return handlerDeleteEvent(payload, this.template.deleteEvent)
-        }
-      }
-    } else if (payload.type === "view_submission" && payload.view.callback_id === 'deleteEvent') {
+    if (callback_id === "GO_add-event") {
+      const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
+      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+      const account = await GoogleAccount.query().findOne({id: id_account});
+      let option = {method: "POST"};
+      option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events`;
+      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.data = createEvent(values, account);
+      return option;
+    }
+    else if (callback_id === "GO_edit-event") {
+      const parseData = JSON.parse(payload.view.private_metadata)
+      const idEvent = parseData.idEvent
+      const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
+      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+      const account = await GoogleAccount.query().findOne({id: id_account});
+      let option = {method: "PUT"};
+      option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`
+      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.data = updateEvent(values, account);
+      return option;
+    }
+    else if (callback_id === "GO_delete-event") {
       const blockId = payload.view.blocks[0].block_id.split('/');
       const idEvent = blockId[1]
       const event = payload.view.blocks[1].block_id.split('/');
-      const idAccount = event[0]
+      const goAccount = event[0].split('GO_')
+      const idAccount = goAccount[1];
       return deleteEvent(idAccount, idEvent)
-    } else if (payload.type === "view_submission" && payload.view.callback_id === 'addEvent') {
-      console.log("add-event")
-      const idCalendar = payload.view.state.values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
-      try {
-        let event = {
-          "summary": payload.view.state.values["GO_input_title"]["input-action"].value,
-          "location": payload.view.state.values["GO_input_location"]["plain_text_input-action"].value,
+    }
 
-          "start": {
-            "timeZone": "Asia/Ho_Chi_Minh"
-          },
-          "end": {
-            "timeZone": "Asia/Ho_Chi_Minh"
-          },
-          "recurrence": [
-            `RRULE:FREQ=${payload.view.state.values["GO_select_everyday"]["static_select-action"]["selected_option"].value};`
-          ],
-          "reminders": {
-            "useDefault": false,
-            "overrides": [
-              {
-                "method": "email",
-                "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
-              },
-              {
-                "method": "popup",
-                "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
-              }
-            ]
+  }
+
+  /**
+   *
+   * @param {object} req
+   * @param {object} res
+   * @returns {Promise}
+   */
+  async handlerPayLoad(req, res) {
+    try {
+      let {payload} = req.body;
+      payload = JSON.parse(payload);
+      //const idEvent = payload.actions[0].selected_option.value.split('/')
+      if (payload.type === "block_actions" && payload.actions[0].action_id === "overflow-action") {
+        const user_id = payload.user.id;
+        const channel_id = payload.container.channel_id;
+        payload.userInfo = await this.getUserInfo(user_id);
+        payload.calendars = await this.getCalendarsInChannel(channel_id);
+        const value = payload.actions[0].selected_option.value.split('/');
+        if (value[0] === "edit") {
+          const event = payload.actions[0].selected_option.value.split('/');
+          const blockId = payload.actions[0].block_id.split('/')
+          const idCalendars = await GoogleAccountCalendar.query().findOne({id_calendar: blockId[1]});
+          const options = {
+            method: 'GET',
+            headers: {'X-Google-AccountId': idCalendars.id_account},
+            url: `https://www.googleapis.com/calendar/v3/calendars/${blockId[1]}/events/${event[1]}`
           }
-        };
-
-        if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options.length === 0) {
-          const dateTimeStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
-          const dateTimeEnd = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
-          event.start.dateTime = dateTimeStart;
-          event.end.dateTime = dateTimeEnd;
-        } else if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options[0].value === 'true') {
-          const dateAllDayStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}`;
-          const dateAllDayEnd = `${payload.view.state.values["GO_select-date-end"]["datepicker-action-end"]["selected_date"]}`;
-          event.start.date = dateAllDayStart;
-          event.end.date = dateAllDayEnd;
+          const result = await Axios(options);
+          console.log(result.data)
+          payload.event = result.data
         }
-
-        console.log("event Create", event)
-        return createEvent(event, idCalendar)
-      } catch (e) {
-        return e
       }
-    } else if (payload.type === "view_submission" && payload.view.callback_id === 'editEvent') {
-      console.log("edit nef")
-      const value = payload.view.blocks[0].block_id.split('/')
-      const idAccount = value[2]
-      const idEvent = value[1];
-      const idCalendar = payload.view.state.values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
-      let event = {
-        "summary": payload.view.state.values["GO_input_title"]["input-action"].value,
-        "location": payload.view.state.values["GO_input_location"]["plain_text_input-action"].value,
-
-        "start": {
-          "timeZone": "Asia/Ho_Chi_Minh"
-        },
-        "end": {
-          "timeZone": "Asia/Ho_Chi_Minh"
-        },
-        "recurrence": [
-          `RRULE:FREQ=${payload.view.state.values["GO_select_everyday"]["static_select-action"]["selected_option"].value};`
-        ],
-        "reminders": {
-          "useDefault": false,
-          "overrides": [
-            {
-              "method": "email",
-              "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
-            },
-            {
-              "method": "popup",
-              "minutes": parseInt(payload.view.state.values["GO_select_before_notification"]["static_select-action"]["selected_option"].value),
-            }
-          ]
-        }
-      };
-
-      if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options.length === 0) {
-        const dateTimeStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-start"]["time-start-action"]["selected_option"].value}:00+07:00`;
-        const dateTimeEnd = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}T${payload.view.state.values["GO_select-time-end"]["time-end-action"]["selected_option"].value}:00+07:00`;
-        event.start.dateTime = dateTimeStart;
-        event.end.dateTime = dateTimeEnd;
-      } else if (payload.view.state.values["GO_check_all_day"]["allDay"].selected_options[0].value === 'true') {
-        const dateAllDayStart = `${payload.view.state.values["GO_select-date-start"]["datepicker-action-start"]["selected_date"]}`;
-        const dateAllDayEnd = `${payload.view.state.values["GO_select-date-end"]["datepicker-action-end"]["selected_date"]}`;
-        event.start.date = dateAllDayStart;
-        event.end.date = dateAllDayEnd;
+      let option = null;
+      switch (payload.type) {
+        case "block_actions":
+          option = handlerAction(payload, this.template);
+          res.status(200).send("OK");
+          break;
+        case "view_submission":
+          res.status(200).send({"response_action": "clear"});
+          option = await this.handlerSubmit(payload);
+          break;
+        default:
+          option = null
       }
-      console.log("event", event)
-      return updateEvent(event, idCalendar, idEvent, idAccount)
+      if (option) await Axios(option).then(({data})=>console.log(data));
+    } catch (e) {
+      console.log("err", e)
+      return res.status(204).send("Error");
     }
   }
 
   async chatServiceHandler(req, res, next) {
-    let {
-      challenge = null,
-      event = null,
-      payload = null,
-      command = null,
-    } = req.body;
+    const {challenge, event, command, payload} = req.body;
     try {
-      if (challenge) {
-        return res.status(200).send(challenge);
-      }
-      if (event) {
-        return this.handlerEvent(req, res);
-      } else if (command && /^\/cal$/.test(command)) {
-        await this.handlerBodyText(req.body);
-        return res.status(200).send("OK");
-      }
-      if (payload) {
-        await this.handlerPayLoad(req.body, payload);
-        return res.status(200).send({"response_action": "clear"});
-      }
-    } catch (error) {
-      console.log("err", error.response.data)
-      return res.status(403).send("Error");
+      if (challenge) return res.status(200).send(challenge);
+      if (event) return this.handlerEvent(req, res);
+      if (command && /^\/ca$/.test(command)) return this.handlerCommand(req, res);
+      if (payload) return this.handlerPayLoad(req, res);
+      return res.status(200).send("OK");
+    } catch (err) {
+      return res.status(204).send("Error");
     }
   }
 
@@ -379,7 +414,6 @@ class SlackGoogle extends BaseServer {
       const decode = cryptoDecode(req.headers['x-goog-channel-token']);
       const {idAccount, idCalendar} = JSON.parse(decode);
       let event = await getEventUpdate(req.headers, idAccount);
-      console.log("eventgoogle", event)
       if (event.status === 'cancelled') {
         event = await getEvent(idCalendar, event.id, idAccount);
         if (!event.summary) return res.status(204).send("OK");
@@ -389,7 +423,6 @@ class SlackGoogle extends BaseServer {
       const arrChannelCalendar = await ChannelsCalendar.query().where({id_calendar: idCalendar, watch: true});
       await Promise.all(arrChannelCalendar.map(item => sendWatchNoti(item.id_channel, this.template.showEvent.blocks, event)));
       return res.status(204).send("OK");
-
     } catch (e) {
       return res.status(204).send("ERROR");
     }

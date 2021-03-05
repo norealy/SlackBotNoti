@@ -5,7 +5,12 @@ const Moment = require('moment');
 const {createJWT} = require('../../utils/Crypto');
 const {blockTime} = require('../../utils/ConvertTime');
 const {v4: uuidv4} = require('uuid');
+const Template = require("../views/Template");
 require('moment-precise-range-plugin');
+const ChannelsCalendar = require('../../models/ChannelsCalendar');
+const GoogleAccountCalendar = require('../../models/GoogleAccountCalendar');
+const GoogleCalendar = require("../../models/GoogleCalendar");
+
 
 /**
  * Cấu hình đường dẫn redirect login google
@@ -86,7 +91,7 @@ const requestSettings = (body, systemSetting, setUidToken) => {
     "trigger_id": trigger_id,
     "view": systemSetting,
   };
-  return Axios(option);
+  return option;
 };
 
 /**
@@ -109,6 +114,60 @@ const requestHome = (body, homePage) => {
   return option;
 };
 
+/**
+ * Cấu hình request view add event
+ * @param {object} body
+ * @param {object} template
+ * @return {object}
+ */
+const configAddEvent = (body, template) => {
+  const {trigger_id, calendars, userInfo} = body;
+  const view = {
+    ...template.addEvent,
+    blocks: [...template.addEvent.blocks]
+  };
+
+  // chọn calendar default cho view add event
+  view.blocks[1].accessory.initial_option = calendars[0];
+  view.blocks[1].accessory.options = calendars;
+
+  // lấy thời gian theo timezone người dùng slack
+  const dateNow = new Date();
+  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format();
+  view.blocks[4].accessory.initial_date = Moment(dateTime).format("YYYY-MM-DD");
+
+  // xử lý time start, time end default
+  let startTime = blockTime(dateTime);
+  let endTime = blockTime(Moment(dateTime).add(15, 'm').format());
+
+  // sau 23:30 --> 00:00 thì ngày khởi tạo event sẽ là ngày mới, thời gian
+  // khởi tạo event là 00:00
+  const time = Moment(dateTime).format("hh:mm").split(":");
+  if (parseInt(time[0]) === 23 && parseInt(time[1]) >= 30) {
+    startTime = "00:00";
+    endTime = "00:15";
+    const timezone = Moment(dateTime).format("Z");
+    dateTime = `${Moment(dateTime).add(1, 'd')}T${startTime}:00${timezone}`
+  }
+
+  // gán time default cho view
+  view.blocks[6].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": startTime,
+      "emoji": true
+    },
+    "value": startTime
+  };
+  view.blocks[7].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": endTime,
+      "emoji": true
+    },
+    "value": endTime
+  };
+
   // lưu dữ liệu cache vào view phục vụ cho update view về sau
   view.private_metadata = JSON.stringify({...userInfo, dateTime, durationTime: 15, startTime});
   view.blocks.splice(5, 1);
@@ -126,6 +185,44 @@ const requestHome = (body, homePage) => {
   return option
 };
 
+
+/**
+ *
+ * @param {object}body
+ * @param {object}template
+ * @returns {Promise}
+ */
+const configShowEvent = (body, template) => {
+  const {event, idAccount, idCalendar, channel_id} = body
+  const blocksView = [...template.listEvent.blocks];
+
+  blocksView[1].block_id = `GO_${idAccount}/${idCalendar}`;
+  blocksView[1].accessory.options[0].value = `edit/${event.id}`;
+  blocksView[1].accessory.options[1].value = `delete/${event.id}`;
+  blocksView[1].fields[0].text = event.summary;
+  //console.log("okes", blocksView[1].fields)
+  if(event.start.date && event.end.date){
+    blocksView[1].fields[1].text = event.start.date
+    blocksView[1].fields[3].text = event.end.date
+  } else{
+    blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
+  }
+  const option = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`,
+    },
+    data: {
+      channel: channel_id,
+      blocks: blocksView,
+    },
+    url:
+      Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_POST_MESSAGE"),
+  };
+  return option
+}
 /**
  * xử lý action All đây
  * @param {object} payload
@@ -199,7 +296,7 @@ function handlerStartDate(payload, blocks) {
     blocks[5].accessory.initial_date = selectedDate
   }
   view.blocks.splice(5, 1, blocks[5]);
-  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -208,7 +305,7 @@ function handlerStartDate(payload, blocks) {
 }
 
 function _getSelectedDate(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
@@ -216,7 +313,7 @@ function _getSelectedDate(values, blockId, actionId) {
 }
 
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -235,8 +332,10 @@ function handlerEndDate(payload, blocks) {
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = _getSelectedDate(values, "GO_select-date-end", "datepicker-action-end");
   const dateTime = priMetadata.dateTime.split("T")[0];
+  // check all day
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
-  if(diff.firstDateWasLater) {
+  console.log(diff);
+  if (diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime)
         .add(priMetadata.durationDay, 'd')
@@ -245,7 +344,7 @@ function handlerEndDate(payload, blocks) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime).format("YYYY-MM-DD")
     }
     view.blocks.splice(5, 1, blocks[5]);
-    if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+    if (view.blocks[5].block_id === 'GO_select-date-end-1') {
       view.blocks[5].block_id = "GO_select-date-end"
     } else {
       view.blocks[5].block_id = "GO_select-date-end-1"
@@ -256,7 +355,7 @@ function handlerEndDate(payload, blocks) {
   view.private_metadata = JSON.stringify(priMetadata);
   blocks[5].accessory.initial_date = selectedDate;
   view.blocks.splice(5, 1, blocks[5]);
-  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -282,7 +381,7 @@ function handlerStartTime(payload) {
   const datetimeStart = `${date}T${selectedTime}:00${timezone}`;
   const datetimeEnd = `${date}T${timeEnd}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if(diff.firstDateWasLater || selectedTime === timeEnd){
+  if (diff.firstDateWasLater || selectedTime === timeEnd) {
     view.blocks[5].accessory.initial_option = {
       "text": {
         "type": "plain_text",
@@ -291,7 +390,7 @@ function handlerStartTime(payload) {
       },
       "value": blockTime(priMetadata.dateTime)
     };
-    if(view.blocks[5].block_id === 'GO_select-time-start-1'){
+    if (view.blocks[5].block_id === 'GO_select-time-start-1') {
       view.blocks[5].block_id = "GO_select-time-start"
     } else {
       view.blocks[5].block_id = "GO_select-time-start-1"
@@ -300,7 +399,7 @@ function handlerStartTime(payload) {
   }
 
   priMetadata.dateTime = datetimeStart;
-  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
@@ -323,7 +422,7 @@ function handlerEndTime(payload) {
   const datetimeStart = `${date}T${timeStart}:00${timezone}`;
   const datetimeEnd = `${date}T${selectedTime}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if(diff.firstDateWasLater || selectedTime === timeStart){
+  if (diff.firstDateWasLater || selectedTime === timeStart) {
     let timeEnd = Moment(datetimeStart).add(priMetadata.durationTime, 'm').format();
     timeEnd = blockTime(timeEnd);
     view.blocks[6].accessory.initial_option = {
@@ -334,19 +433,154 @@ function handlerEndTime(payload) {
       },
       "value": timeEnd
     };
-    if(view.blocks[6].block_id === 'GO_select-time-end-1'){
+    if (view.blocks[6].block_id === 'GO_select-time-end-1') {
       view.blocks[6].block_id = "GO_select-time-end"
     } else {
       view.blocks[6].block_id = "GO_select-time-end-1"
     }
     return view;
   }
-
   priMetadata.dateTime = datetimeStart;
-  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
+
+const handlerDeleteEvent = async (payload, template) => {
+  const option = {method: "POST"};
+  option.url = Env.chatServiceGOF('API_URL');
+  option.url += Env.chatServiceGOF('API_VIEW_OPEN');
+  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
+  let deleteEvents = JSON.stringify(template);
+  deleteEvents = JSON.parse(deleteEvents)
+  const {trigger_id} = payload;
+  option.data = {
+    "trigger_id": trigger_id,
+    "view": deleteEvents
+  };
+  const blockId = payload.actions[0].block_id.split('/')
+  const idCalendar = await GoogleCalendar.query().where({id: blockId[1]});
+  const nameCalendar = await GoogleCalendar.query().where({name: idCalendar[0].name});
+  const names = nameCalendar[0].name;
+  option.data.view.blocks[0].text.text += payload.message.blocks[1].fields[0].text
+  option.data.view.blocks[0].block_id = payload.actions[0]["selected_option"].value
+  option.data.view.blocks[1].block_id = payload.actions[0].block_id;
+  option.data.view.blocks[1].text.text += names
+  return await Axios(option)
+}
+
+const handlerUpdateEvent = (payload, template) => {
+ // console.log("payload",payload.message.blocks[1].fields)
+  const {trigger_id, calendars, userInfo, event} = payload;
+  console.log(calendars);
+  const view = {
+    ...template.editEvent,
+    blocks: [...template.editEvent.blocks]
+  };
+  //console.log("payload",payload.message.blocks[1].fields)
+  // Date start
+   const dateStart = payload.message.blocks[1].fields[1].text.split('');
+   // Date end
+   const dateEnd = payload.message.blocks[1].fields[3].text;
+
+  // tiêu đều
+  const tiltle = payload.message.blocks[1].fields[0].text;
+  // time start end
+  const timeCalendars =  payload.message.blocks[1].fields[1].text.split('-');
+ // địa chỉ
+  const location =  payload.message.blocks[1].fields[2].text;
+  // Date
+  const date =  payload.message.blocks[1].fields[3].text;
+  const blockId = payload.actions[0].block_id.split('/')
+  const idCalendars = blockId[1];
+
+  const idEvent = event.id
+  // chọn calendar default cho view add event
+  view.blocks[1].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": event.organizer.displayName,
+      "emoji": true
+    },
+    "value": event.organizer.email
+  };
+  view.blocks[1].accessory.options = calendars;
+  view.blocks[2].element.initial_value = event.summary
+
+  // lấy thời gian theo timezone người dùng slack
+  const dateNow = new Date();
+  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format();
+  view.blocks[4].accessory.initial_date = date
+  // xử lý time start, time end default
+  let startTime = blockTime(dateTime);
+  let endTime = blockTime(Moment(dateTime).add(15, 'm').format());
+
+  // sau 23:30 --> 00:00 thì ngày khởi tạo event sẽ là ngày mới, thời gian
+  // khởi tạo event là 00:00
+  const time = Moment(dateTime).format("hh:mm").split(":");
+  if (parseInt(time[0]) === 23 && parseInt(time[1]) >= 30) {
+    startTime = "00:00";
+    endTime = "00:15";
+    const timezone = Moment(dateTime).format("Z");
+    dateTime = `${Moment(dateTime).add(1, 'd')}T${startTime}:00${timezone}`
+  }
+  //gán time default cho view
+  const timeStart = blockTime(event.start.dateTime);
+  const timeEnd = blockTime(event.end.dateTime);
+  console.log("timeStart",timeStart)
+  console.log("timeEnd",timeEnd)
+  view.blocks[6].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": timeStart,
+      "emoji": true
+    },
+    "value": timeStart
+  };
+  view.blocks[7].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": timeEnd,
+      "emoji": true
+    },
+    "value": timeEnd
+  };
+  view.blocks[8].element.initial_value = event.location
+  const recurrence = event.recurrence[0].split('=')
+  console.log(recurrence[1])
+  if(recurrence[1]==="DAILY"){
+    view.blocks[9].element.initial_option = {
+      text: { type: 'plain_text', text: 'Every day', emoji: true }, value: `${recurrence[1]}`
+    }
+  }
+  else if(recurrence[1]==="WEEKLY") {
+    view.blocks[9].element.initial_option = {
+      text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
+    }
+  }
+  else if(recurrence[1]==="MONTHLY"){
+      view.blocks[9].element.initial_option = {
+        text: { type: 'plain_text', text: 'Every month', emoji: true }, value: `${recurrence[1]}`
+      }
+  }
+/////
+  // lưu dữ liệu cache vào view phục vụ cho update view về sau
+  view.private_metadata = JSON.stringify({...userInfo, dateTime, durationTime: 15, startTime, idEvent});
+  view.blocks.splice(5, 1);
+
+  return view
+}
+
+function handlerOverflow(payload, template) {
+  const value = payload.actions[0].selected_option.value.split('/');
+  if (value[0] === "edit") {
+    return handlerUpdateEvent(payload, template);
+  }
+  if (value[0] === "delete") {
+    return handlerDeleteEvent(payload, template.deleteEvent)
+  }
+}
+
 
 /**
  * Xóa các thành phần của view
@@ -354,7 +588,7 @@ function handlerEndTime(payload) {
  * @return {object}
  */
 function delPropsView(payload) {
-  if(payload.view){
+  if (payload.view) {
     delete payload.view.id;
     delete payload.view.team_id;
     delete payload.view.hash;
@@ -386,7 +620,7 @@ function handlerAction(payload, template) {
       "view": payload.view,
     }
   };
-  switch(action_id) {
+  switch (action_id) {
     case "allDay":
       option.data.view = handlerAllDay(changePayload, blocks);
       break;
@@ -402,12 +636,21 @@ function handlerAction(payload, template) {
     case "time-end-action":
       option.data.view = handlerEndTime(changePayload);
       break;
+    case "overflow-action":
+      delete option.data.view_id
+      option.url = `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_OPEN")}`,
+      option.data.trigger_id = changePayload.trigger_id
+      option.data.view = handlerOverflow(changePayload, template);
+      break;
     default:
       option = null;
       break;
   }
-
-  if(option) delete option.data.view.state;
+  // check view update
+    //console.log("Optin",option.data.view.blocks[9].element.initial_option)
+  // check all day
+  console.log("payload",payload)
+  if (option) delete option.data.view.state;
   return option
 }
 
@@ -438,101 +681,7 @@ const requestButtonSettings = (payload, systemSetting,) => {
   option.data.view.blocks[3].elements[0].url = configUrlAuth(accessToken);
   return Axios(option);
 };
-const handarlerShowListEvent = async (body, template) => {
-  const {channel_id = null} = body;
-  const blocksView = [...template.listEvent.blocks];
-  const idChannel = await ChannelsCalendar.query().where({id_channel: channel_id});
-  const idCalendars = await GoogleAccountCalendar.query().where({id_calendar: idChannel[0].id_calendar});
-  const idAccount = idCalendars[0].id_account;
-  //const idCalendar = idChannel[0].id_calendar;
-  const options = {
-    method: 'GET',
-    headers: {'X-Google-AccountId': idAccount},
-    url: `https://www.googleapis.com/calendar/v3/calendars/primary/events`
-  }
-  const events = await Axios(options);
-  if (!events) return;
-  const event = events.data.items[0];
-  blocksView[1].block_id = `${idAccount}/${idCalendars[0].id_calendar}`;
-  blocksView[1].accessory.options[0].value = `edit/${event.id}`;
-  blocksView[1].accessory.options[1].value = `delete/${event.id}`;
-  blocksView[1].fields[0].text = event.summary;
-  blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
-  const options1 = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`,
-    },
-    data: {
-      channel: channel_id,
-      blocks: blocksView,
-    },
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_POST_MESSAGE"),
-  };
-  return Axios(options1)
-}
-const handlerUpdateEvent = async (payload, template) => {
-  console.log("okeeee")
-  let editEvent = JSON.stringify(template);
-  editEvent = JSON.parse(editEvent);
-  const option = {method: "POST"};
-  option.url = Env.chatServiceGOF('API_URL');
-  option.url += Env.chatServiceGOF('API_VIEW_OPEN');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-  const {trigger_id = null, channel = null} = payload;
-  option.data = {
-    "trigger_id": trigger_id,
-    "view": editEvent
-  };
-  const chanCals = await ChannelsCalendar.query().where({id_channel: channel.id});
-  for (let i = 0; i < chanCals.length; i++) {
-    const item = chanCals[i];
-    const calendar = await GoogleCalendar.query().findById(item.id_calendar);
-    const selectCalendars = {
-      "text": {
-        "type": "plain_text",
-        "text": calendar.name,
-        "emoji": true
-      },
-      "value": calendar.id
-    };
-    option.data.view.blocks[1].accessory.options.push(selectCalendars);
-  }
 
-  option.data.view.blocks[0].block_id = payload.actions[0].selected_option.value
-  option.data.view.blocks[0].block_id += '/' + `${payload.actions[0].block_id}`
-  option.data.view.blocks.splice(5, 1);
-
-  return Axios(option)
-}
-const handlerDeleteEvent = async (payload, deteleEvent) => {
-
-  const option = {method: "POST"};
-  option.url = Env.chatServiceGOF('API_URL');
-  option.url += Env.chatServiceGOF('API_VIEW_OPEN');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-
-  let deleteEvents = JSON.stringify(deteleEvent);
-  deleteEvents = JSON.parse(deleteEvents)
-
-  const {trigger_id} = payload;
-  option.data = {
-    "trigger_id": trigger_id,
-    "view": deleteEvents
-  };
-  const blockId = payload.actions[0].block_id.split('/')
-  const idCalendar = await GoogleCalendar.query().where({id: blockId[1]});
-  const nameCalendar = await GoogleCalendar.query().where({name: idCalendar[0].name});
-  const names = nameCalendar[0].name;
-  option.data.view.blocks[0].text.text += payload.message.blocks[1].fields[0].text
-  option.data.view.blocks[0].block_id = payload.actions[0]["selected_option"].value
-  option.data.view.blocks[1].block_id = payload.actions[0].block_id;
-  option.data.view.blocks[1].text.text += names
-  return Axios(option)
-}
 /**
  * Lấy ra timezone offset
  * @param {string} country
@@ -549,6 +698,7 @@ function getTZOffset(country) {
  * @returns {Promise}
  */
 const createEvent = (values, account) => {
+
   let timezone = getTZOffset(account.timezone);
   const location = values["GO_input_location"]["plain_text_input-action"].value;
   const recurrence = values["GO_select_everyday"]["static_select-action"]["selected_option"].value;
@@ -558,14 +708,14 @@ const createEvent = (values, account) => {
 
   const event = {};
   event["summary"] = values["GO_input_title"]["input-action"].value;
-  if(location) event["location"] = location.trim();
-  event["start"] = { "timeZone": account.timezone };
-  event["end"] = { "timeZone": account.timezone };
-  if(recurrence !== "no") event["recurrence"] = [
+  if (location) event["location"] = location.trim();
+  event["start"] = {"timeZone": account.timezone};
+  event["end"] = {"timeZone": account.timezone};
+  if (recurrence !== "no") event["recurrence"] = [
     `RRULE:FREQ=${recurrence};`
   ];
 
-  if(noti !== "default"){
+  if (noti !== "default") {
     event["reminders"] = {};
     event["reminders"].useDefault = false;
     event["reminders"].overrides = [
@@ -596,6 +746,61 @@ const createEvent = (values, account) => {
   }
   return event;
 };
+const updateEvent = (values, account) => {
+
+  let timezone = getTZOffset(account.timezone);
+  const location = values["GO_input_location"]["plain_text_input-action"].value;
+  const recurrence = values["GO_select_everyday"]["static_select-action"]["selected_option"].value;
+  const noti = values["GO_select_before_notification"]["static_select-action"]["selected_option"].value;
+  const addDay = values["GO_check_all_day"]["allDay"]["selected_options"];
+  const startDate = values["GO_select-date-start"]["datepicker-action-start"]["selected_date"];
+
+  const event = {};
+  event["summary"] = values["GO_input_title"]["input-action"].value;
+  if (location) event["location"] = location.trim();
+  event["start"] = {"timeZone": account.timezone};
+  event["end"] = {"timeZone": account.timezone};
+  if (recurrence !== "no") event["recurrence"] = [
+    `RRULE:FREQ=${recurrence};`
+  ];
+
+  if (noti !== "default") {
+    event["reminders"] = {};
+    event["reminders"].useDefault = false;
+    event["reminders"].overrides = [
+      {
+        "method": "email",
+        "minutes": parseInt(noti),
+      },
+      {
+        "method": "popup",
+        "minutes": parseInt(noti),
+      }
+    ];
+  }
+
+  if (addDay.length === 0) {
+    const timeStart = _getSelectedOption(values, "GO_select-time-start", "time-start-action");
+    const timeEnd = _getSelectedOption(values, "GO_select-time-end", "time-end-action");
+
+    const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
+    const dateTimeEnd = `${startDate}T${timeEnd}:00${timezone}`;
+
+    event.start.dateTime = dateTimeStart;
+    event.end.dateTime = dateTimeEnd;
+  } else {
+    const endDate = _getSelectedDate(values, "GO_select-date-end", "datepicker-action-end");
+    event.start.date = startDate;
+    event.end.date = endDate;
+  }
+  return event;
+};
+const deleteEvent = (idAccount, idEvent) => {
+  const option = {method: "DELETE"};
+  option.url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${idEvent}`;
+  option.headers = {'X-Google-AccountId': idAccount};
+  return option
+}
 
 module.exports = {
   requestPostLogin,
@@ -603,11 +808,9 @@ module.exports = {
   requestHome,
   requestButtonSettings,
   configAddEvent,
+  configShowEvent,
   createEvent,
-  deleteEvent,
   updateEvent,
-  handarlerShowListEvent,
-  handlerDeleteEvent,
-  handlerUpdateEvent,
+  deleteEvent,
   handlerAction,
 };

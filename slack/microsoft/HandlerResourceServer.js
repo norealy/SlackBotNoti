@@ -20,14 +20,7 @@ const getEvent = (idUser, idEvent) => {
     },
     url: `${Env.resourceServerGOF("GRAPH_URL")}${Env.resourceServerGOF("GRAPH_MY_EVENT")}/${idEvent}`
   };
-  return new Promise((resolve, reject) => {
-    axios(options).then((data) => {
-      return resolve(data);
-    }).catch((error) => {
-      return resolve(error);
-      // return reject(error);
-    });
-  })
+  return axios(options);
 }
 /**
  *
@@ -65,7 +58,6 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
-  console.log(JSON.stringify(options.data.blocks))
   options.data.blocks[0].elements[0].image_url = 'https://apis.iceteait.com/public/icon/MICROSOFT.png';
   options.data.blocks[1].fields[0].text = `*${event.subject}*`;
   options.data.blocks[1].fields[1].text = `*Calendar: ${event.nameCalendar}*`;

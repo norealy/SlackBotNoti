@@ -1,40 +1,38 @@
 {
+	"type": "modal",
+	"notify_on_close": true,
 	"title": {
 		"type": "plain_text",
-		"text": "BOT NOTI CALENDARS",
+		"text": "BOT NOTI CALENDARS ",
 		"emoji": true
 	},
-	"type": "modal",
+	"submit": {
+		"type": "plain_text",
+		"text": "Delete",
+		"emoji": true
+	},
 	"close": {
 		"type": "plain_text",
 		"text": "Close",
 		"emoji": true
 	},
+  "callback_id": "delete-event",
 	"blocks": [
 		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"emoji": true,
-						"text": "YES"
-					},
-					"style": "primary",
-					"action_id": "buttonUpdate"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"emoji": true,
-						"text": "NO !"
-					},
-					"style": "danger",
-					"action_id": "buttonDelete"
-				}
-			]
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Delete event : ",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "Event of calendar : ",
+				"emoji": true
+			}
 		}
 	]
 }

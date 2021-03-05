@@ -160,7 +160,13 @@ function handlerStartDate(payload, blocks) {
   }
   return view
 }
-
+/**
+ * Get value select date
+ * @param {Object} values
+ * @param {string} blockId
+ * @param {string} actionId
+ * @returns {string}
+ */
 function _getSelectedDate(values, blockId, actionId) {
   if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_date"];
@@ -168,6 +174,13 @@ function _getSelectedDate(values, blockId, actionId) {
     return values[blockId][actionId]["selected_date"];
   }
 }
+/**
+ * Get value select options
+ * @param {Object} values
+ * @param {string} blockId
+ * @param {string} actionId
+ * @returns {string}
+ */
 function _getSelectedOption(values, blockId, actionId) {
   if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_option"].value;

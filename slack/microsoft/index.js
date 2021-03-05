@@ -278,7 +278,7 @@ class SlackMicrosoft extends BaseServer {
     try {
       if (event) {
         return this.handlerEvent(req, res);
-      } else if (command && /^\/ca$/.test(command)) {
+      } else if (command && /^\/cal$/.test(command)) {
         res.status(200).send();
         return this.handlerCommand(req, res);
       } else if (payload) {

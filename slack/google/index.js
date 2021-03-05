@@ -160,7 +160,7 @@ class SlackGoogle extends BaseServer {
           break
       }
 
-      if (option) Axios(option)
+      if (option) await Axios(option)
         .then(({data}) => {
           if (!data.ok) throw data
         });
@@ -221,6 +221,7 @@ class SlackGoogle extends BaseServer {
         default:
           option = null
       }
+
       if (option) await Axios(option);
     } catch (e) {
       return res.status(204).send("Error");

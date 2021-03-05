@@ -415,7 +415,7 @@ function delPropsView(payload) {
     delete payload.view.app_installed_team_id;
     delete payload.view.bot_id;
   }
-  return payload;
+  return payload
 }
 
 /**

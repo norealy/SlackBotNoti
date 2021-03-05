@@ -1,16 +1,17 @@
 {
-	"BOT_TOKEN": "xoxb-1646068754818-1797489737558-p4k01dEsqDxSpfJfCoqg9ov8",
+  "BOT_TOKEN": "xoxb-1646068754818-1797489737558-p4k01dEsqDxSpfJfCoqg9ov8",
   "BOT_USER": "U01PFEDMPGE",
-	"API_URL": "https://slack.com/api",
-	"API_POST_MESSAGE": "/chat.postMessage",
-	"API_VIEW_PUBLISH": "/views.publish",
-	"API_VIEW_OPEN": "/views.open",
-	"API_VIEW_UPDATE": "/views.update",
-	"API_VIEW_PUSH": "/views.push",
-	"API_CHANNEL_INFO": "/conversations.info?channel=",
-	"TYPE": {
-		"BOT_ADD": "bot_add",
-		"APP_JOIN": "app_conversation_join",
-		"CHANNEL_JOIN": "channel_join"
-	}
+  "API_URL": "https://slack.com/api",
+  "API_POST_MESSAGE": "/chat.postMessage",
+  "API_VIEW_PUBLISH": "/views.publish",
+  "API_VIEW_OPEN": "/views.open",
+  "API_VIEW_UPDATE": "/views.update",
+  "API_VIEW_PUSH": "/views.push",
+  "API_USER_INFO": "/users.info",
+  "API_CHANNEL_INFO": "/conversations.info?channel=",
+  "TYPE": {
+    "BOT_ADD": "bot_add",
+    "APP_JOIN": "app_conversation_join",
+    "CHANNEL_JOIN": "channel_join"
+  }
 }

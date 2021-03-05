@@ -16,7 +16,7 @@
 		"text": "Close",
 		"emoji": true
 	},
-  "callback_id":"deleteEvent",
+  "callback_id": "delete-event",
 	"blocks": [
 		{
 			"type": "header",

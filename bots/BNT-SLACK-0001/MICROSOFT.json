@@ -18,7 +18,7 @@
 		"GRAPH_SUB": "/v1.0/subscriptions",
 		"GRAPH_MY_EVENT": "/v1.0/me/events",
 		"SUB_CHANGETPYE": "created,updated,deleted",
-		"SUB_NOTIFICATION_URL": "https://cc0ae3feb8bb.ngrok.io/watch/resource-server",
+		"SUB_NOTIFICATION_URL": "https://b33e00341135.ngrok.io/watch/resource-server",
 		"RESPONSE_TYPE": "code",
 		"RESPONSE_MODE": "query"
 	}

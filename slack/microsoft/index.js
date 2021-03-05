@@ -4,6 +4,11 @@ const { cryptoDecode } = require("../../utils/Crypto");
 const Template = require("../views/Template");
 const { decodeJWT } = require("../../utils/Crypto");
 const AxiosConfig = require('./Axios');
+const Axios = require('axios');
+const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
+const ChannelsCalendar = require("../../models/ChannelsCalendar");
+const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
+const MicrosoftAccount = require("../../models/MicrosoftAccount");
 
 const {
   getToken,
@@ -16,13 +21,13 @@ const {
   saveChannelCalendar,
 } = require("./Auth");
 const {
-	sendMessageLogin,
-	handlerSettingsMessage,
-	handlerAddEvent,
-	handlerBlocksActions,
-	submitAddEvent,
-  handlerShowEvents,
-  actionDelEvent
+  sendMessageLogin,
+  handlerSettingsMessage,
+  configAddEvent,
+  handlerBlocksActions,
+  submitAddEvent,
+  configShowEvents,
+  submitDelEvent
 } = require("./HandlerChatService");
 const {
   handlerCreated,
@@ -38,85 +43,219 @@ class SlackMicrosoft extends BaseServer {
   }
 
   /**
+   * Xử lý sự kện add event
+   * @param {object} body
+   * @return {Promise<{object}>}
+   */
+  async handlerAddEvent(body) {
+    const { user_id } = body;
+    body.userInfo = await this.getUserInfo(user_id);
+    body.calendars = await this.getCalendarsInChannel(body.channel_id);
+    return configAddEvent(body, this.template)
+  }
+
+  /**
    * Xu ly cac event
    * @param {object} event
    * @returns {Promise}
    */
-  handlerEvent(event) {
+  async handlerEvent(req, res) {
+    const { event } = req.body;
     const { subtype, user } = event;
-    const { loginResource } = this.template;
+    let option = null;
     const type = Env.chatServiceGOF("TYPE")
     if (
       subtype === type.BOT_ADD ||
       (subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
-    )
-      return sendMessageLogin(event, loginResource, this.setUidToken);
+    ) {
+      option = sendMessageLogin(event, this.template, this.setUidToken);
+    }
+    if (option) await Axios(option).then(({ data }) => {
+      if (!data.ok) throw data
+    });
+    return res.status(200).send("OK");
+  }
+  /**
+   * get events in calendar
+   * @param {string} idAccount
+   * @param {string} idCalendar
+   * @returns {Object} option
+   */
+  getEventsInCalendar = (idAccount, idCalendar) => {
+    const options = {
+      method: 'GET',
+      headers: { 'X-Microsoft-AccountId': idAccount },
+      url:
+        Env.resourceServerGOF("GRAPH_URL") +
+        Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
+    };
+    return options;
+  }
+  /**
+   * Xử lý sự kện add event
+   * @param {object} body
+   * @return {Promise<{object}>}
+   */
+  async handlerShowEvents(body) {
+    const { channel_id = null } = body;
+    const chanCals = await ChannelsCalendar.query().where({ id_channel: channel_id });
+    const AccCals = await MicrosoftAccountCalendar.query().where({ id_calendar: chanCals[0].id_calendar });
+    const idAccount = AccCals[0].id_account;
+    const idCalendar = chanCals[0].id_calendar;
+    const options = this.getEventsInCalendar(idAccount, idCalendar);
+    const events = await Axios(options);
+    if (!events) return null;
+    body.events = events;
+    body.idAccount = idAccount;
+    body.idCalendar = idCalendar;
+    return configShowEvents(body, this.template)
+  }
+  /**
+   * Xử lý command
+   * @param {object} req
+   * @param {object} res
+   * @returns {Promise}
+   */
+  async handlerCommand(req, res) {
+    try {
+      let text = req.body.text.trim();
+      let option = null;
+      const { systemSetting } = this.template;
+      switch (text) {
+        case "settings":
+          option = handlerSettingsMessage(systemSetting, req.body);
+          break;
+        case "mi add-event":
+          option = await this.handlerAddEvent(req.body);
+          break;
+        case "mi show-events":
+          option = await this.handlerShowEvents(req.body);
+          break;
+        default:
+          option = null;
+          break;
+      }
+      if (option) Axios(option)
+        .then(({ data }) => {
+          if (!data.ok) throw data
+        });
+    } catch (error) {
+      res.status(204).send("Command error");
+    }
   }
 
-	/**
-	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
-	 * @param {object} body
-	 * @returns {Promise}
-	 */
-	handlerCommand(body) {
-		let text = body.text.trim();
-		const {systemSetting} = this.template;
-		const result = new Promise((resolve) => resolve(body));
-		switch (text) {
-			case "settings":
-				return handlerSettingsMessage(systemSetting, body);
-			case "add-event":
-				return handlerAddEvent(body, this.template);
-      case "show-events":
-        return handlerShowEvents(body,this.template);
-			default:
-				return result;
-		}
-	}
+  /**
+ * Lấy danh sách calendar
+ * @param {string} channelId
+ * @return {Promise<[]>}
+ */
+  async getCalendarsInChannel(channelId) {
+    const channelCalendar = await ChannelsCalendar.query().where({ id_channel: channelId });
+    const calendars = [];
+    for (let i = 0, length = channelCalendar.length; i < length; i++) {
+      const calendar = await MicrosoftCalendar.query().findById(channelCalendar[i].id_calendar);
+      calendars.push({
+        "text": {
+          "type": "plain_text",
+          "text": calendar.name,
+          "emoji": true
+        },
+        "value": calendar.id
+      });
+    }
+    return calendars
+  }
 
   /**
-	 *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
-	 * @param {object} payload
-	 * @returns {Promise}
-	 */
-	handlerSubmission(payload) {
-    const {callback_id} = payload.view;
-		switch (callback_id) {
-			case "deleteEvent":
-        return actionDelEvent(payload);
-      case "addEvent":
-          return submitAddEvent(payload);
-			default:
-				break;
-		}
-	}
+   * lấy ra thông tin người dùng slack
+   * @param {string} id
+   * @return {Promise<unknown>}
+   */
+  getUserInfo(id) {
+    return new Promise((resolve, reject) => {
+      const option = {
+        method: 'Get',
+        headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+        url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_USER_INFO")}?user=${id}`,
+      };
+      Axios(option)
+        .then(res => {
+          if (!res.data.ok) reject(res.data);
+          resolve(res.data)
+        })
+        .catch(reject)
+    })
+  }
+  /**
+   *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
+   * @param {object} payload
+   * @returns {Promise}
+   */
+  async handlerSubmit(payload) {
+    const { callback_id } = payload.view;
+    let option = null;
+    switch (callback_id) {
+      case "MI_delete-event":
+        option = submitDelEvent(payload);
+        break;
+      case "MI_add-event":
+        console.log("VL 3h roi")
+        const { values } = payload.view.state;
+        const idCalendar = values["MI_select_calendar"]["select_calendar"]["selected_option"].value;
+        const { id_account } = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
+        const account = await MicrosoftAccount.query().findOne({ id: id_account });
+        option = {
+          method: 'POST',
+          headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': id_account },
+          data: submitAddEvent(values,account),
+          url:
+            Env.resourceServerGOF("GRAPH_URL") +
+            Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
+        };
 
-	/**
-	 *
-	 * @param {Object} payload
-	 * @param {object} res
-	 */
-  	handlerPayload(payload, res) {
-		payload = JSON.parse(payload);
-		const {type = null} = payload;
-		const result = new Promise((resolve) => resolve(payload));
-		switch (type) {
-			case "block_actions":
-        res.status(200).send();
-				return handlerBlocksActions(payload, this.template);
-			case "view_submission":
-        this.handlerSubmission(payload);
-				return res.status(200).send({
-					"response_action": "clear"
-				});
-			case "view_closed":
-				return res.status(200).send({
-					"response_action": "clear"
-				});
-			default:
-				return result;
-		}
-	}
+        console.log("option",option)
+        break;
+      default:
+        break;
+    }
+    return option;
+  }
+
+  /**
+   *
+   * @param {Object} payload
+   * @param {object} res
+   */
+  async handlerPayload(req, res) {
+    try {
+      let { payload } = req.body;
+      payload = JSON.parse(payload);
+      let option = null;
+      switch (payload.type) {
+        case "block_actions":
+          option = await handlerBlocksActions(payload, this.template);
+          res.status(200).send("Ok");
+          break;
+        case "view_submission":
+          res.status(200).send({
+            "response_action": "clear"
+          });
+          option = await this.handlerSubmit(payload);
+          break;
+        case "view_closed":
+          res.status(200).send({
+            "response_action": "clear"
+          });
+          break;
+        default:
+          break;
+      }
+      console.log(option);
+      if (option) await Axios(option);
+    } catch (e) {
+      return;
+    }
+  }
 
   async chatServiceHandler(req, res, next) {
     let {
@@ -127,30 +266,24 @@ class SlackMicrosoft extends BaseServer {
     } = req.body;
     try {
       if (event) {
-        await this.handlerEvent(event);
-      } else if (command && /^\/cal$/.test(command)) {
-        await this.handlerCommand(req.body);
-        const message = `Thank you call BOT-NOTI !`;
-        return res.status(200).send(message);
-
+        return this.handlerEvent(req, res);
+      } else if (command && /^\/ca$/.test(command)) {
+        return this.handlerCommand(req, res);
       } else if (payload) {
-        await this.handlerPayload(payload, res);
-        return;
+        return this.handlerPayload(req, res);
       } else if (challenge) {
         return res.status(200).send(challenge);
       }
-      const message = `Thank you call BOT-NOTI !`;
-      return res.status(200).send(message);
+      return res.status(200).send(`Ok`);
     } catch (error) {
-      const message = `Thank you call BOT-NOTI !
-        If you want assistance please enter: /cal --help`;
-      return res.status(403).send(message);
+      console.log("chatServiceHandler ERROR")
+      return res.status(403).send("Error !");
     }
   }
-/**
- * handler Notifications
- * @param {object} value
- */
+  /**
+   * handler Notifications
+   * @param {object} value
+   */
   handlerNotifications(value) {
     const { subscriptionId, changeType, resource } = value;
     const { showEvent } = this.template;
@@ -183,6 +316,7 @@ class SlackMicrosoft extends BaseServer {
       }
       return null;
     } catch (e) {
+      console.log("resourceServerHandler ERROR")
       return res.status(403).send("ERROR");
     }
   }

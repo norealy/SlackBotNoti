@@ -65,14 +65,11 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
       Env.chatServiceGet("API_URL") +
       Env.chatServiceGet("API_POST_MESSAGE"),
   };
-  console.log(JSON.stringify(options.data.blocks))
   options.data.blocks[0].elements[0].image_url = 'https://apis.iceteait.com/public/icon/MICROSOFT.png';
   options.data.blocks[1].fields[0].text = `*${event.subject}*`;
   options.data.blocks[1].fields[1].text = `*Calendar: ${event.nameCalendar}*`;
-
   const datetimeStart = moment(event.start.dateTime).utc(true).utcOffset(event.timezone);
   const datetimeEnd = moment(event.end.dateTime).utc(true).utcOffset(event.timezone);
-
   options.data.blocks[2].fields[0].text = datetimeStart.format("DD-MM-YYYY");
   options.data.blocks[2].fields[1].text = datetimeStart.format("hh:mm") +
     "-" + datetimeEnd.format("hh:mm");
@@ -93,9 +90,9 @@ const sendMessage = async (lv, event, idChan, messageFormat) => {
     options.data.blocks.splice(3, 1);
   }
   if (lv === 2) {
-    options.data.blocks[0].elements[1].text = "*Event calendar. Type: Updated*"
+    options.data.blocks[0].elements[2].text = "*Type: Updated event*"
   } else if (lv === 3) {
-    options.data.blocks[0].elements[1].text = "*Event calendar. Type: Deleted*"
+    options.data.blocks[0].elements[2].text = "*Type: Deleted event*"
   }
   return axios(options);
 }

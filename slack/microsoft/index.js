@@ -55,25 +55,36 @@ class SlackMicrosoft extends BaseServer {
   }
 
   /**
-   * Xu ly cac event
-   * @param {object} event
-   * @returns {Promise}
+   * Xử lý event
+   * @param {object} req
+   * @param {object} res
    */
   async handlerEvent(req, res) {
-    const { event } = req.body;
-    const { subtype, user } = event;
-    let option = null;
-    const type = Env.chatServiceGOF("TYPE")
-    if (
-      subtype === type.BOT_ADD ||
-      (subtype === type.CHANNEL_JOIN && user === Env.chatServiceGOF("BOT_USER"))
-    ) {
-      option = sendMessageLogin(event, this.template, this.setUidToken);
+    try {
+      let { event, authorizations } = req.body;
+      const types = Env.chatServiceGOF("TYPE");
+      let option = null;
+      switch (event.subtype) {
+        case types.BOT_ADD:
+        case types.APP_JOIN:
+          option = sendMessageLogin(event, this.template, this.setUidToken);
+          break;
+        case types.CHANNEL_JOIN:
+          if (authorizations[0].user_id === event.user) {
+            option = sendMessageLogin(event, this.template, this.setUidToken);
+          }
+          break;
+        default:
+          break;
+      }
+      if (option) await Axios(option).then(({ data }) => {
+        if (!data.ok) throw data
+      });
+
+      return res.status(200).send("OK");
+    } catch (e) {
+      return res.status(204).send("Error");
     }
-    if (option) await Axios(option).then(({ data }) => {
-      if (!data.ok) throw data
-    });
-    return res.status(200).send("OK");
   }
   /**
    * get events in calendar
@@ -199,7 +210,6 @@ class SlackMicrosoft extends BaseServer {
         option = submitDelEvent(payload);
         break;
       case "MI_add-event":
-        console.log("VL 3h roi")
         const { values } = payload.view.state;
         const idCalendar = values["MI_select_calendar"]["select_calendar"]["selected_option"].value;
         const { id_account } = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
@@ -207,13 +217,11 @@ class SlackMicrosoft extends BaseServer {
         option = {
           method: 'POST',
           headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': id_account },
-          data: submitAddEvent(values,account),
+          data: submitAddEvent(values, account),
           url:
             Env.resourceServerGOF("GRAPH_URL") +
             Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
         };
-
-        console.log("option",option)
         break;
       default:
         break;
@@ -233,8 +241,12 @@ class SlackMicrosoft extends BaseServer {
       let option = null;
       switch (payload.type) {
         case "block_actions":
-          option = await handlerBlocksActions(payload, this.template);
           res.status(200).send("Ok");
+          if(payload.actions[0].action_id === 'overflow-action'){
+            const calendar = await MicrosoftCalendar.query().findById(payload.actions[0].block_id.split('/')[1]);
+            payload.calendar = calendar;
+          }
+          option = await handlerBlocksActions(payload, this.template);
           break;
         case "view_submission":
           res.status(200).send({
@@ -250,10 +262,9 @@ class SlackMicrosoft extends BaseServer {
         default:
           break;
       }
-      console.log(option);
       if (option) await Axios(option);
     } catch (e) {
-      return;
+      return res.status(403).send("Error !");
     }
   }
 
@@ -268,6 +279,7 @@ class SlackMicrosoft extends BaseServer {
       if (event) {
         return this.handlerEvent(req, res);
       } else if (command && /^\/ca$/.test(command)) {
+        res.status(200).send();
         return this.handlerCommand(req, res);
       } else if (payload) {
         return this.handlerPayload(req, res);
@@ -276,7 +288,6 @@ class SlackMicrosoft extends BaseServer {
       }
       return res.status(200).send(`Ok`);
     } catch (error) {
-      console.log("chatServiceHandler ERROR")
       return res.status(403).send("Error !");
     }
   }
@@ -316,7 +327,6 @@ class SlackMicrosoft extends BaseServer {
       }
       return null;
     } catch (e) {
-      console.log("resourceServerHandler ERROR")
       return res.status(403).send("ERROR");
     }
   }
@@ -382,7 +392,20 @@ class SlackMicrosoft extends BaseServer {
       return res.send("Login Error !");
     }
   }
+  /**
+ * custom customRepeat
+ * @param {Object} view
+ */
+  _customRepeat(view) {
+    view.blocks[9].element.options[0].value = "nomal";
+    view.blocks[9].element.options[1].value = "daily";
+    view.blocks[9].element.options[2].value = "weekly";
+    view.blocks[9].element.options[3].value = "absoluteMonthly";
+    view.blocks[9].element.initial_option.value = "nomal";
+  }
+
 }
+
 
 module.exports = SlackMicrosoft;
 
@@ -400,5 +423,6 @@ module.exports = SlackMicrosoft;
   await Template().init(prefix.join(""));
   await pipeline.init();
   pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
+  pipeline._customRepeat(pipeline.template.addEvent);
   AxiosConfig();
 })();

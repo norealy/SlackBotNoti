@@ -6,7 +6,7 @@ const Moment = require('moment');
 const { v4: uuidv4 } = require('uuid');
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const { blockTime } = require('../../utils/ConvertTime');
-
+require('moment-precise-range-plugin');
 
 /**
  * Show modals view add event to slack
@@ -347,10 +347,8 @@ function handlerBlocksActions(payload, template) {
  * @param {Object} template
  * @returns {Promise}
  */
-const handlerOverflowAction = async (payload, template) => {
+const handlerOverflowAction = (payload, template) => {
   const value = payload.actions[0].selected_option.value.split('/');
-  const calendar = await MicrosoftCalendar.query().findById(payload.actions[0].block_id.split('/')[1]);
-  payload.calendar = calendar;
   if (value[0] === "edit") {
     return null;
   }
@@ -411,7 +409,7 @@ const submitDelEvent = (payload) => {
  * @param {dateTime} datetime
  * @param {*} date
  */
-const getRecurrence = (type, datetime, date) => {
+const getRecurrence = (type, datetime) => {
   const dateStart = datetime;
   const recurrence = {
     "pattern": {
@@ -456,61 +454,77 @@ const getRecurrence = (type, datetime, date) => {
   return recurrence;
 }
 /**
+ * _get Selected Option
+ * @param {strig} values
+ * @param {string} blockId
+ * @param {string} actionId
+ */
+function _getSelectedOption(values, blockId, actionId) {
+  if(!values[blockId]){
+    return values[`${blockId}-1`][actionId]["selected_option"].value;
+  } else {
+    return values[blockId][actionId]["selected_option"].value;
+  }
+}
+/**
  * Submit event
- * @param {Object} payload
+ * @param {Object} values
+ * @param {Object} account
  * @returns {Promise}
  */
 const submitAddEvent = (values, account) => {
   try {
-    console.log(JSON.stringify(values));
-    const dateStart = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
-    let dateEnd = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"]
-    let timeStart = "00:00";
-    let timeEnd = "00:00";
-    if (values['MI_select-date-end']) {
-      dateEnd = values["MI_select-date-end"]["datepicker-action-end"]["selected_date"]
-    } else {
-      timeStart = values["MI_select-time-start"]["time-start-action"]["selected_option"].value
-      timeEnd = values["MI_select-time-end"]["time-end-action"]["selected_option"].value
-    }
-    let allDay = false;
     let timezone = account.timezone;
-    if (values['MI_check_all_day']['allDay'].selected_options.length > 0) {
-      allDay = true;
-      timeStart = "00:00";
-      timeEnd = "00:00";
-      timezone = "";
-      dateEnd = values["MI_select-date-end"]["datepicker-action-end"]["selected_date"];
-    }
+    const location = values["MI_input_location"]["plain_text_input-action"].value;
+    const recurrence = values["MI_select_everyday"]["static_select-action"]["selected_option"].value;
+    const noti = values["MI_select_before_notification"]["static_select-action"]["selected_option"].value;
+    const allDay = values["MI_check_all_day"]["allDay"]["selected_options"];
+    const startDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
+    const dateEnd = startDate;
+
     const event = {
-      "reminderMinutesBeforeStart": values['MI_select_before_notification']['static_select-action'].selected_option.value,
+      "reminderMinutesBeforeStart": noti,
       "isReminderOn": true,
       "subject": values['MI_input_title']['input-action'].value,
-      "isAllDay": allDay,
+      "isAllDay": false,
       "start": {
-        "dateTime": `${dateStart}T${timeStart}:00.0000000`+timezone,
+        "dateTime": `${startDate}T00:00:00`,
         "timeZone": `UTC`
       },
       "end": {
-        "dateTime": `${dateEnd}T${timeEnd}:00.0000000`+timezone,
+        "dateTime": `${dateEnd}T00:00:00`,
         "timeZone": `UTC`
       },
       "location": {
-        "displayName": values['MI_input_location']['plain_text_input-action'].value,
+        "displayName": location,
       }
+    }
+    if (allDay.length === 0) {
+      const timeStart = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
+      const timeEnd = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
+
+      const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
+      const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
+
+      event.start.dateTime = dateTimeStart;
+      event.end.dateTime = dateTimeEnd;
+    } else {
+      const endDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
+      event.isAllDay = true;
+      event.end.dateTime = `${endDate}T00:00:00`;
     }
     if(event.reminderMinutesBeforeStart === 'default'){
       event.reminderMinutesBeforeStart = 0;
     }
-    if (values.MI_select_everyday['static_select-action']['selected_option'].value !== "nomal" && !allDay) {
-      event.recurrence = getRecurrence(values.MI_select_everyday['static_select-action']['selected_option'].value, dateStart);
+    if (recurrence !== "nomal" && !allDay) {
+      event.recurrence = getRecurrence(recurrence, startDate);
     }
     return event;
   } catch (error) {
-    console.log(error);
     return null;
   }
 };
+
 
 /**
  * Tao url request author

@@ -126,17 +126,6 @@ class TemplateSlack {
     }
     return arrayDT;
   }
-/**
- * custom customRepeat
- * @param {Object} view
- */
-_customRepeat(view){
-  view.blocks[9].element.options[0].value = "nomal";
-  view.blocks[9].element.options[1].value = "daily";
-  view.blocks[9].element.options[2].value = "weekly";
-  view.blocks[9].element.options[3].value = "absoluteMonthly";
-  view.blocks[9].element.initial_option.value = "nomal";
-}
 
   /**
    * Init template slack
@@ -153,7 +142,6 @@ _customRepeat(view){
       timeEnd.shift();
 			this.addEvent.blocks[6].accessory.options = timeStart;
 			this.addEvent.blocks[7].accessory.options = timeEnd;
-      this._customRepeat(this.addEvent);
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
 			this.eventEndDate = await this.readFileTemplate(`${pathFile}/EventEndDate.json`);

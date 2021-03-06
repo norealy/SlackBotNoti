@@ -200,11 +200,10 @@ const configShowEvent = (body, template) => {
   blocksView[1].accessory.options[0].value = `edit/${event.id}`;
   blocksView[1].accessory.options[1].value = `delete/${event.id}`;
   blocksView[1].fields[0].text = event.summary;
-  //console.log("okes", blocksView[1].fields)
-  if(event.start.date && event.end.date){
+  if (event.start.date && event.end.date) {
     blocksView[1].fields[1].text = event.start.date
     blocksView[1].fields[3].text = event.end.date
-  } else{
+  } else {
     blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
   }
   const option = {
@@ -334,7 +333,6 @@ function handlerEndDate(payload, blocks) {
   const dateTime = priMetadata.dateTime.split("T")[0];
   // check all day
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
-  console.log(diff);
   if (diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime)
@@ -470,27 +468,14 @@ const handlerDeleteEvent = async (payload, template) => {
 }
 
 const handlerUpdateEvent = (payload, template) => {
- // console.log("payload",payload.message.blocks[1].fields)
   const {trigger_id, calendars, userInfo, event} = payload;
-  console.log(calendars);
   const view = {
     ...template.editEvent,
     blocks: [...template.editEvent.blocks]
   };
-  //console.log("payload",payload.message.blocks[1].fields)
-  // Date start
-   const dateStart = payload.message.blocks[1].fields[1].text.split('');
-   // Date end
-   const dateEnd = payload.message.blocks[1].fields[3].text;
 
-  // tiêu đều
-  const tiltle = payload.message.blocks[1].fields[0].text;
-  // time start end
-  const timeCalendars =  payload.message.blocks[1].fields[1].text.split('-');
- // địa chỉ
-  const location =  payload.message.blocks[1].fields[2].text;
-  // Date
-  const date =  payload.message.blocks[1].fields[3].text;
+
+  const date = payload.message.blocks[1].fields[3].text;
   const blockId = payload.actions[0].block_id.split('/')
   const idCalendars = blockId[1];
 
@@ -507,10 +492,11 @@ const handlerUpdateEvent = (payload, template) => {
   view.blocks[1].accessory.options = calendars;
   view.blocks[2].element.initial_value = event.summary
 
+
   // lấy thời gian theo timezone người dùng slack
   const dateNow = new Date();
   let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format();
-  view.blocks[4].accessory.initial_date = date
+  // view.blocks[4].accessory.initial_date = date
   // xử lý time start, time end default
   let startTime = blockTime(dateTime);
   let endTime = blockTime(Moment(dateTime).add(15, 'm').format());
@@ -527,52 +513,106 @@ const handlerUpdateEvent = (payload, template) => {
   //gán time default cho view
   const timeStart = blockTime(event.start.dateTime);
   const timeEnd = blockTime(event.end.dateTime);
-  console.log("timeStart",timeStart)
-  console.log("timeEnd",timeEnd)
-  view.blocks[6].accessory.initial_option = {
-    "text": {
-      "type": "plain_text",
-      "text": timeStart,
-      "emoji": true
-    },
-    "value": timeStart
-  };
-  view.blocks[7].accessory.initial_option = {
-    "text": {
-      "type": "plain_text",
-      "text": timeEnd,
-      "emoji": true
-    },
-    "value": timeEnd
-  };
-  view.blocks[8].element.initial_value = event.location
-  const recurrence = event.recurrence[0].split('=')
-  console.log(recurrence[1])
-  if(recurrence[1]==="DAILY"){
-    view.blocks[9].element.initial_option = {
-      text: { type: 'plain_text', text: 'Every day', emoji: true }, value: `${recurrence[1]}`
-    }
-  }
-  else if(recurrence[1]==="WEEKLY") {
-    view.blocks[9].element.initial_option = {
-      text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
-    }
-  }
-  else if(recurrence[1]==="MONTHLY"){
-      view.blocks[9].element.initial_option = {
-        text: { type: 'plain_text', text: 'Every month', emoji: true }, value: `${recurrence[1]}`
+
+  const datetimeStart = Moment(event.start.dateTime).utc(true).utcOffset(userInfo.user.tz).format("YYYY-MM-DD.hh:mm:ss");
+  const datetimeEnd = Moment(event.end.dateTime).utc(true).utcOffset(userInfo.user.tz).format("YYYY-MM-DD.hh:mm:ss");
+  const timeDateStart = datetimeStart.split('.')[0]
+  const timDateEnd = datetimeEnd.split('.')[0]
+  let diffDate = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
+  let diffTime = Moment.preciseDiff(timeDateStart,timDateEnd, true)
+  view.blocks[4].accessory.initial_date = timeDateStart
+  if (diffDate.days>=0 && diffDate.hours == 0) {
+    view.blocks.splice(6, 2)
+    view.blocks[3].accessory.initial_options =
+      [
+        {
+          "value": "true",
+          "text": {
+            "type": "plain_text",
+            "text": "All day"
+          }
+        }
+      ]
+    view.blocks[5].accessory.initial_date = timDateEnd
+    view.blocks[6].element.initial_value = event.location
+    if (event.recurrence) {
+      const recurrence = event.recurrence[0].split('=')
+      if(recurrence[1] === "no"){
+        view.blocks[7].element.initial_option = {
+          text: { type: 'plain_text', text: 'No', emoji: true },
+          value: 'no'
+        }
       }
+     else if (recurrence[1] === "DAILY") {
+        view.blocks[7].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every day', emoji: true}, value: `${recurrence[1]}`
+        }
+      } else if (recurrence[1] === "WEEKLY") {
+        view.blocks[7].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
+        }
+      } else if (recurrence[1] === "MONTHLY") {
+        view.blocks[7].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every month', emoji: true}, value: `${recurrence[1]}`
+        }
+      }
+    }
+
   }
+  else {
+    view.blocks[6].accessory.initial_option = {
+      "text": {
+        "type": "plain_text",
+        "text": timeStart,
+        "emoji": true
+      },
+      "value": timeStart
+    };
+    view.blocks[7].accessory.initial_option = {
+      "text": {
+        "type": "plain_text",
+        "text": timeEnd,
+        "emoji": true
+      },
+      "value": timeEnd
+    };
+    view.blocks[8].element.initial_value = event.location
+    if (event.recurrence) {
+      const recurrence = event.recurrence[0].split('=')
+      if(recurrence[1] === "no"){
+        view.blocks[9].element.initial_option = {
+          text: { type: 'plain_text', text: 'No', emoji: true },
+          value: 'no'
+        }
+      }
+      else if (recurrence[1] === "DAILY") {
+        view.blocks[9].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every day', emoji: true}, value: `${recurrence[1]}`
+        }
+      } else if (recurrence[1] === "WEEKLY") {
+        view.blocks[9].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
+        }
+      } else if (recurrence[1] === "MONTHLY") {
+        view.blocks[9].element.initial_option = {
+          text: {type: 'plain_text', text: 'Every month', emoji: true}, value: `${recurrence[1]}`
+        }
+      }
+    }
+
+    view.blocks.splice(5, 1);
+  }
+
 /////
   // lưu dữ liệu cache vào view phục vụ cho update view về sau
   view.private_metadata = JSON.stringify({...userInfo, dateTime, durationTime: 15, startTime, idEvent});
-  view.blocks.splice(5, 1);
 
   return view
 }
 
 function handlerOverflow(payload, template) {
   const value = payload.actions[0].selected_option.value.split('/');
+
   if (value[0] === "edit") {
     return handlerUpdateEvent(payload, template);
   }
@@ -609,7 +649,8 @@ function delPropsView(payload) {
  */
 function handlerAction(payload, template) {
   const changePayload = delPropsView(payload);
-  const {action_id} = changePayload.actions[0];
+  const {action_id, selected_options} = changePayload.actions[0];
+
   const {blocks} = template.addEvent;
   let option = {
     method: 'POST',
@@ -639,7 +680,8 @@ function handlerAction(payload, template) {
     case "overflow-action":
       delete option.data.view_id
       option.url = `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_OPEN")}`,
-      option.data.trigger_id = changePayload.trigger_id
+        option.data.trigger_id = changePayload.trigger_id
+      option.data.selected_options = changePayload.selected_options
       option.data.view = handlerOverflow(changePayload, template);
       break;
     default:
@@ -647,9 +689,9 @@ function handlerAction(payload, template) {
       break;
   }
   // check view update
-    //console.log("Optin",option.data.view.blocks[9].element.initial_option)
-  // check all day
-  console.log("payload",payload)
+
+
+
   if (option) delete option.data.view.state;
   return option
 }
@@ -795,9 +837,9 @@ const updateEvent = (values, account) => {
   }
   return event;
 };
-const deleteEvent = (idAccount, idEvent) => {
+const deleteEvent = (idAccount, idCalendar, idEvent) => {
   const option = {method: "DELETE"};
-  option.url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${idEvent}`;
+  option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`;
   option.headers = {'X-Google-AccountId': idAccount};
   return option
 }

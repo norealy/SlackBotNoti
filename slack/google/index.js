@@ -188,7 +188,7 @@ class SlackGoogle extends BaseServer {
           if (!data.ok) throw data
         });
     } catch (e) {
-      console.log("err", e)
+
       res.status(204).send("Error");
     }
   }
@@ -226,11 +226,13 @@ class SlackGoogle extends BaseServer {
     }
     else if (callback_id === "GO_delete-event") {
       const blockId = payload.view.blocks[0].block_id.split('/');
+
       const idEvent = blockId[1]
       const event = payload.view.blocks[1].block_id.split('/');
       const goAccount = event[0].split('GO_')
       const idAccount = goAccount[1];
-      return deleteEvent(idAccount, idEvent)
+      const idCalendar = event[1]
+      return deleteEvent(idAccount, idCalendar,idEvent)
     }
 
   }
@@ -262,7 +264,6 @@ class SlackGoogle extends BaseServer {
             url: `https://www.googleapis.com/calendar/v3/calendars/${blockId[1]}/events/${event[1]}`
           }
           const result = await Axios(options);
-          console.log(result.data)
           payload.event = result.data
         }
       }
@@ -279,9 +280,9 @@ class SlackGoogle extends BaseServer {
         default:
           option = null
       }
-      if (option) await Axios(option).then(({data})=>console.log(data));
+      if (option) await Axios(option)
     } catch (e) {
-      console.log("err", e)
+
       return res.status(204).send("Error");
     }
   }

@@ -520,6 +520,8 @@ const handlerUpdateEvent = (payload, template) => {
   const timDateEnd = datetimeEnd.split('.')[0]
   let diffDate = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
   let diffTime = Moment.preciseDiff(timeDateStart,timDateEnd, true)
+  console.log("diff", diffDate)
+  console.log("diff2",diffTime)
   view.blocks[4].accessory.initial_date = timeDateStart
   if (diffDate.days>=0 && diffDate.hours == 0) {
     view.blocks.splice(6, 2)
@@ -557,6 +559,40 @@ const handlerUpdateEvent = (payload, template) => {
         }
       }
     }
+
+    // if(event.reminders.overrides[0].minutes){
+    //   const reminders = event.reminders.overrides[0].minutes
+    //   if(reminders ==="default"){
+    //     view.blocks[8].element.initial_option = {
+    //       text: { type: 'plain_text', text: 'default', emoji: true },
+    //       value: 'default'
+    //     }
+    //   }
+    //   else if(reminders === 0){
+    //     view.blocks[8].element.initial_option = {
+    //       text: { type: 'plain_text', text: 'At time of event', emoji: true },
+    //       value: '0'
+    //     }
+    //   }
+    //   else if(reminders === 15){
+    //     view.blocks[8].element.initial_option = {
+    //       text: { type: 'plain_text', text: '15 minutes before', emoji: true },
+    //       value: '15'
+    //     }
+    //   }
+    //   else if(reminders ===30){
+    //     view.blocks[8].element.initial_option = {
+    //       text: { type: 'plain_text', text: '30 minutes before', emoji: true },
+    //       value: '30'
+    //     }
+    //   }
+    //   else if(reminders ===60){
+    //     view.blocks[8].element.initial_option = {
+    //       text: { type: 'plain_text', text: '1 hours before', emoji: true },
+    //       value: '60'
+    //     }
+    //   }
+    //   }
 
   }
   else {
@@ -600,6 +636,39 @@ const handlerUpdateEvent = (payload, template) => {
       }
     }
 
+    //  if(event.reminders){
+    //   const reminders = event.reminders.overrides[0].minutes
+    //   if(reminders ==="default"){
+    //     view.blocks[9].element.initial_option = {
+    //       text: { type: 'plain_text', text: 'default', emoji: true },
+    //       value: 'default'
+    //     }
+    //   }
+    //   else if(reminders === 0){
+    //     view.blocks[9].element.initial_option = {
+    //       text: { type: 'plain_text', text: 'At time of event', emoji: true },
+    //       value: '0'
+    //     }
+    //   }
+    //   else if(reminders === 15){
+    //     view.blocks[9].element.initial_option = {
+    //       text: { type: 'plain_text', text: '15 minutes before', emoji: true },
+    //       value: '15'
+    //     }
+    //   }
+    //   else if(reminders ===30){
+    //     view.blocks[9].element.initial_option = {
+    //       text: { type: 'plain_text', text: '30 minutes before', emoji: true },
+    //       value: '30'
+    //     }
+    //   }
+    //   else if(reminders ===60){
+    //     view.blocks[9].element.initial_option = {
+    //       text: { type: 'plain_text', text: '1 hours before', emoji: true },
+    //       value: '60'
+    //     }
+    //   }
+    // }
     view.blocks.splice(5, 1);
   }
 
@@ -690,6 +759,7 @@ function handlerAction(payload, template) {
   }
   // check view update
 
+ // console.log("optins", option.data.view.blocks[7].element.initial_option)
 
 
   if (option) delete option.data.view.state;

@@ -9,6 +9,8 @@ const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
+const _ = require('lodash');
+const Redis = require('../../utils/redis/index');
 
 const {
   getToken,
@@ -30,14 +32,10 @@ const {
   submitDelEvent
 } = require("./HandlerChatService");
 const {
-  handlerCreated,
-  handlerUpdated,
-  handlerDeleted,
-  getEvent
+  handlerDatas,
+  getEvent,
+  getValueRedis
 } = require("./HandlerResourceServer");
-const { copySync } = require("fs-extra");
-const { resolve, reject } = require("bluebird");
-const { val } = require("objection");
 
 class SlackMicrosoft extends BaseServer {
   constructor(instanceId, opt) {
@@ -235,7 +233,7 @@ class SlackMicrosoft extends BaseServer {
   async handlerSubmit(payload) {
     let callbackId = payload.view.callback_id;
     let option = null;
-    if(callbackId.indexOf('MI_edit-event') === 0){
+    if (callbackId.indexOf('MI_edit-event') === 0) {
       callbackId = callbackId.split('/')[0];
     }
     switch (callbackId) {
@@ -312,7 +310,6 @@ class SlackMicrosoft extends BaseServer {
       }
       if (option) await Axios(option);
     } catch (e) {
-      console.log(e);
       return res.status(403).send("Error !");
     }
   }
@@ -341,40 +338,98 @@ class SlackMicrosoft extends BaseServer {
     }
   }
   /**
+ * sleep
+ * @param {number} ms
+ * @returns {Promise}
+ */
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  /**
    * handler Notifications
    * @param {object} value
    */
-  handlerNotifications(value) {
-    const { subscriptionId, changeType, resource } = value;
-    const { showEvent } = this.template;
-    switch (changeType) {
-      case "updated":
-        handlerUpdated(subscriptionId, resource, showEvent);
-        break
-      case "created":
-        handlerCreated(subscriptionId, resource, showEvent);
-        break
-      case "deleted":
-        handlerDeleted(subscriptionId, resource, showEvent);
-        break
-      default:
-        break
+  async handlerNotifications(value) {
+    try {
+      const { subscriptionId, changeType, resource } = value;
+      const idEvent = resource.split('/')[3];
+      const idUser = resource.split('/')[1];
+      if (changeType === "updated") {
+        await this.sleep(1500);
+      }
+      const idCalendar = await getValueRedis(subscriptionId);
+      let event = await getEvent(idUser, idEvent).catch((err) => {
+        if (err.response.status === 404 && (changeType === "updated" || changeType === "deleted")) return null;
+        throw err;
+      });
+      if (!event || !idCalendar) return null;
+      event = event.data;
+      const eventRedis = await getValueRedis(event.id);
+      if (eventRedis) {
+        const data = JSON.parse(eventRedis);
+        const checked = _.isEqual(event, data);
+        if (checked) {
+          return null;
+        }
+      }
+      Redis.client.setex(event.id, 5, JSON.stringify(event));
+      const arrChennelCalendar = await ChannelsCalendar.query().where({ id_calendar: idCalendar, watch: true });
+      if(arrChennelCalendar.length === 0) return null;
+      const account = await MicrosoftAccount.query().findById(idUser);
+      event.timezone = account.timezone;
+      const calendar = await MicrosoftCalendar.query().findById(idCalendar);
+      event.nameCalendar = calendar.name;
+      const { showEvent } = this.template;
+      let datas = null;
+      switch (changeType) {
+        case "updated":
+          datas = handlerDatas(2, arrChennelCalendar, event, showEvent);
+          break
+        case "created":
+          datas = handlerDatas(1, arrChennelCalendar, event, showEvent);
+          break
+        case "deleted":
+          datas = handlerDatas(3, arrChennelCalendar, event, showEvent);
+          break
+        default:
+          break
+      }
+
+      const option = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`,
+        },
+        url:
+          Env.chatServiceGet("API_URL") +
+          Env.chatServiceGet("API_POST_MESSAGE"),
+      };
+
+      // Buoc 3: Promise all
+      if(datas) await Promise.all(datas.map(data => {
+        option.data = data
+        return Axios(option)
+      }))
+    } catch (error) {
+      return ;
     }
+
   }
 
-  resourceServerHandler(req, res, next) {
+  async resourceServerHandler(req, res, next) {
     try {
       const { body = null, query = null } = req;
       if (body.value) {
         res.status(202).send("OK");
         const { idAccount = null } = JSON.parse(cryptoDecode(body.value[0].clientState));
         if (!idAccount) return;
-        this.handlerNotifications(body.value[0]);
+        return this.handlerNotifications(body.value[0]);
       } else if (query) {
         const { validationToken } = query;
         return res.status(200).send(validationToken);
       }
-      return null;
+      return res.status(400).send("BAD REQUESt");
     } catch (e) {
       return res.status(403).send("ERROR");
     }
@@ -441,9 +496,9 @@ class SlackMicrosoft extends BaseServer {
     }
   }
   /**
- * custom customRepeat
- * @param {Object} view
- */
+  * custom customRepeat
+  * @param {Object} view
+  */
   _customRepeat(view) {
     view.blocks[9].element.options[0].value = "nomal";
     view.blocks[9].element.options[1].value = "daily";

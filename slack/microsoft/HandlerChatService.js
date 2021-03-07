@@ -15,8 +15,8 @@ require('moment-precise-range-plugin');
  */
 const getDurationDay = (datetimeStart, datetimeEnd) => {
   let durationDay = 0;
-  currentDate = datetimeStart,
-    addDays = function (days) {
+  currentDate = datetimeStart;
+   const addDays = function (days) {
       let date = new Date(this.valueOf());
       date.setDate(date.getDate() + days);
       return date;
@@ -36,10 +36,7 @@ const getDurationDay = (datetimeStart, datetimeEnd) => {
  */
 const handlerEditEvent = (payload, template) => {
   const { eventEditDT, calendars, idCalendar, userInfo } = payload;
-  // const { editEvent } = template;
-  let editView = {...template.editEvent,blocks: [...template.editEvent.blocks]}
-  // let editView = JSON.stringify(editEvent);
-  // editView = JSON.parse(editView);
+  let editView = {...template.editEvent,blocks: [...template.editEvent.blocks]};
   editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
   for (let i = 0, length = calendars.length; i < length; i++) {
     const item = calendars[i];
@@ -73,7 +70,6 @@ const handlerEditEvent = (payload, template) => {
   let durationDay = 1;
   if (eventEditDT.isAllDay) {
     durationDay = getDurationDay(new Date(datetimeStart),new Date(datetimeEnd));
-    console.log(durationDay);
     editView.blocks.splice(6, 2);
     editView.blocks[5].accessory.initial_date = datetimeEnd.split('T')[0];
     editView.blocks[3].accessory.initial_options =
@@ -109,7 +105,6 @@ const handlerEditEvent = (payload, template) => {
   }
   let dateTime = MomentTimezone(eventEditDT.start.dateTime).tz(userInfo.user.tz).format();
   const timeStart = blockTime(dateTime);
-  console.log("durationDay :", durationDay);
   editView.private_metadata = JSON.stringify({ ...userInfo, dateTime, durationTime: 15, durationDay: durationDay, startTime: timeStart });
   return editView;
 };
@@ -559,15 +554,11 @@ function handlerBlocksActions(payload, template) {
  * @returns {Promise}
  */
 const showDeleteEventView = (payload, template) => {
-  // const { deleteEvent } = template;
-
-  let view = {...template.deleteEvent,blocks: [...template.deleteEvent.blocks]}
-  // let view = JSON.stringify(deleteEvent);
-  // view = JSON.parse(view);
+  let view = template.deleteEvent;
   view.private_metadata = payload.actions[0].block_id;
   view.private_metadata += "/" + payload.actions[0].selected_option.value;
-  view.blocks[0].text.text += payload.actions[0].block_id.split('/')[2];
-  view.blocks[1].text.text += payload.calendar.name;
+  view.blocks[0].text.text = "Delete event : " + payload.actions[0].block_id.split('/')[2];
+  view.blocks[1].text.text = "Event of calendar : " + payload.calendar.name;
   return view;
 }
 
@@ -704,7 +695,6 @@ const submitAddEvent = (values, account) => {
     }
     return event;
   } catch (error) {
-    console.log(error);
     return null;
   }
 };

@@ -1,5 +1,4 @@
 {
-
   "blocks": [
     {
       "type": "context",
@@ -67,5 +66,4 @@
       "type": "divider"
     }
   ]
-
 }

@@ -36,10 +36,10 @@ const getDurationDay = (datetimeStart, datetimeEnd) => {
  */
 const handlerEditEvent = (payload, template) => {
   const { eventEditDT, calendars, idCalendar, userInfo } = payload;
-  const { editEvent } = template;
-  console.log(eventEditDT);
-  let editView = JSON.stringify(editEvent);
-  editView = JSON.parse(editView);
+  // const { editEvent } = template;
+  let editView = {...template.editEvent,blocks: [...template.editEvent.blocks]}
+  // let editView = JSON.stringify(editEvent);
+  // editView = JSON.parse(editView);
   editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
   for (let i = 0, length = calendars.length; i < length; i++) {
     const item = calendars[i];
@@ -559,9 +559,11 @@ function handlerBlocksActions(payload, template) {
  * @returns {Promise}
  */
 const showDeleteEventView = (payload, template) => {
-  const { deleteEvent } = template;
-  let view = JSON.stringify(deleteEvent);
-  view = JSON.parse(view);
+  // const { deleteEvent } = template;
+
+  let view = {...template.deleteEvent,blocks: [...template.deleteEvent.blocks]}
+  // let view = JSON.stringify(deleteEvent);
+  // view = JSON.parse(view);
   view.private_metadata = payload.actions[0].block_id;
   view.private_metadata += "/" + payload.actions[0].selected_option.value;
   view.blocks[0].text.text += payload.actions[0].block_id.split('/')[2];

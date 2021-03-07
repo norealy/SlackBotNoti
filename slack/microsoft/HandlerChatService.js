@@ -15,7 +15,7 @@ require('moment-precise-range-plugin');
  */
 const getDurationDay = (datetimeStart, datetimeEnd) => {
   let durationDay = 0;
-  currentDate = datetimeStart;
+  let currentDate = datetimeStart;
    const addDays = function (days) {
       let date = new Date(this.valueOf());
       date.setDate(date.getDate() + days);

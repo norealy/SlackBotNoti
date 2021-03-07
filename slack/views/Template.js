@@ -144,8 +144,6 @@ class TemplateSlack {
 			this.addEvent.blocks[7].accessory.options = timeEnd;
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
-			this.editEvent.blocks[6].accessory.options = timeStart;
-			this.editEvent.blocks[7].accessory.options = timeEnd;
 			this.eventEndDate = await this.readFileTemplate(`${pathFile}/EventEndDate.json`);
 			this.eventTimeStart = await this.readFileTemplate(`${pathFile}/EventTimeStart.json`);
 			this.eventTimeEnd = await this.readFileTemplate(`${pathFile}/EventTimeEnd.json`);

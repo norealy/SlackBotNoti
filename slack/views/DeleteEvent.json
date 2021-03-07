@@ -1,7 +1,6 @@
 {
 	"type": "modal",
 	"notify_on_close": true,
-	"clear_on_close":true,
 	"title": {
 		"type": "plain_text",
 		"text": "BOT NOTI CALENDARS ",
@@ -17,7 +16,7 @@
 		"text": "Close",
 		"emoji": true
 	},
-	"callback_id":"delete-event",
+  "callback_id": "delete-event",
 	"blocks": [
 		{
 			"type": "header",
@@ -31,7 +30,7 @@
 			"type": "section",
 			"text": {
 				"type": "plain_text",
-				"text": "Event of calendar: ",
+				"text": "Event of calendar : ",
 				"emoji": true
 			}
 		}

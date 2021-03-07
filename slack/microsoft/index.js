@@ -414,7 +414,6 @@ class SlackMicrosoft extends BaseServer {
     } catch (error) {
       return ;
     }
-
   }
 
   async resourceServerHandler(req, res, next) {

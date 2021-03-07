@@ -26,7 +26,10 @@ const {
   requestSettings,
   requestHome,
   configAddEvent,
+  configShowEvent,
   createEvent,
+  updateEvent,
+  deleteEvent,
   handlerAction,
 } = require("./ChatService");
 const {
@@ -132,6 +135,23 @@ class SlackGoogle extends BaseServer {
     return configAddEvent(body, this.template)
   }
 
+  async handlerShowEvents(body) {
+    const {channel_id = null} = body;
+    const idChannel = await ChannelsCalendar.query().findOne({id_channel: channel_id});
+    const idCalendars = await GoogleAccountCalendar.query().findOne({id_calendar: idChannel.id_calendar});
+    body.idAccount = idCalendars.id_account;
+    const options = {
+      method: 'GET',
+      headers: {'X-Google-AccountId': body.idAccount},
+      url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idChannel.id_calendar}/events`
+    }
+    const events = await Axios(options);
+    if (events.data.items.length === 0) return null;
+    body.event = events.data.items[0];
+    body.idCalendar = idChannel.id_calendar;
+    return configShowEvent(body, this.template)
+  }
+
   /**
    * Xử lý command
    * @param {object} req
@@ -150,10 +170,13 @@ class SlackGoogle extends BaseServer {
           option = requestHome(req.body, this.template.homePage);
           break;
         case "settings":
-          option = requestSettings(req.body, this.template.systemSetting);
+          option = requestSettings(req.body, this.template.systemSetting, this.setUidToken);
           break;
         case "go add-event":
           option = await this.handlerAddEvent(req.body);
+          break;
+        case "show-events":
+          option = await this.handlerShowEvents(req.body);
           break;
         default:
           option = null;
@@ -177,24 +200,38 @@ class SlackGoogle extends BaseServer {
   async handlerSubmit(payload) {
     const {callback_id} = payload.view;
     const {values} = payload.view.state;
-    const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
-    const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
-    const account = await GoogleAccount.query().findOne({id: id_account});
 
-    let option = {method: "POST"};
-    option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events`;
-    option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+    if (callback_id === "GO_add-event") {
+      const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
+      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+      const account = await GoogleAccount.query().findOne({id: id_account});
+      let option = {method: "POST"};
+      option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events`;
+      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.data = createEvent(values, account);
+      return option;
+    } else if (callback_id === "GO_edit-event") {
+      const parseData = JSON.parse(payload.view.private_metadata)
+      const idEvent = parseData.idEvent
+      const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
+      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+      const account = await GoogleAccount.query().findOne({id: id_account});
+      let option = {method: "PUT"};
+      option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
+      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.data = updateEvent(values, account);
+      return option;
+    } else if (callback_id === "GO_delete-event") {
+      const blockId = payload.view.blocks[0].block_id.split('/');
 
-    switch (callback_id) {
-      case "GO_add-event":
-        option.data = createEvent(values, account);
-        break;
-      default:
-        option = null;
-        break;
+      const idEvent = blockId[1]
+      const event = payload.view.blocks[1].block_id.split('/');
+      const goAccount = event[0].split('GO_')
+      const idAccount = goAccount[1];
+      const idCalendar = event[1]
+      return deleteEvent(idAccount, idCalendar, idEvent)
     }
 
-    return option;
   }
 
   /**
@@ -207,8 +244,36 @@ class SlackGoogle extends BaseServer {
     try {
       let {payload} = req.body;
       payload = JSON.parse(payload);
-      let option = null;
+      //const idEvent = payload.actions[0].selected_option.value.split('/')
+      if (payload.type === "block_actions" && payload.actions[0].action_id === "overflow-action") {
+        const idEvent = payload.actions[0]["selected_option"].value.split('/')[1];
+        const idCalendar = payload.actions[0].block_id.split('/')[1]
+        // const account = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+        const calendar = await GoogleCalendar.query().findById(idCalendar);
+        payload.calendarName = calendar.name;
+        // payload.idAccount = account.id_account;
 
+        const value = payload.actions[0].selected_option.value.split('/');
+        if (value[0] === "edit") {
+          const idAccount = payload.actions[0].block_id
+            .split('/')[0]
+            .split('GO_')[1];
+          const account = await GoogleAccount.query().findById(idAccount)
+          payload.timeZoneGG = account.timezone
+          const user_id = payload.user.id;
+          const channel_id = payload.container.channel_id;
+          payload.userInfo = await this.getUserInfo(user_id);
+          payload.calendars = await this.getCalendarsInChannel(channel_id);
+          const options = {
+            method: 'GET',
+            headers: {'X-Google-AccountId': idAccount},
+            url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
+          }
+          const result = await Axios(options);
+          payload.event = result.data
+        }
+      }
+      let option = null;
       switch (payload.type) {
         case "block_actions":
           option = handlerAction(payload, this.template);
@@ -221,8 +286,7 @@ class SlackGoogle extends BaseServer {
         default:
           option = null
       }
-
-      if (option) await Axios(option);
+      if (option) await Axios(option).then(({data}) => console.log(data));
     } catch (e) {
       return res.status(204).send("Error");
     }

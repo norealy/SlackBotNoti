@@ -12,7 +12,6 @@
 		"ACCESS_TYPE": "offline",
 		"GRANT_TYPE": "authorization_code",
 		"API_URL": "https://www.googleapis.com",
-		"API_CALENDAR_EVENTS": "/calendar/v3/calendars",
 		"API_URL_OAUTH":"https://oauth2.googleapis.com",
 		"API_USER_INFO": "/oauth2/v3/userinfo",
 		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",

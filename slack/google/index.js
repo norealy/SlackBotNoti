@@ -143,7 +143,7 @@ class SlackGoogle extends BaseServer {
     const options = {
       method: 'GET',
       headers: {'X-Google-AccountId': body.idAccount},
-      url: `https://www.googleapis.com/calendar/v3/calendars/${idChannel.id_calendar}/events`
+      url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idChannel.id_calendar}/events`
     }
     const events = await Axios(options);
     if (events.data.items.length === 0) return null;
@@ -188,7 +188,6 @@ class SlackGoogle extends BaseServer {
           if (!data.ok) throw data
         });
     } catch (e) {
-      console.log("err", e)
       res.status(204).send("Error");
     }
   }
@@ -207,33 +206,30 @@ class SlackGoogle extends BaseServer {
       const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
       const account = await GoogleAccount.query().findOne({id: id_account});
       let option = {method: "POST"};
-      option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events`;
+      option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events`;
       option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
       option.data = createEvent(values, account);
       return option;
-    }
-    else if (callback_id === "GO_edit-event") {
+    } else if (callback_id === "GO_edit-event") {
       const parseData = JSON.parse(payload.view.private_metadata)
       const idEvent = parseData.idEvent
       const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
       const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
       const account = await GoogleAccount.query().findOne({id: id_account});
       let option = {method: "PUT"};
-      option.url = `https://www.googleapis.com/calendar/v3/calendars/${idCalendar}/events/${idEvent}`
+      option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
       option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
       option.data = updateEvent(values, account);
       return option;
-    }
-    else if (callback_id === "GO_delete-event") {
+    } else if (callback_id === "GO_delete-event") {
       const blockId = payload.view.blocks[0].block_id.split('/');
 
       const idEvent = blockId[1]
       const event = payload.view.blocks[1].block_id.split('/');
-      console.log("block",event)
       const goAccount = event[0].split('GO_')
       const idAccount = goAccount[1];
       const idCalendar = event[1]
-      return deleteEvent(idAccount, idCalendar,idEvent)
+      return deleteEvent(idAccount, idCalendar, idEvent)
     }
 
   }
@@ -250,22 +246,30 @@ class SlackGoogle extends BaseServer {
       payload = JSON.parse(payload);
       //const idEvent = payload.actions[0].selected_option.value.split('/')
       if (payload.type === "block_actions" && payload.actions[0].action_id === "overflow-action") {
-        const user_id = payload.user.id;
-        const channel_id = payload.container.channel_id;
-        payload.userInfo = await this.getUserInfo(user_id);
-        payload.calendars = await this.getCalendarsInChannel(channel_id);
+        const idEvent = payload.actions[0]["selected_option"].value.split('/')[1];
+        const idCalendar = payload.actions[0].block_id.split('/')[1]
+        // const account = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+        const calendar = await GoogleCalendar.query().findById(idCalendar);
+        payload.calendarName = calendar.name;
+        // payload.idAccount = account.id_account;
+
         const value = payload.actions[0].selected_option.value.split('/');
         if (value[0] === "edit") {
-          const event = payload.actions[0].selected_option.value.split('/');
-          const blockId = payload.actions[0].block_id.split('/')
-          const idCalendars = await GoogleAccountCalendar.query().findOne({id_calendar: blockId[1]});
+          const idAccount = payload.actions[0].block_id
+            .split('/')[0]
+            .split('GO_')[1];
+          const account = await GoogleAccount.query().findById(idAccount)
+          payload.timeZoneGG = account.timezone
+          const user_id = payload.user.id;
+          const channel_id = payload.container.channel_id;
+          payload.userInfo = await this.getUserInfo(user_id);
+          payload.calendars = await this.getCalendarsInChannel(channel_id);
           const options = {
             method: 'GET',
-            headers: {'X-Google-AccountId': idCalendars.id_account},
-            url: `https://www.googleapis.com/calendar/v3/calendars/${blockId[1]}/events/${event[1]}`
+            headers: {'X-Google-AccountId': idAccount},
+            url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
           }
           const result = await Axios(options);
-          console.log(result.data)
           payload.event = result.data
         }
       }
@@ -282,10 +286,8 @@ class SlackGoogle extends BaseServer {
         default:
           option = null
       }
-     // console.log("Option",option.data.view.blocks)
-      if (option) await Axios(option).then(({data})=>console.log(data));
+      if (option) await Axios(option).then(({data}) => console.log(data));
     } catch (e) {
-      console.log("err", e)
       return res.status(204).send("Error");
     }
   }
@@ -295,7 +297,7 @@ class SlackGoogle extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (command && /^\/ca$/.test(command)) return this.handlerCommand(req, res);
+      if (command && /^\/cal$/.test(command)) return this.handlerCommand(req, res);
       if (payload) return this.handlerPayLoad(req, res);
       return res.status(200).send("OK");
     } catch (err) {

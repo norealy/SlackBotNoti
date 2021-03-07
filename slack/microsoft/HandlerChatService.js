@@ -689,6 +689,9 @@ const submitAddEvent = (values, account) => {
       const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
       event.start.dateTime = dateTimeStart;
       event.end.dateTime = dateTimeEnd;
+      if (recurrence !== "nomal") {
+        event.recurrence = getRecurrence(recurrence, startDate);
+      }
     } else {
       const endDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
       event.isAllDay = true;
@@ -697,11 +700,9 @@ const submitAddEvent = (values, account) => {
     if (event.reminderMinutesBeforeStart === 'default') {
       event.reminderMinutesBeforeStart = 0;
     }
-    if (recurrence !== "nomal" && !allDay) {
-      event.recurrence = getRecurrence(recurrence, startDate);
-    }
     return event;
   } catch (error) {
+    console.log(error);
     return null;
   }
 };

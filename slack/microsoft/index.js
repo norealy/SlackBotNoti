@@ -312,6 +312,7 @@ class SlackMicrosoft extends BaseServer {
       }
       if (option) await Axios(option);
     } catch (e) {
+      console.log(e);
       return res.status(403).send("Error !");
     }
   }
@@ -470,5 +471,6 @@ module.exports = SlackMicrosoft;
   await pipeline.init();
   pipeline.app.get("/auth/microsoft", pipeline.microsoftAccess);
   pipeline._customRepeat(pipeline.template.addEvent);
+  pipeline._customRepeat(pipeline.template.editEvent);
   AxiosConfig();
 })();

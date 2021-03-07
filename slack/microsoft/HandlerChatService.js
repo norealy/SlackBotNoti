@@ -3,14 +3,196 @@ const Crypto = require("../../utils/Crypto");
 const Env = require("../../utils/Env");
 const MomentTimezone = require('moment-timezone');
 const Moment = require('moment');
-const { v4: uuidv4 } = require('uuid');
-const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const { blockTime } = require('../../utils/ConvertTime');
+const { v4: uuidv4 } = require('uuid');
 require('moment-precise-range-plugin');
 
 /**
- * Show modals view add event to slack
- * @param {Object} body
+ * get duration day
+ * @param {datetime} datetimeStart
+ * @param {datetime} datetimeEnd
+ * @retun {number}
+ */
+const getDurationDay = (datetimeStart, datetimeEnd) => {
+  let durationDay = 0;
+  let currentDate = datetimeStart;
+   const addDays = function (days) {
+      let date = new Date(this.valueOf());
+      date.setDate(date.getDate() + days);
+      return date;
+    };
+  while (currentDate <= datetimeEnd) {
+    currentDate = addDays.call(currentDate, 1);
+    durationDay += 1;
+  }
+  return durationDay - 1;
+}
+/**
+ * Show modals view edit event to slack
+ * @param {Object} payload
+ * @param {Object} template
+ * @param {Array} timePicker
+ * @returns {Promise}
+ */
+const handlerEditEvent = (payload, template) => {
+  const { eventEditDT, calendars, idCalendar, userInfo } = payload;
+  let editView = {...template.editEvent,blocks: [...template.editEvent.blocks]};
+  editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
+  for (let i = 0, length = calendars.length; i < length; i++) {
+    const item = calendars[i];
+    const selectCalendars = {
+      "text": {
+        "type": "plain_text",
+        "text": item.name,
+        "emoji": true
+      },
+      "value": item.id
+    }
+    if (item.id === idCalendar) {
+      editView.blocks[1].accessory.initial_option = selectCalendars;
+    }
+    editView.blocks[1].accessory.options.push(selectCalendars);
+  }
+  editView.blocks[2].element.initial_value = eventEditDT.subject;
+  if (eventEditDT.locations[0]) {
+    editView.blocks[8].element.initial_value = eventEditDT.locations[0].displayName;
+  }
+  const datetimeStart = Moment(eventEditDT.start.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
+  const datetimeEnd = Moment(eventEditDT.end.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
+  editView.blocks[4].accessory.initial_date = datetimeStart.split('T')[0];
+  const lengthEditBlocks = editView.blocks.length;
+
+  if (eventEditDT.recurrence) {
+    editView.blocks[lengthEditBlocks - 2].element.initial_option = repeatInitOption(eventEditDT.recurrence.pattern.type);
+  }
+  editView.blocks[lengthEditBlocks - 1].element.initial_option = reminderStartInitOptions(eventEditDT.reminderMinutesBeforeStart);
+
+  let durationDay = 1;
+  if (eventEditDT.isAllDay) {
+    durationDay = getDurationDay(new Date(datetimeStart),new Date(datetimeEnd));
+    editView.blocks.splice(6, 2);
+    editView.blocks[5].accessory.initial_date = datetimeEnd.split('T')[0];
+    editView.blocks[3].accessory.initial_options =
+      [
+        {
+          "value": "true",
+          "text": {
+            "type": "plain_text",
+            "text": "All day"
+          }
+        }
+      ]
+  } else {
+    const initialOption = {
+      "text": {
+        "type": "plain_text",
+        "text": blockTime(datetimeStart),
+        "emoji": true
+      },
+      "value": blockTime(datetimeStart)
+    }
+    const initialOption2 = {
+      "text": {
+        "type": "plain_text",
+        "text": blockTime(datetimeEnd),
+        "emoji": true
+      },
+      "value": blockTime(datetimeEnd)
+    }
+    editView.blocks[6].accessory.initial_option = initialOption;
+    editView.blocks[7].accessory.initial_option = initialOption2;
+    editView.blocks.splice(5, 1);
+  }
+  let dateTime = MomentTimezone(eventEditDT.start.dateTime).tz(userInfo.user.tz).format();
+  const timeStart = blockTime(dateTime);
+  editView.private_metadata = JSON.stringify({ ...userInfo, dateTime, durationTime: 15, durationDay: durationDay, startTime: timeStart });
+  return editView;
+};
+
+/**
+ * Xu ly phan Overflow Action ( Sua hoac xoa su kien)
+ * @param {Object} payload
+ * @param {Object} template
+ * @returns {Promise}
+ */
+const handlerOverflowAction = (payload, template) => {
+  const value = payload.actions[0].selected_option.value.split('/');
+  if (value[0] === "edit") {
+    return handlerEditEvent(payload, template);
+  }
+  else if (value[0] === "delete") {
+    return showDeleteEventView(payload, template);
+  }
+}
+
+/**
+ * init option remider
+ * @param {number} number
+ * @returns {Object}
+ */
+const reminderStartInitOptions = (number) => {
+  const initialOption = {
+    "text": {
+      "type": "plain_text",
+      "text": "At time of event",
+      "emoji": true
+    },
+    "value": "0"
+  }
+  if (number >= 60) {
+    initialOption.text.text = "1 hours before";
+    initialOption.value = "60";
+    return initialOption;
+  } else if (number >= 30) {
+    initialOption.text.text = "30 minutes before";
+    initialOption.value = "30";
+    return initialOption;
+  } else if (number >= 15) {
+    initialOption.text.text = "15 minutes before";
+    initialOption.value = "15";
+    return initialOption;
+  } else {
+    return initialOption;
+  }
+}
+
+/**
+ * init option repeat
+ * @param {string} type
+ * @returns {Object}
+ */
+const repeatInitOption = (type) => {
+  const initialOption = {
+    "text": {
+      "type": "plain_text",
+      "text": "Nomal",
+      "emoji": true
+    },
+    "value": "nomal"
+  }
+  switch (type) {
+    case "nomal":
+      return initialOption;
+    case "daily":
+      initialOption.text.text = "Every day";
+      initialOption.value = "daily"
+      return initialOption;
+    case "weekly":
+      initialOption.text.text = "Every week";
+      initialOption.value = "weekly"
+      return initialOption;
+    case "absoluteMonthly":
+      initialOption.text.text = "Every month";
+      initialOption.value = "absoluteMonthly"
+      return initialOption;
+    default:
+      return initialOption;
+  }
+}
+
+/**
+ * Show modals view edit event to slack
+ * @param {Object} payload
  * @param {Object} template
  * @returns {Promise}
  */
@@ -81,6 +263,7 @@ const configAddEvent = async (body, template) => {
   };
   return options;
 };
+
 /**
  * xử lý action All đây
  * @param {object} payload
@@ -130,6 +313,7 @@ const handlerAllDay = (payload, blocks) => {
   view.blocks.splice(5, 0, timeStart);
   return view;
 };
+
 /**
  * Xử lý action start date
  * @param {object} payload
@@ -141,7 +325,8 @@ function handlerStartDate(payload, blocks) {
   const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
-  const dateTime = `${selectedDate}T${priMetadata.startTime}`;
+  const timezone = Moment(priMetadata.dateTime).format("Z");
+  const dateTime = `${selectedDate}T${priMetadata.startTime}:00${timezone}`;
   priMetadata.dateTime = MomentTimezone(dateTime).tz(priMetadata.user.tz).format();
   view.private_metadata = JSON.stringify(priMetadata);
   if (values["MI_check_all_day"]["allDay"]["selected_options"].length === 0) return view;
@@ -160,6 +345,7 @@ function handlerStartDate(payload, blocks) {
   }
   return view
 }
+
 /**
  * Get value select date
  * @param {Object} values
@@ -168,12 +354,13 @@ function handlerStartDate(payload, blocks) {
  * @returns {string}
  */
 function _getSelectedDate(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
   }
 }
+
 /**
  * Get value select options
  * @param {Object} values
@@ -182,12 +369,13 @@ function _getSelectedDate(values, blockId, actionId) {
  * @returns {string}
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
   }
 }
+
 /**
  * Xử lý action end date
  * @param {object} payload
@@ -228,6 +416,7 @@ function handlerEndDate(payload, blocks) {
   }
   return view
 }
+
 /**
  * Xử lý action start time
  * @param {object} payload
@@ -268,6 +457,7 @@ function handlerStartTime(payload) {
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
+
 /**
  * Xử lý action end time
  * @param {object} payload
@@ -304,7 +494,6 @@ function handlerEndTime(payload) {
     }
     return view;
   }
-
   priMetadata.dateTime = datetimeStart;
   if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
@@ -347,28 +536,16 @@ function handlerBlocksActions(payload, template) {
       option.data.view = handlerEndTime(changePayload);
       break;
     case "overflow-action":
-      return handlerOverflowAction(payload, template);
+      delete option.data.view_id;
+      option.url = Env.chatServiceGet("API_URL") + Env.chatServiceGet("API_VIEW_OPEN")
+      option.data.trigger_id = payload.trigger_id;
+      option.data.view = handlerOverflowAction(payload, template);
     default:
       break;
   }
   if (option) delete option.data.view.state;
-  return option
+  return option;
 };
-/**
- * Xu ly phan Overflow Action ( Sua hoac xoa su kien)
- * @param {Object} payload
- * @param {Object} template
- * @returns {Promise}
- */
-const handlerOverflowAction = (payload, template) => {
-  const value = payload.actions[0].selected_option.value.split('/');
-  if (value[0] === "edit") {
-    return null;
-  }
-  else if (value[0] === "delete") {
-    return showDeleteEventView(payload, template);
-  }
-}
 
 /**
  * Thuc hien xoa event
@@ -377,27 +554,12 @@ const handlerOverflowAction = (payload, template) => {
  * @returns {Promise}
  */
 const showDeleteEventView = (payload, template) => {
-  const { trigger_id = null } = payload;
-  const { deleteEvent } = template;
-  let view = JSON.stringify(deleteEvent);
-  view = JSON.parse(view);
+  let view = template.deleteEvent;
   view.private_metadata = payload.actions[0].block_id;
   view.private_metadata += "/" + payload.actions[0].selected_option.value;
-  view.blocks[0].text.text += payload.actions[0].block_id.split('/')[2];
-  view.blocks[1].text.text += payload.calendar.name;
-  const data = {
-    trigger_id: trigger_id,
-    view: view,
-  };
-  const options = {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data,
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_VIEW_OPEN"),
-  };
-  return options;
+  view.blocks[0].text.text = "Delete event : " + payload.actions[0].block_id.split('/')[2];
+  view.blocks[1].text.text = "Event of calendar : " + payload.calendar.name;
+  return view;
 }
 
 /**
@@ -466,6 +628,7 @@ const getRecurrence = (type, datetime) => {
   }
   return recurrence;
 }
+
 /**
  * _get Selected Option
  * @param {strig} values
@@ -473,16 +636,16 @@ const getRecurrence = (type, datetime) => {
  * @param {string} actionId
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
   }
 }
+
 /**
  * Submit event
- * @param {Object} values
- * @param {Object} account
+ * @param {Object} payload
  * @returns {Promise}
  */
 const submitAddEvent = (values, account) => {
@@ -515,29 +678,26 @@ const submitAddEvent = (values, account) => {
     if (allDay.length === 0) {
       const timeStart = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
       const timeEnd = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
-
       const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
       const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
-
       event.start.dateTime = dateTimeStart;
       event.end.dateTime = dateTimeEnd;
+      if (recurrence !== "nomal") {
+        event.recurrence = getRecurrence(recurrence, startDate);
+      }
     } else {
       const endDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
       event.isAllDay = true;
       event.end.dateTime = `${endDate}T00:00:00`;
     }
-    if(event.reminderMinutesBeforeStart === 'default'){
+    if (event.reminderMinutesBeforeStart === 'default') {
       event.reminderMinutesBeforeStart = 0;
-    }
-    if (recurrence !== "nomal" && !allDay) {
-      event.recurrence = getRecurrence(recurrence, startDate);
     }
     return event;
   } catch (error) {
     return null;
   }
 };
-
 
 /**
  * Tao url request author
@@ -632,6 +792,7 @@ const handlerSettingsMessage = (viewSystemSetting, body, setUidToken) => {
       .catch((err) => reject(err));
   });
 };
+
 /**
  * Xóa các thành phần của view
  * @param {object} payload

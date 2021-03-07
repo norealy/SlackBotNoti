@@ -37,6 +37,7 @@ const {
 } = require("./HandlerResourceServer");
 const { copySync } = require("fs-extra");
 const { resolve, reject } = require("bluebird");
+const { val } = require("objection");
 
 class SlackMicrosoft extends BaseServer {
   constructor(instanceId, opt) {
@@ -201,42 +202,65 @@ class SlackMicrosoft extends BaseServer {
     })
   }
   /**
+   * Get option for add or edit EVENT
+   * @param {Object} payload
+   * @param {string} type
+   * @returns {object}
+   */
+  async getOptionEditOfAddEvent(payload, type) {
+    let { values } = payload.view.state;
+    const idCalendar = values["MI_select_calendar"]["select_calendar"]["selected_option"].value;
+    const { id_account } = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
+    const account = await MicrosoftAccount.query().findOne({ id: id_account });
+    const option = {
+      method: 'POST',
+      headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': id_account },
+      data: submitAddEvent(values, account),
+      url:
+        Env.resourceServerGOF("GRAPH_URL") +
+        Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
+    };
+    if (type === "edit") {
+      option.method = "PATCH";
+      const value = payload.view.callback_id.split('/');
+      option.url += "/" + value[1];
+    }
+    return option;
+  }
+  /**
    *  Xu ly cac su kien nguoi dung goi lenh xu ly bot
    * @param {object} payload
    * @returns {Promise}
    */
   async handlerSubmit(payload) {
-    const { callback_id } = payload.view;
+    let callbackId = payload.view.callback_id;
     let option = null;
-    switch (callback_id) {
+    if(callbackId.indexOf('MI_edit-event') === 0){
+      callbackId = callbackId.split('/')[0];
+    }
+    switch (callbackId) {
       case "MI_delete-event":
         option = submitDelEvent(payload);
         break;
       case "MI_add-event":
-        const { values } = payload.view.state;
-        const idCalendar = values["MI_select_calendar"]["select_calendar"]["selected_option"].value;
-        const { id_account } = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar });
-        const account = await MicrosoftAccount.query().findOne({ id: id_account });
-        option = {
-          method: 'POST',
-          headers: { "Content-Type": "application/json", 'X-Microsoft-AccountId': id_account },
-          data: submitAddEvent(values, account),
-          url:
-            Env.resourceServerGOF("GRAPH_URL") +
-            Env.resourceServerGOF("GRAPH_CALENDARS") + `/${idCalendar}/events`
-        };
+        option = await this.getOptionEditOfAddEvent(payload, "add")
+        break;
+      case "MI_edit-event":
+        option = await this.getOptionEditOfAddEvent(payload, "edit")
         break;
       default:
         break;
     }
     return option;
   }
+
   /**
    * get options calendar
    * @param {array} chanCals
    */
   getOptionCalendars = (chanCals) => {
-    return Promise.all(chanCals.map(item => MicrosoftCalendar.query().findById(item.id_calendar)))};
+    return Promise.all(chanCals.map(item => MicrosoftCalendar.query().findById(item.id_calendar)))
+  };
 
   /**
    *
@@ -251,18 +275,26 @@ class SlackMicrosoft extends BaseServer {
       switch (payload.type) {
         case "block_actions":
           res.status(200).send("Ok");
-          if (payload.actions[0].action_id === 'overflow-action' && payload.actions[0].selected_option.value.split('/')[0] === "edit" ) {
+          if (payload.actions[0].action_id !== 'overflow-action') {
+            option = handlerBlocksActions(payload, this.template);
+            break;
+          }
+          else if (payload.actions[0].selected_option.value.split('/')[0] === "edit") {
             const value = payload.actions[0].selected_option.value.split('/');
             const blockId = payload.actions[0].block_id.split('/');
             const event = await getEvent(blockId[0].split('MI_')[1], value[1]);
-            payload.account = await MicrosoftAccount.query().findById(blockId[0].split('MI_')[1]);
             const chanCals = await ChannelsCalendar.query().where({ id_channel: payload.channel.id });
             payload.calendars = await this.getOptionCalendars(chanCals);
             payload.idCalendar = blockId[1];
             payload.eventEditDT = event.data;
+            const user_id = payload.user.id;
+            payload.userInfo = await this.getUserInfo(user_id);
+          } else if (payload.actions[0].selected_option.value.split('/')[0] === "delete") {
+            const blockId = payload.actions[0].block_id.split('/');
             payload.calendar = await MicrosoftCalendar.query().findById(blockId[1]);
           }
-          option = await handlerBlocksActions(payload, this.template);
+          option = handlerBlocksActions(payload, this.template);
+
           break;
         case "view_submission":
           res.status(200).send({
@@ -280,7 +312,6 @@ class SlackMicrosoft extends BaseServer {
       }
       if (option) await Axios(option);
     } catch (e) {
-      console.log(e);
       return res.status(403).send("Error !");
     }
   }

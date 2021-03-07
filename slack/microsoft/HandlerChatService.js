@@ -8,6 +8,26 @@ const { v4: uuidv4 } = require('uuid');
 require('moment-precise-range-plugin');
 
 /**
+ * get duration day
+ * @param {datetime} datetimeStart
+ * @param {datetime} datetimeEnd
+ * @retun {number}
+ */
+const getDurationDay = (datetimeStart, datetimeEnd) => {
+  let durationDay = 0;
+  currentDate = datetimeStart,
+    addDays = function (days) {
+      let date = new Date(this.valueOf());
+      date.setDate(date.getDate() + days);
+      return date;
+    };
+  while (currentDate <= datetimeEnd) {
+    currentDate = addDays.call(currentDate, 1);
+    durationDay += 1;
+  }
+  return durationDay - 1;
+}
+/**
  * Show modals view edit event to slack
  * @param {Object} payload
  * @param {Object} template
@@ -15,9 +35,9 @@ require('moment-precise-range-plugin');
  * @returns {Promise}
  */
 const handlerEditEvent = (payload, template) => {
-  const { trigger_id, eventEditDT, calendars ,idCalendar, account } = payload;
-  console.log(payload);
+  const { eventEditDT, calendars, idCalendar, userInfo } = payload;
   const { editEvent } = template;
+  console.log(eventEditDT);
   let editView = JSON.stringify(editEvent);
   editView = JSON.parse(editView);
   editView.callback_id = `${editView.callback_id}/${eventEditDT.id}`;
@@ -40,17 +60,22 @@ const handlerEditEvent = (payload, template) => {
   if (eventEditDT.locations[0]) {
     editView.blocks[8].element.initial_value = eventEditDT.locations[0].displayName;
   }
-  const datetimeStart = Moment(eventEditDT.start.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
-  const datetimeEnd = Moment(eventEditDT.end.dateTime).utc(true).utcOffset(account.timezone).format("YYYY-MM-DD.hh:ss");
-  editView.blocks[4].accessory.initial_date = datetimeStart.split('.')[0];
+  const datetimeStart = Moment(eventEditDT.start.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
+  const datetimeEnd = Moment(eventEditDT.end.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
+  editView.blocks[4].accessory.initial_date = datetimeStart.split('T')[0];
   const lengthEditBlocks = editView.blocks.length;
-  if(eventEditDT.recurrence){
-    editView.blocks[lengthEditBlocks -2].element.initial_option = repeatInitOption(eventEditDT.recurrence.pattern.type);
+
+  if (eventEditDT.recurrence) {
+    editView.blocks[lengthEditBlocks - 2].element.initial_option = repeatInitOption(eventEditDT.recurrence.pattern.type);
   }
-  editView.blocks[lengthEditBlocks -1].element.initial_option = reminderStartInitOptions(eventEditDT.reminderMinutesBeforeStart);
+  editView.blocks[lengthEditBlocks - 1].element.initial_option = reminderStartInitOptions(eventEditDT.reminderMinutesBeforeStart);
+
+  let durationDay = 1;
   if (eventEditDT.isAllDay) {
+    durationDay = getDurationDay(new Date(datetimeStart),new Date(datetimeEnd));
+    console.log(durationDay);
     editView.blocks.splice(6, 2);
-    editView.blocks[5].accessory.initial_date = datetimeEnd.split('.')[0];
+    editView.blocks[5].accessory.initial_date = datetimeEnd.split('T')[0];
     editView.blocks[3].accessory.initial_options =
       [
         {
@@ -61,42 +86,32 @@ const handlerEditEvent = (payload, template) => {
           }
         }
       ]
-
   } else {
     const initialOption = {
       "text": {
         "type": "plain_text",
-        "text": datetimeStart.split('.')[1],
+        "text": blockTime(datetimeStart),
         "emoji": true
       },
-      "value": datetimeStart.split('.')[1]
+      "value": blockTime(datetimeStart)
     }
     const initialOption2 = {
       "text": {
         "type": "plain_text",
-        "text": datetimeEnd.split('.')[1],
+        "text": blockTime(datetimeEnd),
         "emoji": true
       },
-      "value": datetimeEnd.split('.')[1]
+      "value": blockTime(datetimeEnd)
     }
     editView.blocks[6].accessory.initial_option = initialOption;
     editView.blocks[7].accessory.initial_option = initialOption2;
     editView.blocks.splice(5, 1);
   }
-  const data = {
-    trigger_id: trigger_id,
-    view: editView,
-  };
-
-  const options = {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data,
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_VIEW_OPEN"),
-  };
-  return options;
+  let dateTime = MomentTimezone(eventEditDT.start.dateTime).tz(userInfo.user.tz).format();
+  const timeStart = blockTime(dateTime);
+  console.log("durationDay :", durationDay);
+  editView.private_metadata = JSON.stringify({ ...userInfo, dateTime, durationTime: 15, durationDay: durationDay, startTime: timeStart });
+  return editView;
 };
 
 /**
@@ -160,7 +175,7 @@ const repeatInitOption = (type) => {
     },
     "value": "nomal"
   }
-  switch(type){
+  switch (type) {
     case "nomal":
       return initialOption;
     case "daily":
@@ -315,7 +330,8 @@ function handlerStartDate(payload, blocks) {
   const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
-  const dateTime = `${selectedDate}T${priMetadata.startTime}`;
+  const timezone = Moment(priMetadata.dateTime).format("Z");
+  const dateTime = `${selectedDate}T${priMetadata.startTime}:00${timezone}`;
   priMetadata.dateTime = MomentTimezone(dateTime).tz(priMetadata.user.tz).format();
   view.private_metadata = JSON.stringify(priMetadata);
   if (values["MI_check_all_day"]["allDay"]["selected_options"].length === 0) return view;
@@ -343,7 +359,7 @@ function handlerStartDate(payload, blocks) {
  * @returns {string}
  */
 function _getSelectedDate(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
@@ -358,7 +374,7 @@ function _getSelectedDate(values, blockId, actionId) {
  * @returns {string}
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -525,12 +541,15 @@ function handlerBlocksActions(payload, template) {
       option.data.view = handlerEndTime(changePayload);
       break;
     case "overflow-action":
-      return handlerOverflowAction(payload, template);
+      delete option.data.view_id;
+      option.url = Env.chatServiceGet("API_URL") + Env.chatServiceGet("API_VIEW_OPEN")
+      option.data.trigger_id = payload.trigger_id;
+      option.data.view = handlerOverflowAction(payload, template);
     default:
       break;
   }
   if (option) delete option.data.view.state;
-  return option
+  return option;
 };
 
 /**
@@ -540,7 +559,6 @@ function handlerBlocksActions(payload, template) {
  * @returns {Promise}
  */
 const showDeleteEventView = (payload, template) => {
-  const { trigger_id = null } = payload;
   const { deleteEvent } = template;
   let view = JSON.stringify(deleteEvent);
   view = JSON.parse(view);
@@ -548,19 +566,7 @@ const showDeleteEventView = (payload, template) => {
   view.private_metadata += "/" + payload.actions[0].selected_option.value;
   view.blocks[0].text.text += payload.actions[0].block_id.split('/')[2];
   view.blocks[1].text.text += payload.calendar.name;
-  const data = {
-    trigger_id: trigger_id,
-    view: view,
-  };
-  const options = {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data,
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_VIEW_OPEN"),
-  };
-  return options;
+  return view;
 }
 
 /**
@@ -637,7 +643,7 @@ const getRecurrence = (type, datetime) => {
  * @param {string} actionId
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -679,10 +685,8 @@ const submitAddEvent = (values, account) => {
     if (allDay.length === 0) {
       const timeStart = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
       const timeEnd = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
-
       const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
       const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
-
       event.start.dateTime = dateTimeStart;
       event.end.dateTime = dateTimeEnd;
     } else {
@@ -690,7 +694,7 @@ const submitAddEvent = (values, account) => {
       event.isAllDay = true;
       event.end.dateTime = `${endDate}T00:00:00`;
     }
-    if(event.reminderMinutesBeforeStart === 'default'){
+    if (event.reminderMinutesBeforeStart === 'default') {
       event.reminderMinutesBeforeStart = 0;
     }
     if (recurrence !== "nomal" && !allDay) {

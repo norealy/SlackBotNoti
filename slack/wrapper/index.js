@@ -71,9 +71,9 @@ class SlackWrapper extends BaseServer {
     const list = Env.serverGOF("LIST");
     for (let i = 0, length = list.length; i < length; i++) {
       const {prefix} = list[i];
+      const regex = new RegExp(`^${prefix}_`);
       for (let j = 0, length = actions.length; j < length; j++) {
-        const regex = new RegExp(`^${prefix}_`);
-        if (regex.test(actions[j].action_id)) return list[i]
+        if (regex.test(actions[j].block_id)) return list[i]
       }
     }
   }

@@ -121,13 +121,13 @@ const getInfoChannel = (idChannel) => {
 };
 /**
  *
- * @param {string}accessTokenGoogle
+ * @param {string} idAccount
  * @returns {Promise}
  */
-const getTimeZoneGoogle = (accessTokenGoogle) => {
+const getTimeZoneGoogle = (idAccount) => {
 	const options = {
 		method: "GET",
-		headers: { Authorization: `Bearer ${accessTokenGoogle}` },
+    headers: {'X-Google-AccountId': idAccount},
 		url:
 			Env.resourceServerGOF("API_URL") + Env.resourceServerGOF("API_TIME_ZONE"),
 	};

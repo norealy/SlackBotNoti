@@ -51,21 +51,24 @@ const decodeJWT = (token) => {
  * @param {string} value
  * @returns {string} encode
  */
-const cryptoEncode = function (value) {
-  let cipher = crypto.Cipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
-  let encodeString = cipher.update(value, 'utf8', 'hex');
-  encodeString += cipher.final('hex');
-  return encodeString;
-};
+function cryptoEncode(value) {
+  let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(cryptoSecret), IV);
+  let encrypted = cipher.update(value);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return encrypted.toString('hex')
+}
 
 /**
  * decode
- * @param {string} encodeString
+ * @param {string} encryptedData
  * @returns {string} data
  */
-const cryptoDecode = function (encodeString) {
-  let decipher = crypto.Decipher('aes-256-gcm', Buffer.from(cryptoSecret, 'hex'), IV);
-  return decipher.update(encodeString, 'hex', 'utf8');
+function cryptoDecode(encryptedData) {
+  let encryptedText = Buffer.from(encryptedData, 'hex');
+  let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(cryptoSecret), IV);
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
 }
 
 module.exports = {

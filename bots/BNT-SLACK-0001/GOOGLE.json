@@ -1,7 +1,7 @@
 {
   "server": {
     "PORT": 5001,
-    "URL_PUBLIC": "https://b3463516965f.ngrok.io/public"
+    "URL_PUBLIC": "https://9769e6d57f53.ngrok.io/public"
   },
   "resourceServer": {
     "CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",

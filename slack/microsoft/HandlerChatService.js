@@ -177,7 +177,7 @@ const repeatInitOption = (type) => {
  * @returns {Promise}
  */
 const configAddEvent = async (body, template) => {
-  const { trigger_id = null, calendars = null, userInfo = null } = body;
+  const {trigger_id, calendars, userInfo} = body;
   const view = {
     ...template.addEvent,
     blocks: [...template.addEvent.blocks]
@@ -189,7 +189,7 @@ const configAddEvent = async (body, template) => {
 
   // lấy thời gian theo timezone người dùng slack
   const dateNow = new Date();
-  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format();
+  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format("YYYY-MM-DDTHH:mm:ssZ");
   view.blocks[4].accessory.initial_date = Moment(dateTime).format("YYYY-MM-DD");
 
   // xử lý time start, time end default
@@ -198,8 +198,8 @@ const configAddEvent = async (body, template) => {
 
   // sau 23:30 --> 00:00 thì ngày khởi tạo event sẽ là ngày mới, thời gian
   // khởi tạo event là 00:00
-  const time = Moment(dateTime).format("hh:mm").split(":");
-  if (parseInt(time[0]) === 23 && parseInt(time[1]) >= 30) {
+  const time = Moment(dateTime).format("HH:mm").split(":");
+  if (parseInt(time[0]) >= 23 && parseInt(time[1]) >= 30) {
     startTime = "00:00";
     endTime = "00:15";
     const timezone = Moment(dateTime).format("Z");
@@ -225,23 +225,20 @@ const configAddEvent = async (body, template) => {
   };
 
   // lưu dữ liệu cache vào view phục vụ cho update view về sau
-  view.private_metadata = JSON.stringify({ ...userInfo, dateTime, durationTime: 15, startTime });
+  view.private_metadata = JSON.stringify({...userInfo, dateTime, durationTime: 15, startTime});
   view.blocks.splice(5, 1);
 
   // khởi tạo option cho request tới slack.
-  const data = {
-    trigger_id,
-    view,
+  let option = {method: "POST"};
+  option.url = Env.chatServiceGOF('API_URL');
+  option.url += Env.chatServiceGOF('API_VIEW_OPEN');
+  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
+  option.data = {
+    "trigger_id": trigger_id,
+    view
   };
-  const options = {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
-    data: data,
-    url:
-      Env.chatServiceGOF("API_URL") +
-      Env.chatServiceGOF("API_VIEW_OPEN"),
-  };
-  return options;
+
+  return option
 };
 
 /**
@@ -251,9 +248,9 @@ const configAddEvent = async (body, template) => {
  * @returns {object}
  */
 const handlerAllDay = (payload, blocks) => {
-  const { selected_options } = payload.actions[0];
-  const { view } = payload;
-  const { durationDay, dateTime, durationTime } = JSON.parse(view.private_metadata);
+  const {selected_options} = payload.actions[0];
+  const {view} = payload;
+  const {durationDay, dateTime, durationTime} = JSON.parse(view.private_metadata);
 
   // All day checked
   if (selected_options.length > 0) {
@@ -270,7 +267,7 @@ const handlerAllDay = (payload, blocks) => {
 
   // event one-date
   const startTime = blockTime(dateTime);
-  const timeStart = { ...blocks[6] };
+  const timeStart = {...blocks[6]};
   timeStart.accessory.initial_option = {
     "text": {
       "type": "plain_text",
@@ -280,7 +277,7 @@ const handlerAllDay = (payload, blocks) => {
     "value": startTime
   };
   const endTime = blockTime(Moment(dateTime).add(durationTime, 'm').format());
-  const timeEnd = { ...blocks[7] };
+  const timeEnd = {...blocks[7]};
   timeEnd.accessory.initial_option = {
     "text": {
       "type": "plain_text",
@@ -301,8 +298,8 @@ const handlerAllDay = (payload, blocks) => {
  * @returns {object}
  */
 function handlerStartDate(payload, blocks) {
-  const { view } = payload;
-  const { values } = view.state;
+  const {view} = payload;
+  const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
   const timezone = Moment(priMetadata.dateTime).format("Z");
@@ -363,13 +360,13 @@ function _getSelectedOption(values, blockId, actionId) {
  * @returns {object}
  */
 function handlerEndDate(payload, blocks) {
-  const { view } = payload;
-  const { values } = view.state;
+  const {view} = payload;
+  const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
   const dateTime = priMetadata.dateTime.split("T")[0];
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
-  if (diff.firstDateWasLater) {
+  if(diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime)
         .add(priMetadata.durationDay, 'd')
@@ -403,8 +400,8 @@ function handlerEndDate(payload, blocks) {
  * @returns {object}
  */
 function handlerStartTime(payload) {
-  const { view } = payload;
-  const { values } = view.state;
+  const {view} = payload;
+  const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
 
   const selectedTime = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
@@ -415,7 +412,7 @@ function handlerStartTime(payload) {
   const datetimeStart = `${date}T${selectedTime}:00${timezone}`;
   const datetimeEnd = `${date}T${timeEnd}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if (diff.firstDateWasLater || selectedTime === timeEnd) {
+  if(diff.firstDateWasLater || selectedTime === timeEnd){
     view.blocks[5].accessory.initial_option = {
       "text": {
         "type": "plain_text",
@@ -433,7 +430,8 @@ function handlerStartTime(payload) {
   }
 
   priMetadata.dateTime = datetimeStart;
-  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  priMetadata.startTime = selectedTime;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
@@ -444,8 +442,8 @@ function handlerStartTime(payload) {
  * @returns {object}
  */
 function handlerEndTime(payload) {
-  const { view } = payload;
-  const { values } = view.state;
+  const {view} = payload;
+  const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
 
   const selectedTime = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
@@ -456,7 +454,7 @@ function handlerEndTime(payload) {
   const datetimeStart = `${date}T${timeStart}:00${timezone}`;
   const datetimeEnd = `${date}T${selectedTime}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if (diff.firstDateWasLater || selectedTime === timeStart) {
+  if(diff.firstDateWasLater || selectedTime === timeStart){
     let timeEnd = Moment(datetimeStart).add(priMetadata.durationTime, 'm').format();
     timeEnd = blockTime(timeEnd);
     view.blocks[6].accessory.initial_option = {
@@ -474,9 +472,8 @@ function handlerEndTime(payload) {
     }
     return view;
   }
-
   priMetadata.dateTime = datetimeStart;
-  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }

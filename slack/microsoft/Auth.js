@@ -6,7 +6,6 @@ const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 const Channels = require("../../models/Channels");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
-const Redis = require('../../utils/redis/index');
 const { createSubscription } = require('./Subscription');
 
 /**
@@ -112,44 +111,33 @@ const getProfileUser = (accessTokenAzure) => {
 /**
  * Luu thong tin vao database
  * @param {object} profileUser
- * @param {string} refreshTokenAzure
- * @param {string} accessTokenAzure
+ * @param {object} tokens
  * @returns {Promise}
  */
-const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure) => {
-  const result = await getTimeZoneOutlook(accessTokenAzure);
-  const resultArr = await getTimeZoneSupport(accessTokenAzure);
+const saveUserProfile = async (profileUser, tokens) => {
+  const result = await getTimeZoneOutlook(tokens.access_token);
+  const resultArr = await getTimeZoneSupport(tokens.access_token);
   const timeZone = resultArr.data.value.find((element) => element.alias === result.data.timeZone);
   const account = {
     id: profileUser.id,
     name: profileUser.displayName,
-    refresh_token: refreshTokenAzure,
+    refresh_token: tokens.refresh_token,
     timezone: timeZone.displayName.split('UTC')[1].split(')')[0],
     created_at: null,
     updated_at: null,
   };
   const data = await MicrosoftAccount.query().findById(account.id);
-  return new Promise((resolve, reject) => {
-    if (!data) {
-      MicrosoftAccount.query()
-        .insert(account)
-        .then((res) => {
-          Redis.client.setex("IDACC_GETTOKEN_" + res.id, 60 * 59, accessTokenAzure);
-          return resolve(res)
-        })
-        .catch(reject);
-    }
-    resolve();
-  });
+  if (!data) await MicrosoftAccount.query().insert(account)
 };
 
 /**
  *  Luu array calendar vao database
  * @param {object} calendar
  * @param {string} idAccount
+ * @param {function} setValueRedis
  * @returns {void}
  */
-const saveCalendar = async (calendar, idAccount) => {
+const saveCalendar = async (calendar, idAccount, setValueRedis) => {
   const data = await MicrosoftCalendar.query().findOne({
     id: calendar.id,
     address_owner: calendar.address_owner,
@@ -157,7 +145,7 @@ const saveCalendar = async (calendar, idAccount) => {
   if (!data) {
     await MicrosoftCalendar.query().insert(calendar);
     const resultSub = await createSubscription(calendar.id, idAccount);
-    Redis.client.set(resultSub.data.id, calendar.id);
+    await setValueRedis(resultSub.data.id, calendar.id, 60 * 60 * 24);
   }
 };
 

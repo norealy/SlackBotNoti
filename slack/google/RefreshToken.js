@@ -38,7 +38,6 @@ const newAccessToken = async (idAccount) => {
 		url: url,
 	};
 	const result = await Axios(options);
-	// Redis.client.setex(idAccount, 60*59 ,result.data.access_token);
 	return result.data.access_token;
 }
 const updateRefresh = (idAccount, refreshToken) => {

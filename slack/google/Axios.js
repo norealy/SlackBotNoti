@@ -17,7 +17,7 @@ module.exports = function (server) {
           return config;
         }
         accessToken = await newAccessToken(idAccount);
-        server.setAccessTokenRedis(idAccount, accessToken, 60 * 59);
+        server.setAccessTokenRedis(idAccount, accessToken);
         // Log auth
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       } catch (error) {

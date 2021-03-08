@@ -33,6 +33,13 @@ class BaseServer {
     this.chatServiceHandler = this.chatServiceHandler.bind(this);
     this.resourceServerHandler = this.resourceServerHandler.bind(this);
     this.pushMessageHandler = this.pushMessageHandler.bind(this);
+    this.setUidToken = this.setUidToken.bind(this);
+    this.getUidToken = this.getUidToken.bind(this);
+    this.delUidToken = this.delUidToken.bind(this);
+    this.getAccessTokenRedis = this.getAccessTokenRedis.bind(this);
+    this.setAccessTokenRedis = this.setAccessTokenRedis.bind(this);
+    this.getValueRedis = this.getValueRedis.bind(this);
+    this.setValueRedis = this.setValueRedis.bind(this);
 
     this.requestHandler = {
       watchChatService: this.chatServiceHandler,
@@ -48,7 +55,8 @@ class BaseServer {
    */
   setUidToken(uid) {
     return new Promise((resolve, reject) => {
-      Redis.client.setex(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
+      const makeKey = `${this.botId}_UID_TOKEN_${uid}`;
+      Redis.client.setex(makeKey, 60 * 30, uid, function (err, res) {
         if (err) reject(err);
         resolve(1);
       });
@@ -62,7 +70,8 @@ class BaseServer {
    */
   getUidToken(uid) {
     return new Promise((resolve, reject) => {
-      Redis.client.get(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, (err, res) => {
+      const makeKey = `${this.botId}_UID_TOKEN_${uid}`;
+      Redis.client.get(makeKey, (err, res) => {
         if (err) reject(err);
         resolve(res);
       });
@@ -76,7 +85,8 @@ class BaseServer {
    */
   delUidToken(uid) {
     return new Promise((resolve, reject) => {
-      Redis.client.del(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, (err, res) => {
+      const makeKey = `${this.botId}_UID_TOKEN_${uid}`;
+      Redis.client.del(makeKey, (err, res) => {
         if (err) reject(err);
         resolve(res);
       });
@@ -105,10 +115,10 @@ class BaseServer {
    * @param {number} seconds
    * @returns {*} Values
    */
-  setAccessTokenRedis(key, value, seconds) {
+  setAccessTokenRedis(key, value, seconds = (60*59)) {
     return new Promise((resolve, reject) => {
       let makeKey = `${this.botId}_${this.instanceId}_ACCESS_TOKEN_${key}`;
-      Redis.client.setex(makeKey, seconds, JSON.stringify(value), (err, reply) => {
+      Redis.client.setex(makeKey, seconds, value, (err, reply) => {
         if (err) reject(err);
         resolve(reply);
       });
@@ -137,10 +147,10 @@ class BaseServer {
    * @param {number} seconds
    * @returns {*} Values
    */
-  setValueRedis(key, value, seconds) {
+  setValueRedis(key, value, seconds = (60*60*24)) {
     return new Promise((resolve, reject) => {
       let makeKey = `${this.botId}_${this.instanceId}_${key}`;
-      Redis.client.setex(makeKey, seconds, JSON.stringify(value), (err, reply) => {
+      Redis.client.setex(makeKey, seconds, value, (err, reply) => {
         if (err) reject(err);
         resolve(reply);
       });

@@ -1,8 +1,7 @@
 const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
-const {cryptoDecode} = require("../../utils/Crypto");
+const {cryptoDecode, decodeJWT} = require("../../utils/Crypto");
 const Template = require("../views/Template");
-const {decodeJWT} = require("../../utils/Crypto");
 const AxiosConfig = require('./Axios');
 const Axios = require('axios');
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
@@ -31,9 +30,8 @@ const {
   submitDelEvent
 } = require("./HandlerChatService");
 const {
-  handlerDatas,
+  handlerData,
   getEvent,
-  getValueRedis
 } = require("./HandlerResourceServer");
 
 class SlackMicrosoft extends BaseServer {
@@ -333,7 +331,7 @@ class SlackMicrosoft extends BaseServer {
     try {
       if (event) {
         return this.handlerEvent(req, res);
-      } else if (command && /^\/cal$/.test(command)) {
+      } else if (command && /^\/c$/.test(command)) {
         res.status(200).send();
         return this.handlerCommand(req, res);
       } else if (payload) {
@@ -369,7 +367,7 @@ class SlackMicrosoft extends BaseServer {
       if (changeType === "updated") {
         await this.sleep(1500);
       }
-      const idCalendar = await getValueRedis(subscriptionId);
+      const idCalendar = await this.getValueRedis(subscriptionId);
       let event = await getEvent(idUser, idEvent).catch((err) => {
         if (err.response.status === 404 && (changeType === "updated" || changeType === "deleted")) return null;
         throw err;
@@ -384,7 +382,7 @@ class SlackMicrosoft extends BaseServer {
           return null;
         }
       }
-      this.setValueRedis(event.id, event, 5);
+      await this.setValueRedis(event.id, JSON.stringify(event), 5);
       const arrChennelCalendar = await ChannelsCalendar.query().where({ id_calendar: `MI_${idCalendar}`, watch: true });
       if(arrChennelCalendar.length === 0) return null;
       const account = await MicrosoftAccount.query().findById(idUser);
@@ -395,13 +393,13 @@ class SlackMicrosoft extends BaseServer {
       let datas = null;
       switch (changeType) {
         case "updated":
-          datas = handlerDatas(2, arrChennelCalendar, event, showEvent);
+          datas = handlerData(2, arrChennelCalendar, event, showEvent);
           break;
         case "created":
-          datas = handlerDatas(1, arrChennelCalendar, event, showEvent);
+          datas = handlerData(1, arrChennelCalendar, event, showEvent);
           break;
         case "deleted":
-          datas = handlerDatas(3, arrChennelCalendar, event, showEvent);
+          datas = handlerData(3, arrChennelCalendar, event, showEvent);
           break;
         default:
           break
@@ -461,7 +459,7 @@ class SlackMicrosoft extends BaseServer {
           id: item.id,
           name: item.name,
           address_owner: item.owner.address
-        }, idAccount);
+        }, idAccount, this.setValueRedis);
         await saveAccountCalendar({
           id_calendar: item.id,
           id_account: idAccount,
@@ -483,14 +481,15 @@ class SlackMicrosoft extends BaseServer {
       if (!result) return res.status(401).send("jwt expired");
       const tokens = await getToken(code);
       await this.delUidToken(result);
-      const accessTokenAzure = tokens.access_token;
-      const refreshTokenAzure = tokens.refresh_token;
 
       // Thuc hien lay tai nguyen user profile
-      const profileUser = await getProfileUser(accessTokenAzure);
+      const profileUser = await getProfileUser(tokens.access_token);
+
+      // Lưu accessToken vào redis
+      await this.setAccessTokenRedis(profileUser.id, tokens.access_token);
 
       // Thêm đối tượng microsoftAccount và bảng microsoft_account
-      await saveUserProfile(profileUser, refreshTokenAzure, accessTokenAzure);
+      await saveUserProfile(profileUser, tokens);
 
       // Thêm channelvào bảng channels
       await saveInfoChannel(payload.idChannel);

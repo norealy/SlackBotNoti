@@ -128,7 +128,7 @@ const configAddEvent = (body, template) => {
 
   // lấy thời gian theo timezone người dùng slack
   const dateNow = new Date();
-  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format();
+  let dateTime = MomentTimezone(dateNow).tz(userInfo.user.tz).format("YYYY-MM-DDTHH:mm:ssZ");
   view.blocks[4].accessory.initial_date = Moment(dateTime).format("YYYY-MM-DD");
 
   // xử lý time start, time end default
@@ -137,8 +137,8 @@ const configAddEvent = (body, template) => {
 
   // sau 23:30 --> 00:00 thì ngày khởi tạo event sẽ là ngày mới, thời gian
   // khởi tạo event là 00:00
-  const time = Moment(dateTime).format("hh:mm").split(":");
-  if (parseInt(time[0]) === 23 && parseInt(time[1]) >= 30) {
+  const time = Moment(dateTime).format("HH:mm").split(":");
+  if (parseInt(time[0]) >= 23 && parseInt(time[1]) >= 30) {
     startTime = "00:00";
     endTime = "00:15";
     const timezone = Moment(dateTime).format("Z");
@@ -452,7 +452,7 @@ const handlerDeleteEvent = (payload, template) => {
 }
 
 const handlerUpdateEvent = (payload, template) => {
-  const {trigger_id, calendars, userInfo, event} = payload;
+  const {calendars, userInfo, event} = payload;
   const view = {
     ...template.editEvent,
     blocks: [...template.editEvent.blocks]

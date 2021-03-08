@@ -83,19 +83,19 @@ class SlackWrapper extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (/\/cal/.test(command)) {
-        if(/^go/.test(req.body.text)) proxy.web(req, res, {target: 'http://localhost:5001'});
-        if(/^mi/.test(req.body.text)) proxy.web(req, res, {target: 'http://localhost:5002'});
+      if (/\/c/.test(command)) {
+        if(/^go/.test(req.body.text))return proxy.web(req, res, {target: 'http://localhost:5001'});
+        if(/^mi/.test(req.body.text))return proxy.web(req, res, {target: 'http://localhost:5002'});
       }
       if (payload) {
         payload = JSON.parse(payload);
         const {actions, view} = payload;
         if(view && view.callback_id){
-          if(/^GO_/.test(view.callback_id)) proxy.web(req, res, {target: 'http://localhost:5001'});
-          if(/^MI_/.test(view.callback_id)) proxy.web(req, res, {target: 'http://localhost:5002'});
+          if(/^GO_/.test(view.callback_id))return proxy.web(req, res, {target: 'http://localhost:5001'});
+          if(/^MI_/.test(view.callback_id))return proxy.web(req, res, {target: 'http://localhost:5002'});
         } else {
           const data = this.getDataServer(actions);
-          proxy.web(req, res, {target: `http://localhost:${data.PORT}`})
+          return proxy.web(req, res, {target: `http://localhost:${data.PORT}`})
         }
       }
     } catch (e) {
@@ -106,16 +106,13 @@ class SlackWrapper extends BaseServer {
 
   resourceServerHandler(req, res, next) {
     try {
-      let proxyGoogle = false;
       let regexGO = /^x-goog/;
       for (let value in req.headers) {
         if (regexGO.test(value)) {
-          proxy.web(req, res, {target: 'http://localhost:5001'});
-          proxyGoogle = true;
-          break;
+          return proxy.web(req, res, {target: 'http://localhost:5001'});
         }
       }
-      if (!proxyGoogle) proxy.web(req, res, {target: 'http://localhost:5002'});
+      return proxy.web(req, res, {target: 'http://localhost:5002'});
     } catch (e) {
       console.log("⇒⇒⇒ Resource Server Handler ERROR: ", e);
       return res.status(204).send("ERROR")
@@ -142,13 +139,13 @@ class SlackWrapper extends BaseServer {
   }
 
   loginGoogle(req, res, next) {
-    proxy.web(req, res, {
+    return proxy.web(req, res, {
       target: `http://localhost:${Env.serverGOF("GOOGLE_PORT")}`
     })
   }
 
   loginMicrosoft(req, res, next) {
-    proxy.web(req, res, {
+    return proxy.web(req, res, {
       target: `http://localhost:${Env.serverGOF("MICROSOFT_PORT")}`
     })
   }

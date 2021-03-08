@@ -4,7 +4,6 @@ const Template = require("../views/Template");
 const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
 const GoogleCalendar = require("../../models/GoogleCalendar");
-const Redis = require('../../utils/redis');
 const AxiosConfig = require('./Axios');
 const Axios = require('axios');
 const {cryptoDecode, decodeJWT} = require('../../utils/Crypto');
@@ -303,7 +302,7 @@ class SlackGoogle extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (command && /^\/cal$/.test(command)) return this.handlerCommand(req, res);
+      if (command && /^\/c$/.test(command)) return this.handlerCommand(req, res);
       if (payload) return this.handlerPayLoad(req, res);
       return res.status(200).send("OK");
     } catch (e) {
@@ -339,9 +338,8 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<void>}
    */
   async handlerUser(profile, tokens) {
-    const result = await getTimeZoneGoogle(tokens.access_token);
+    const result = await getTimeZoneGoogle(profile.sub);
     const timeZone = result.data.value;
-    Redis.client.setex(`GOOGLE_ACCESS_TOKEN_` + profile.sub, 60 * 59, tokens.access_token);
     await GoogleAccount.query().insert({
       id: profile.sub,
       name: profile.name,
@@ -365,7 +363,11 @@ class SlackGoogle extends BaseServer {
       // Xử lý profile user google
       const profile = await getProfile(tokens.access_token);
       const user = await GoogleAccount.query().findById(profile.sub);
-      if (!user) await this.handlerUser(profile, tokens);
+
+      if (!user){
+        await this.setAccessTokenRedis(profile.sub, tokens.access_token);
+        await this.handlerUser(profile, tokens);
+      }
 
       // Xử lý channel slack
       const {idChannel} = await decodeJWT(state);
@@ -427,10 +429,11 @@ class SlackGoogle extends BaseServer {
 
   async resourceServerHandler(req, res, next) {
     try {
-      const decode = cryptoDecode(req.headers['x-goog-channel-token']);
+      const decode = await cryptoDecode(req.headers['x-goog-channel-token']);
       const {idAccount, idCalendar} = JSON.parse(decode);
 
       let event = await getEventUpdate(req.headers, idAccount);
+      if(!event) return null;
       const eventRedis = await this.getValueRedis(event.id);
       if (eventRedis) {
         const data = JSON.parse(eventRedis);
@@ -439,7 +442,7 @@ class SlackGoogle extends BaseServer {
           return null;
         }
       }
-      this.setValueRedis(event.id, event, 5);
+      this.setValueRedis(event.id, JSON.stringify(event), 5);
       if (event && event.status === 'cancelled') {
         event = await getEvent(idCalendar, event.id, idAccount);
         if (!event.summary) return res.status(204).send("OK");

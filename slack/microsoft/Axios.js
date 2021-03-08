@@ -1,37 +1,22 @@
 const Axios = require('axios');
 const Env = require('../../utils/Env');
-const { createAccessToken } = require('./RefreshToken');
-const Redis = require('../../utils/redis/index');
+const {createAccessToken} = require('./RefreshToken');
 
-/**
- *
- * @param {string} key
- * @returns {*} Values
- */
-function getValueRedis(key) {
-  return new Promise((resolve, reject) => {
-    Redis.client.get(key, (err, reply) => {
-      if (err) reject(null);
-      resolve(reply);
-    });
-  })
-}
-
-module.exports = function () {
+module.exports = function (server) {
   // Handler REQUEST
   Axios.interceptors.request.use(async function (config) {
-    const { url = null, headers = null } = config;
-    const { Authorization = null } = config.headers;
+    const {url, headers} = config;
+    const {Authorization = null} = config.headers;
     if (url && url.split('.com')[0] === Env.resourceServerGet("GRAPH_URL").split('.com')[0] && !Authorization) {
       const idAccount = headers['X-Microsoft-AccountId'];
       try {
-        let accessToken = await getValueRedis("IDACC_GETTOKEN_" + idAccount);
+        let accessToken = await server.getAccessTokenRedis(idAccount);
         if (accessToken) {
           config.headers['Authorization'] = `Bearer ${accessToken}`;
           return config;
         }
         accessToken = await createAccessToken(idAccount);
-        Redis.client.setex("IDACC_GETTOKEN_" + idAccount, 60 * 59, accessToken);
+        server.setAccessTokenRedis(idAccount, accessToken, 60 * 59);
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       } catch (error) {
         return Promise.reject(error);
@@ -46,6 +31,6 @@ module.exports = function () {
   Axios.interceptors.response.use(function (response) {
     return response;
   }, async function (error) {
-  	return Promise.reject(error);
+    return Promise.reject(error);
   });
 }

@@ -1,6 +1,7 @@
 {
 	"server": {
-		"PORT": 5001
+		"PORT": 5001,
+    "URL_PUBLIC": "https://b3463516965f.ngrok.io/public"
 	},
 	"resourceServer": {
 		"CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",
@@ -20,6 +21,6 @@
 		"API_TOKEN": "/token",
 		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",
 		"TYPE": "web_hook",
-		"ADDRESS": "https://apis.iceteait.com/watch/resource-server"
+		"ADDRESS": "https://apis.iceteait.com/bnt-slack-0001/watch/resource-server"
 	}
 }

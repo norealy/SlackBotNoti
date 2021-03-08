@@ -3,7 +3,7 @@ const Axios = require('axios');
 const MomentTimezone = require('moment-timezone');
 const Moment = require('moment');
 const {createJWT} = require('../../utils/Crypto');
-const {blockTime} = require('../../utils/ConvertTime');
+const {blockTime, getDurationDay} = require('../../utils/ConvertTime');
 const {v4: uuidv4} = require('uuid');
 require('moment-precise-range-plugin');
 
@@ -63,7 +63,7 @@ const requestPostLogin = (event, template, setUidToken) => {
  * @param {view} systemSetting
  * @returns {Promise}
  */
-const requestSettings = (body, systemSetting) => {
+const requestSettings = (body, systemSetting, setUidToken) => {
   const option = {method: "POST"};
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_VIEW_OPEN');
@@ -71,12 +71,15 @@ const requestSettings = (body, systemSetting) => {
   const {user_id, channel_id} = body;
   const {trigger_id} = body;
   const iat = Math.floor(new Date() / 1000);
+  const uid = uuidv4();
   const payload = {
+    uid,
     idUser: user_id,
     idChannel: channel_id,
     iat,
     exp: iat + parseInt(Env.getOrFail("JWT_DURATION"))
   };
+  setUidToken(uid);
   const accessToken = createJWT(payload);
   systemSetting.blocks[3].elements[0].url = configUrlAuth(accessToken);
   option.data = {
@@ -135,7 +138,7 @@ const configAddEvent = (body, template) => {
   // sau 23:30 --> 00:00 thì ngày khởi tạo event sẽ là ngày mới, thời gian
   // khởi tạo event là 00:00
   const time = Moment(dateTime).format("hh:mm").split(":");
-  if(parseInt(time[0]) === 23 && parseInt(time[1]) >= 30){
+  if (parseInt(time[0]) === 23 && parseInt(time[1]) >= 30) {
     startTime = "00:00";
     endTime = "00:15";
     const timezone = Moment(dateTime).format("Z");
@@ -177,6 +180,43 @@ const configAddEvent = (body, template) => {
   return option
 };
 
+
+/**
+ *
+ * @param {object}body
+ * @param {object}template
+ * @returns {Promise}
+ */
+const configShowEvent = (body, template) => {
+  const {event, idAccount, idCalendar, channel_id} = body
+  const blocksView = [...template.listEvent.blocks];
+
+  blocksView[1].block_id = `GO_${idAccount}/${idCalendar}`;
+  blocksView[1].accessory.options[0].value = `edit/${event.id}`;
+  blocksView[1].accessory.options[1].value = `delete/${event.id}`;
+  blocksView[1].fields[0].text = event.summary;
+  if (event.start.date && event.end.date) {
+    blocksView[1].fields[1].text = event.start.date
+    blocksView[1].fields[3].text = event.end.date
+  } else {
+    blocksView[1].fields[3].text = event.start.dateTime.split('T')[0];
+  }
+  const option = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`,
+    },
+    data: {
+      channel: channel_id,
+      blocks: blocksView,
+    },
+    url:
+      Env.chatServiceGet("API_URL") +
+      Env.chatServiceGet("API_POST_MESSAGE"),
+  };
+  return option
+}
 /**
  * xử lý action All đây
  * @param {object} payload
@@ -238,7 +278,8 @@ function handlerStartDate(payload, blocks) {
   const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["GO_select-date-start"]["datepicker-action-start"]["selected_date"];
-  const dateTime = `${selectedDate}T${priMetadata.startTime}`;
+  const timezone = Moment(priMetadata.dateTime).format('Z');
+  const dateTime = `${selectedDate}T${priMetadata.startTime}:00${timezone}`;
   priMetadata.dateTime = MomentTimezone(dateTime).tz(priMetadata.user.tz).format();
   view.private_metadata = JSON.stringify(priMetadata);
   if (values["GO_check_all_day"]["allDay"]["selected_options"].length === 0) return view;
@@ -286,6 +327,7 @@ function handlerEndDate(payload, blocks) {
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = _getSelectedDate(values, "GO_select-date-end", "datepicker-action-end");
   const dateTime = priMetadata.dateTime.split("T")[0];
+  // check all day
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
   if(diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
@@ -352,6 +394,7 @@ function handlerStartTime(payload) {
 
   priMetadata.dateTime = datetimeStart;
   if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  priMetadata.startTime = selectedTime;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
@@ -392,12 +435,136 @@ function handlerEndTime(payload) {
     }
     return view;
   }
-
   priMetadata.dateTime = datetimeStart;
   if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
+
+const handlerDeleteEvent = (payload, template) => {
+  const view = {...template.deleteEvent, blocks: [...template.deleteEvent.blocks]}
+  view.blocks[0].text.text = `Delete event: ${payload.message.blocks[1].fields[0].text}`
+  view.blocks[0].block_id = payload.actions[0]["selected_option"].value
+  // mic calendar
+  view.blocks[1].text.text = `Event of calendar: ${payload.calendarName}`
+  view.blocks[1].block_id = payload.actions[0].block_id;
+  return view;
+}
+
+const handlerUpdateEvent = (payload, template) => {
+  const {trigger_id, calendars, userInfo, event} = payload;
+  const view = {
+    ...template.editEvent,
+    blocks: [...template.editEvent.blocks]
+  };
+  const idEvent = event.id;
+  const timeStart = event.start.dateTime ? blockTime(event.start.dateTime) : "00:00";
+  const timeEnd = event.end.dateTime ? blockTime(event.end.dateTime) : "00:15";
+  const timeZone = getTZOffset(payload.timeZoneGG)
+  let datetimeStart = event.start.date ? `${event.start.date}T00:00:00${timeZone}` : event.start.dateTime;
+  let datetimeEnd = event.end.date ? `${event.end.date}T00:00:00${timeZone}` : event.end.dateTime;
+  datetimeStart = Moment(datetimeStart).utcOffset(userInfo.user.tz).format();
+  datetimeEnd = Moment(datetimeEnd).utcOffset(userInfo.user.tz).format();
+  const timeDateStart = datetimeStart.split('T')[0]
+  const timDateEnd = datetimeEnd.split('T')[0]
+  let diffTimeDate = Moment.preciseDiff(event.start.dateTime, event.end.dateTime, true);
+  // chọn calendar default cho view add event
+  view.blocks[1].accessory.initial_option = {
+    "text": {
+      "type": "plain_text",
+      "text": event.organizer.displayName,
+      "emoji": true
+    },
+    "value": event.organizer.email
+  };
+  view.blocks[1].accessory.options = calendars;
+  view.blocks[2].element.initial_value = event.summary
+  view.blocks[4].accessory.initial_date = timeDateStart
+  view.blocks[8].element.initial_value = event.location
+  if (event.recurrence) {
+    const recurrence = event.recurrence[0].split('=')
+    if (recurrence[1] === "no") {
+      view.blocks[9].element.initial_option = {
+        text: {type: 'plain_text', text: 'No', emoji: true},
+        value: 'no'
+      }
+    } else if (recurrence[1] === "DAILY") {
+      view.blocks[9].element.initial_option = {
+        text: {type: 'plain_text', text: 'Every day', emoji: true}, value: `${recurrence[1]}`
+      }
+    } else if (recurrence[1] === "WEEKLY") {
+      view.blocks[9].element.initial_option = {
+        text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
+      }
+    } else if (recurrence[1] === "MONTHLY") {
+      view.blocks[9].element.initial_option = {
+        text: {type: 'plain_text', text: 'Every month', emoji: true}, value: `${recurrence[1]}`
+      }
+    }
+  }
+  // check one day co event.start.datetime va diff.years,months,days = 0
+  if (event.start.dateTime && diffTimeDate.years === 0 && diffTimeDate.months === 0 && diffTimeDate.days === 0 && diffTimeDate.hours >= 0) {
+    delete view.blocks[3].accessory.initial_options
+    view.blocks[6].accessory.initial_option = {
+      "text": {
+        "type": "plain_text",
+        "text": timeStart,
+        "emoji": true
+      },
+      "value": timeStart
+    };
+    view.blocks[7].accessory.initial_option = {
+      "text": {
+        "type": "plain_text",
+        "text": timeEnd,
+        "emoji": true
+      },
+      "value": timeEnd
+    };
+
+    view.blocks.splice(5, 1)
+    view.private_metadata = JSON.stringify({
+      ...userInfo,
+      dateTime: datetimeStart.split("T")[0],
+      durationTime: 15,
+      startTime: timeStart,
+      idEvent
+    });
+    return view
+  }
+  view.blocks[3].accessory.initial_options = [
+    {
+      "value": "true",
+      "text": {
+        "type": "plain_text",
+        "text": "All day"
+      }
+    }
+  ]
+  view.blocks.splice(6, 2)
+  view.blocks[5].accessory.initial_date = timDateEnd
+  view.private_metadata = JSON.stringify({
+    ...userInfo,
+    dateTime: datetimeStart.split("T")[0],
+    durationTime: 15,
+    durationDay: getDurationDay(new Date(datetimeStart), new Date(datetimeEnd)),
+    startTime: timeStart,
+    idEvent
+  });
+  return view;
+
+}
+
+function handlerOverflow(payload, template) {
+  const value = payload.actions[0].selected_option.value.split('/');
+  if (value[0] === "edit") {
+    return handlerUpdateEvent(payload, template);
+  }
+  if (value[0] === "delete") {
+    return handlerDeleteEvent(payload, template)
+  }
+}
+
 
 /**
  * Xóa các thành phần của view
@@ -426,7 +593,8 @@ function delPropsView(payload) {
  */
 function handlerAction(payload, template) {
   const changePayload = delPropsView(payload);
-  const {action_id} = changePayload.actions[0];
+  const {action_id, selected_options} = changePayload.actions[0];
+
   const {blocks} = template.addEvent;
   let option = {
     method: 'POST',
@@ -437,7 +605,7 @@ function handlerAction(payload, template) {
       "view": payload.view,
     }
   };
-  switch(action_id) {
+  switch (action_id) {
     case "allDay":
       option.data.view = handlerAllDay(changePayload, blocks);
       break;
@@ -453,12 +621,19 @@ function handlerAction(payload, template) {
     case "time-end-action":
       option.data.view = handlerEndTime(changePayload);
       break;
+    case "overflow-action":
+      delete option.data.view_id
+      option.url = `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_OPEN")}`;
+      option.data.trigger_id = changePayload.trigger_id
+      // option.data.selected_options = changePayload.selected_options;
+      option.data.view = handlerOverflow(changePayload, template);
+      break;
     default:
       option = null;
       break;
   }
-
   if(option) delete option.data.view.state;
+
   return option
 }
 
@@ -553,6 +728,61 @@ const createEvent = (values, account) => {
   }
   return event;
 };
+const updateEvent = (values, account) => {
+
+  let timezone = getTZOffset(account.timezone);
+  const location = values["GO_input_location"]["plain_text_input-action"].value;
+  const recurrence = values["GO_select_everyday"]["static_select-action"]["selected_option"].value;
+  const noti = values["GO_select_before_notification"]["static_select-action"]["selected_option"].value;
+  const addDay = values["GO_check_all_day"]["allDay"]["selected_options"];
+  const startDate = values["GO_select-date-start"]["datepicker-action-start"]["selected_date"];
+
+  const event = {};
+  event["summary"] = values["GO_input_title"]["input-action"].value;
+  if (location) event["location"] = location.trim();
+  event["start"] = {"timeZone": account.timezone};
+  event["end"] = {"timeZone": account.timezone};
+  if (recurrence !== "no") event["recurrence"] = [
+    `RRULE:FREQ=${recurrence};`
+  ];
+
+  if (noti !== "default") {
+    event["reminders"] = {};
+    event["reminders"].useDefault = false;
+    event["reminders"].overrides = [
+      {
+        "method": "email",
+        "minutes": parseInt(noti),
+      },
+      {
+        "method": "popup",
+        "minutes": parseInt(noti),
+      }
+    ];
+  }
+
+  if (addDay.length === 0) {
+    const timeStart = _getSelectedOption(values, "GO_select-time-start", "time-start-action");
+    const timeEnd = _getSelectedOption(values, "GO_select-time-end", "time-end-action");
+
+    const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
+    const dateTimeEnd = `${startDate}T${timeEnd}:00${timezone}`;
+
+    event.start.dateTime = dateTimeStart;
+    event.end.dateTime = dateTimeEnd;
+  } else {
+    const endDate = _getSelectedDate(values, "GO_select-date-end", "datepicker-action-end");
+    event.start.date = startDate;
+    event.end.date = endDate;
+  }
+  return event;
+};
+const deleteEvent = (idAccount, idCalendar, idEvent) => {
+  const option = {method: "DELETE"};
+  option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`;
+  option.headers = {'X-Google-AccountId': idAccount};
+  return option
+}
 
 module.exports = {
   requestPostLogin,
@@ -560,6 +790,9 @@ module.exports = {
   requestHome,
   requestButtonSettings,
   configAddEvent,
+  configShowEvent,
   createEvent,
+  updateEvent,
+  deleteEvent,
   handlerAction,
 };

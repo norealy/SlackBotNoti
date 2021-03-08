@@ -7,7 +7,7 @@ const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar"
 const Channels = require("../../models/Channels");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const Redis = require('../../utils/redis/index');
-const { createSubcription } = require('./Subcription');
+const { createSubscription } = require('./Subscription');
 
 /**
  * Lay tai nguyen tokens
@@ -35,9 +35,7 @@ const getToken = (code) => {
     };
     axios(options)
       .then((res) => resolve(res.data))
-      .catch((err) => {
-        reject(err)
-      });
+      .catch(reject);
   });
 };
 
@@ -57,7 +55,7 @@ const getListCalendar = (idAccount) => {
   return new Promise((resolve, reject) => {
     axios(options)
       .then((res) => resolve(res.data))
-      .catch((error) => reject(error));
+      .catch(reject);
   });
 };
 
@@ -107,7 +105,7 @@ const getProfileUser = (accessTokenAzure) => {
     };
     axios(options)
       .then((res) => resolve(res.data))
-      .catch((err) => reject(err));
+      .catch(reject);
   });
 };
 
@@ -139,7 +137,7 @@ const saveUserProfile = async (profileUser, refreshTokenAzure, accessTokenAzure)
           Redis.client.setex("IDACC_GETTOKEN_" + res.id, 60 * 59, accessTokenAzure);
           return resolve(res)
         })
-        .catch((err) => reject(err));
+        .catch(reject);
     }
     resolve();
   });
@@ -158,7 +156,7 @@ const saveCalendar = async (calendar, idAccount) => {
   });
   if (!data) {
     await MicrosoftCalendar.query().insert(calendar);
-    const resultSub = await createSubcription(calendar.id, idAccount);
+    const resultSub = await createSubscription(calendar.id, idAccount);
     Redis.client.set(resultSub.data.id, calendar.id);
   }
 };
@@ -214,15 +212,15 @@ const saveAccountCalendar = async (accountCalendar) => {
 
 /**
  * Luu thong tin saveChannelsCalendar vao database
- * @param {array} channelCalendar
+ * @param {array} item
  * @returns {void}
  */
-const saveChannelCalendar = async (channelCalendar) => {
+const saveChannelCalendar = async (item) => {
   const data = await ChannelsCalendar.query().findOne({
-    id_channel: channelCalendar.id_channel,
-    id_calendar: channelCalendar.id_calendar,
+    id_channel: item.id_channel,
+    id_calendar: item.id_calendar,
   });
-  if (!data) await ChannelsCalendar.query().insert(channelCalendar);
+  if (!data) await ChannelsCalendar.query().insert(item);
 };
 
 

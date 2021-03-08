@@ -2,7 +2,6 @@ const Env = require('../../utils/Env');
 const qs = require("qs");
 const axios = require('axios');
 const MicrosoftAccount = require('../../models/MicrosoftAccount');
-const Redis = require('../../utils/redis/index');
 
 /**
  *  Get refresh token in database
@@ -19,7 +18,7 @@ function getRefreshToken(idAccount) {
           return resolve(data.refresh_token);
         }
       })
-      .catch((err) => reject(null))
+      .catch(reject)
   })
 }
 

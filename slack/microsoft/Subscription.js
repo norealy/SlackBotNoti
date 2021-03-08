@@ -13,12 +13,12 @@ Date.prototype.addDays = function (days) {
 }
 
 /**
- * register subcription
+ * register Subscription
  * @param {string} idCalendar
  * @param {string} idAccount
  * @returns {Promise}
  */
-const createSubcription = (idCalendar, idAccount) => {
+const createSubscription = (idCalendar, idAccount) => {
   const obj = {
     idAccount,
     iat:  Math.floor(new Date()/1000)
@@ -26,7 +26,7 @@ const createSubcription = (idCalendar, idAccount) => {
   const state = cryptoEncode(JSON.stringify(obj));
   let date = new Date();
   const data = {
-    "changeType": "created,updated,deleted",
+    "changeType": Env.resourceServerGOF("SUB_CHANGE_TYPE"),
     "notificationUrl": Env.resourceServerGOF("SUB_NOTIFICATION_URL"),
     "resource": `me/calendars/${idCalendar}/events`,
     "expirationDateTime": date.addDays(2),
@@ -52,7 +52,7 @@ const createSubcription = (idCalendar, idAccount) => {
  * @param {string} idAccount
  * @returns {Promise}
  */
-const updateSubcription = (idSub, idAccount) => {
+const updateSubscription = (idSub, idAccount) => {
   let date = new Date();
   const data = {
     "expirationDateTime": date.addDays(2)
@@ -73,6 +73,6 @@ const updateSubcription = (idSub, idAccount) => {
 }
 
 module.exports = {
-  createSubcription,
-  updateSubcription
+  createSubscription,
+  updateSubscription,
 }

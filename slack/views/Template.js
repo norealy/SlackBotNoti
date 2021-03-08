@@ -42,14 +42,12 @@ class TemplateSlack {
     const props = Object.keys(this);
     props.forEach((value, i) => {
       const {callback_id, blocks, block_id} = this[value];
-
-      if(callback_id){
-        this[value].callback_id = `${prefix}_${callback_id}`;
-      } else {
-        this[value].callback_id = `${prefix}_callback-id-${i}`;
-      }
-
       if(blocks && blocks.length > 0){
+        if(callback_id){
+          this[value].callback_id = `${prefix}_${callback_id}`;
+        } else {
+          this[value].callback_id = `${prefix}_callback-id-${i}`;
+        }
         blocks.forEach((element, idx) => {
           if(element.block_id) {
             element.block_id = `${prefix}_${element.block_id}`;
@@ -132,8 +130,10 @@ class TemplateSlack {
    * @param {string} prefix
    * @return {TemplateSlack}
    */
-	async init(prefix) {
+	async init(instanceId) {
 		try {
+      let prefix = instanceId.split("-")[1];
+      prefix = prefix.substr(0, 2);
 			let pathFile = Env.appRoot + '/slack/views';
 			this.addEvent = await this.readFileTemplate(`${pathFile}/AddEvent.json`);
 			let timeStart = [...this._customDatetime()];
@@ -144,6 +144,8 @@ class TemplateSlack {
 			this.addEvent.blocks[7].accessory.options = timeEnd;
 			this.deleteEvent = await this.readFileTemplate(`${pathFile}/DeleteEvent.json`);
 			this.editEvent = await this.readFileTemplate(`${pathFile}/EditEvent.json`);
+      this.editEvent.blocks[6].accessory.options = timeStart;
+      this.editEvent.blocks[7].accessory.options = timeEnd;
 			this.eventEndDate = await this.readFileTemplate(`${pathFile}/EventEndDate.json`);
 			this.eventTimeStart = await this.readFileTemplate(`${pathFile}/EventTimeStart.json`);
 			this.eventTimeEnd = await this.readFileTemplate(`${pathFile}/EventTimeEnd.json`);
@@ -157,8 +159,8 @@ class TemplateSlack {
 			this._renameBlockAndCallbackID(prefix);
 			this._prefix = prefix;
 			return this;
-		} catch (err) {
-			throw err
+		} catch (e) {
+      console.log("⇒⇒⇒ Handler Command ERROR: ", e);
 		}
 	}
 }

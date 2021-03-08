@@ -1,17 +1,26 @@
 {
-	"server": {
-		"PORT": 5002
-	},
-	"resourceServer": {
-		"AZURE_ID": "",
-		"AZURE_SECRET": "",
-		"AZURE_REDIRECT": "",
-		"SCOPE": "offline_access user.read calendars.readwrite",
-		"API_URL_AUTH":"https://login.microsoftonline.com/common/oauth2",
-		"API_TOKEN":"/v2.0/token",
-		"API_AUTHOR":"/v2.0/authorize",
-		"GRAPH_URL":"https://graph.microsoft.com",
-		"GRAPH_CALENDARS":"/v1.0/me/calendars",
-		"GRAPH_USER":"/v1.0/me"
-	}
+  "server": {
+    "PORT": 5002,
+    "URL_PUBLIC": "https://apis.iceteait.com/public"
+  },
+  "resourceServer": {
+    "AZURE_ID": "",
+    "AZURE_SECRET": "",
+    "AZURE_REDIRECT": "https://apis.iceteait.com/auth/microsoft",
+    "SCOPE": "offline_access user.read calendars.readwrite mailboxsettings.read",
+    "API_URL_AUTH": "https://login.microsoftonline.com/common/oauth2",
+    "API_TOKEN": "/v2.0/token",
+    "API_AUTHOR": "/v2.0/authorize",
+    "GRAPH_URL": "https://graph.microsoft.com/v1.0",
+    "GRAPH_CALENDARS": "/me/calendars",
+    "GRAPH_MAILBOX_SETTINGS": "/me/mailboxSettings",
+    "GRAPH_TIMEZONE_SUPPORT": "/me/outlook/supportedTimeZones",
+    "GRAPH_USER": "/me",
+    "GRAPH_SUB": "/subscriptions",
+    "GRAPH_MY_EVENT": "/me/events",
+    "SUB_CHANGE_TYPE": "created,updated,deleted",
+    "SUB_NOTIFICATION_URL": "https://apis.iceteait.com/watch/resource-server",
+    "RESPONSE_TYPE": "code",
+    "RESPONSE_MODE": "query"
+  }
 }

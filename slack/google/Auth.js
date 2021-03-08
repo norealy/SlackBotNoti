@@ -1,13 +1,8 @@
 const Axios = require("axios");
 const qs = require("qs");
 const Env = require("../../utils/Env");
-const GoogleAccount = require("../../models/GoogleAccount");
-const GoogleCalendar = require("../../models/GoogleCalendar");
 const Channels = require("../../models/Channels");
-const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
-const ChannelsCalendar = require("../../models/ChannelsCalendar");
-const Redis = require("../../utils/redis/index");
-const {cryptoEncode} = require('../../utils/Crypto')
+const {cryptoEncode} = require('../../utils/Crypto');
 const {v4: uuidV4} = require("uuid");
 
 /**
@@ -138,49 +133,6 @@ const getTimeZoneGoogle = (accessTokenGoogle) => {
 	};
 	return Axios(options);
 };
-/**
- * Lưu profile end  refreshTokenGoogle
- * @param  {object} profileUser
- * @param {string} refreshTokenGoogle
- * @returns {Promise}
- */
-const saveUserProfile = async (profileUser, refreshTokenGoogle, accessTokenGoogle, timeZone) => {
-	return new Promise((resolve, reject) => {
-		const account = {
-			id: profileUser.sub,
-			name: profileUser.name,
-			refresh_token: refreshTokenGoogle,
-			timezone: timeZone,
-		}
-		Redis.client.setex("GOOGLE_ACCESS_TOKEN_" + profileUser.sub, 60 * 59, accessTokenGoogle);
-		GoogleAccount.query()
-			.insert(account)
-			.then((res) => {
-				return resolve(res)
-			})
-			.catch((err) => reject(err));
-		resolve();
-	})
-};
-
-/**
- * Lưu list calendar
- * @param {Array} listCalendar
- * @returns {Promise}
- */
-const saveListCalendar = async (listCalendar) => {
-	if (!listCalendar) return null;
-	for (let i = 0, length = listCalendar.length; i < length; i++) {
-		const calendar = await GoogleCalendar.query().findOne({id: listCalendar[i].id});
-		if (!calendar) await GoogleCalendar
-			.query()
-			.insert({
-				id: listCalendar[i].id,
-				name: listCalendar[i].summary,
-			})
-	}
-	return true;
-};
 
 /**
  * Luu thong tin channel vao database
@@ -193,63 +145,6 @@ const saveInfoChannel = (channel) => {
 		name: channel.name,
 	});
 };
-
-/**
- * Lưu IdCalendar với idAccount vào db
- * @param {array} idCalendars
- * @param {String} idAccount
- * @returns {Promise}
- * @constructor
- */
-const SaveGoogleAccountCalendar = (idCalendars, idAccount) => {
-	return GoogleAccountCalendar.transaction(async trx => {
-		try {
-			let values = []
-			for (let idx in idCalendars) {
-				const googleAccountCalendar = {
-					id_calendar: idCalendars[idx],
-					id_account: idAccount,
-					created_at: null,
-				};
-				values.push(googleAccountCalendar)
-			}
-			await trx.insert(values).into(GoogleAccountCalendar.tableName).onConflict(["id_calendar", "id_account"]).merge();
-		} catch (e) {
-			trx.rollback();
-			throw e
-		}
-	})
-};
-
-/**
- * Lưu IdCalendar với idChannel vào db
- * @param {array} idCalendars
- * @param {String}idChannel
- * @returns {Promise}
- * @constructor
- */
-const SaveChannelsCalendar = async (idCalendars, idChannel) => {
-	return ChannelsCalendar.transaction(async trx => {
-		try {
-			let values = [];
-			for (let idx in idCalendars) {
-				const ChannelsCalendar = {
-					id_calendar: idCalendars[idx],
-					id_channel: idChannel,
-					watch: true,
-					created_at: null,
-					updated_at: null,
-				};
-				values.push(ChannelsCalendar)
-			}
-			await trx.insert(values).into(ChannelsCalendar.tableName).onConflict(["id_calendar", "id_channel"]).merge();
-		} catch (e) {
-			trx.rollback();
-			throw e
-		}
-	})
-};
-
 
 module.exports = {
 	getToken,

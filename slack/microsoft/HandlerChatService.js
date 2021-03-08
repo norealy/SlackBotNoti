@@ -3,30 +3,10 @@ const Crypto = require("../../utils/Crypto");
 const Env = require("../../utils/Env");
 const MomentTimezone = require('moment-timezone');
 const Moment = require('moment');
-const { blockTime } = require('../../utils/ConvertTime');
-const { v4: uuidv4 } = require('uuid');
+const {blockTime, getDurationDay} = require('../../utils/ConvertTime');
+const {v4: uuidv4} = require('uuid');
 require('moment-precise-range-plugin');
 
-/**
- * get duration day
- * @param {datetime} datetimeStart
- * @param {datetime} datetimeEnd
- * @retun {number}
- */
-const getDurationDay = (datetimeStart, datetimeEnd) => {
-  let durationDay = 0;
-  let currentDate = datetimeStart;
-   const addDays = function (days) {
-      let date = new Date(this.valueOf());
-      date.setDate(date.getDate() + days);
-      return date;
-    };
-  while (currentDate <= datetimeEnd) {
-    currentDate = addDays.call(currentDate, 1);
-    durationDay += 1;
-  }
-  return durationDay - 1;
-}
 /**
  * Show modals view edit event to slack
  * @param {Object} payload
@@ -354,7 +334,7 @@ function handlerStartDate(payload, blocks) {
  * @returns {string}
  */
 function _getSelectedDate(values, blockId, actionId) {
-  if (!values[blockId]) {
+  if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
@@ -369,7 +349,7 @@ function _getSelectedDate(values, blockId, actionId) {
  * @returns {string}
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if (!values[blockId]) {
+  if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -494,6 +474,7 @@ function handlerEndTime(payload) {
     }
     return view;
   }
+
   priMetadata.dateTime = datetimeStart;
   if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
@@ -515,8 +496,7 @@ function handlerBlocksActions(payload, template) {
     headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
     url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`,
     data: {
-      "view_id": payload["container"]["view_id"],
-      "view": payload.view,
+      "view_id": payload["container"]["view_id"]
     }
   };
   switch (action_id) {
@@ -540,11 +520,15 @@ function handlerBlocksActions(payload, template) {
       option.url = Env.chatServiceGet("API_URL") + Env.chatServiceGet("API_VIEW_OPEN")
       option.data.trigger_id = payload.trigger_id;
       option.data.view = handlerOverflowAction(payload, template);
+      break;
     default:
       break;
   }
-  if (option) delete option.data.view.state;
-  return option;
+  if (option.data.view) {
+    delete option.data.view.state;
+    return option;
+  }
+  return null;
 };
 
 /**
@@ -636,7 +620,7 @@ const getRecurrence = (type, datetime) => {
  * @param {string} actionId
  */
 function _getSelectedOption(values, blockId, actionId) {
-  if (!values[blockId]) {
+  if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -645,58 +629,57 @@ function _getSelectedOption(values, blockId, actionId) {
 
 /**
  * Submit event
- * @param {Object} payload
+ * @param {Object} values
+ * @param {Object} account
  * @returns {Promise}
  */
 const submitAddEvent = (values, account) => {
-  try {
-    let timezone = account.timezone;
-    const location = values["MI_input_location"]["plain_text_input-action"].value;
-    const recurrence = values["MI_select_everyday"]["static_select-action"]["selected_option"].value;
-    const noti = values["MI_select_before_notification"]["static_select-action"]["selected_option"].value;
-    const allDay = values["MI_check_all_day"]["allDay"]["selected_options"];
-    const startDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
-    const dateEnd = startDate;
+  let timezone = account.timezone;
+  const location = values["MI_input_location"]["plain_text_input-action"].value;
+  const recurrence = values["MI_select_everyday"]["static_select-action"]["selected_option"].value;
+  const noti = values["MI_select_before_notification"]["static_select-action"]["selected_option"].value;
+  const allDay = values["MI_check_all_day"]["allDay"]["selected_options"];
+  const startDate = values["MI_select-date-start"]["datepicker-action-start"]["selected_date"];
+  const dateEnd = startDate;
 
-    const event = {
-      "reminderMinutesBeforeStart": noti,
-      "isReminderOn": true,
-      "subject": values['MI_input_title']['input-action'].value,
-      "isAllDay": false,
-      "start": {
-        "dateTime": `${startDate}T00:00:00`,
-        "timeZone": `UTC`
-      },
-      "end": {
-        "dateTime": `${dateEnd}T00:00:00`,
-        "timeZone": `UTC`
-      },
-      "location": {
-        "displayName": location,
-      }
+  const event = {
+    "reminderMinutesBeforeStart": noti,
+    "isReminderOn": true,
+    "subject": values['MI_input_title']['input-action'].value,
+    "isAllDay": false,
+    "start": {
+      "dateTime": `${startDate}T00:00:00`,
+      "timeZone": `UTC`
+    },
+    "end": {
+      "dateTime": `${dateEnd}T00:00:00`,
+      "timeZone": `UTC`
+    },
+    "location": {
+      "displayName": location,
     }
-    if (allDay.length === 0) {
-      const timeStart = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
-      const timeEnd = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
-      const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
-      const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
-      event.start.dateTime = dateTimeStart;
-      event.end.dateTime = dateTimeEnd;
-      if (recurrence !== "nomal") {
-        event.recurrence = getRecurrence(recurrence, startDate);
-      }
-    } else {
-      const endDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
-      event.isAllDay = true;
-      event.end.dateTime = `${endDate}T00:00:00`;
-    }
-    if (event.reminderMinutesBeforeStart === 'default') {
-      event.reminderMinutesBeforeStart = 0;
-    }
-    return event;
-  } catch (error) {
-    return null;
   }
+  if (allDay.length === 0) {
+    const timeStart = _getSelectedOption(values, "MI_select-time-start", "time-start-action");
+    const timeEnd = _getSelectedOption(values, "MI_select-time-end", "time-end-action");
+
+    const dateTimeStart = `${startDate}T${timeStart}:00${timezone}`;
+    const dateTimeEnd = `${dateEnd}T${timeEnd}:00${timezone}`;
+
+    event.start.dateTime = dateTimeStart;
+    event.end.dateTime = dateTimeEnd;
+    if (recurrence !== "nomal") {
+      event.recurrence = getRecurrence(recurrence, startDate);
+    }
+  } else {
+    const endDate = _getSelectedDate(values, "MI_select-date-end", "datepicker-action-end");
+    event.isAllDay = true;
+    event.end.dateTime = `${endDate}T00:00:00`;
+  }
+  if (event.reminderMinutesBeforeStart === 'default') {
+    event.reminderMinutesBeforeStart = 0;
+  }
+  return event;
 };
 
 /**
@@ -786,10 +769,8 @@ const handlerSettingsMessage = (viewSystemSetting, body, setUidToken) => {
       setUidToken
     );
     Axios(options)
-      .then((data) => {
-        return resolve(data);
-      })
-      .catch((err) => reject(err));
+      .then((data) => resolve(data))
+      .catch(reject);
   });
 };
 

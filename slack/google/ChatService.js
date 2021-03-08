@@ -3,31 +3,9 @@ const Axios = require('axios');
 const MomentTimezone = require('moment-timezone');
 const Moment = require('moment');
 const {createJWT} = require('../../utils/Crypto');
-const {blockTime} = require('../../utils/ConvertTime');
+const {blockTime, getDurationDay} = require('../../utils/ConvertTime');
 const {v4: uuidv4} = require('uuid');
-const Template = require("../views/Template");
 require('moment-precise-range-plugin');
-
-/**
- * get duration day
- * @param {datetime} datetimeStart
- * @param {datetime} datetimeEnd
- * @return {number}
- */
-const getDurationDay = (datetimeStart, datetimeEnd) => {
-  let durationDay = 0;
-  let currentDate = datetimeStart;
-  const addDays = function (days) {
-    let date = new Date(this.valueOf());
-    date.setDate(date.getDate() + days);
-    return date;
-  };
-  while (currentDate <= datetimeEnd) {
-    currentDate = addDays.call(currentDate, 1);
-    durationDay += 1;
-  }
-  return durationDay - 1;
-}
 
 /**
  * Cấu hình đường dẫn redirect login google
@@ -300,7 +278,8 @@ function handlerStartDate(payload, blocks) {
   const {values} = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["GO_select-date-start"]["datepicker-action-start"]["selected_date"];
-  const dateTime = `${selectedDate}T${priMetadata.startTime}`;
+  const timezone = Moment(priMetadata.dateTime).format('Z');
+  const dateTime = `${selectedDate}T${priMetadata.startTime}:00${timezone}`;
   priMetadata.dateTime = MomentTimezone(dateTime).tz(priMetadata.user.tz).format();
   view.private_metadata = JSON.stringify(priMetadata);
   if (values["GO_check_all_day"]["allDay"]["selected_options"].length === 0) return view;
@@ -312,7 +291,7 @@ function handlerStartDate(payload, blocks) {
     blocks[5].accessory.initial_date = selectedDate
   }
   view.blocks.splice(5, 1, blocks[5]);
-  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
+  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -321,7 +300,7 @@ function handlerStartDate(payload, blocks) {
 }
 
 function _getSelectedDate(values, blockId, actionId) {
-  if (!values[blockId]) {
+  if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
@@ -329,7 +308,7 @@ function _getSelectedDate(values, blockId, actionId) {
 }
 
 function _getSelectedOption(values, blockId, actionId) {
-  if (!values[blockId]) {
+  if(!values[blockId]){
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -350,7 +329,7 @@ function handlerEndDate(payload, blocks) {
   const dateTime = priMetadata.dateTime.split("T")[0];
   // check all day
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
-  if (diff.firstDateWasLater) {
+  if(diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime)
         .add(priMetadata.durationDay, 'd')
@@ -359,7 +338,7 @@ function handlerEndDate(payload, blocks) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime).format("YYYY-MM-DD")
     }
     view.blocks.splice(5, 1, blocks[5]);
-    if (view.blocks[5].block_id === 'GO_select-date-end-1') {
+    if(view.blocks[5].block_id === 'GO_select-date-end-1'){
       view.blocks[5].block_id = "GO_select-date-end"
     } else {
       view.blocks[5].block_id = "GO_select-date-end-1"
@@ -370,7 +349,7 @@ function handlerEndDate(payload, blocks) {
   view.private_metadata = JSON.stringify(priMetadata);
   blocks[5].accessory.initial_date = selectedDate;
   view.blocks.splice(5, 1, blocks[5]);
-  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
+  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -396,7 +375,7 @@ function handlerStartTime(payload) {
   const datetimeStart = `${date}T${selectedTime}:00${timezone}`;
   const datetimeEnd = `${date}T${timeEnd}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if (diff.firstDateWasLater || selectedTime === timeEnd) {
+  if(diff.firstDateWasLater || selectedTime === timeEnd){
     view.blocks[5].accessory.initial_option = {
       "text": {
         "type": "plain_text",
@@ -405,7 +384,7 @@ function handlerStartTime(payload) {
       },
       "value": blockTime(priMetadata.dateTime)
     };
-    if (view.blocks[5].block_id === 'GO_select-time-start-1') {
+    if(view.blocks[5].block_id === 'GO_select-time-start-1'){
       view.blocks[5].block_id = "GO_select-time-start"
     } else {
       view.blocks[5].block_id = "GO_select-time-start-1"
@@ -414,7 +393,8 @@ function handlerStartTime(payload) {
   }
 
   priMetadata.dateTime = datetimeStart;
-  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  priMetadata.startTime = selectedTime;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
@@ -437,7 +417,7 @@ function handlerEndTime(payload) {
   const datetimeStart = `${date}T${timeStart}:00${timezone}`;
   const datetimeEnd = `${date}T${selectedTime}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if (diff.firstDateWasLater || selectedTime === timeStart) {
+  if(diff.firstDateWasLater || selectedTime === timeStart){
     let timeEnd = Moment(datetimeStart).add(priMetadata.durationTime, 'm').format();
     timeEnd = blockTime(timeEnd);
     view.blocks[6].accessory.initial_option = {
@@ -448,7 +428,7 @@ function handlerEndTime(payload) {
       },
       "value": timeEnd
     };
-    if (view.blocks[6].block_id === 'GO_select-time-end-1') {
+    if(view.blocks[6].block_id === 'GO_select-time-end-1'){
       view.blocks[6].block_id = "GO_select-time-end"
     } else {
       view.blocks[6].block_id = "GO_select-time-end-1"
@@ -456,7 +436,7 @@ function handlerEndTime(payload) {
     return view;
   }
   priMetadata.dateTime = datetimeStart;
-  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
@@ -585,14 +565,13 @@ function handlerOverflow(payload, template) {
   }
 }
 
-
 /**
  * Xóa các thành phần của view
  * @param {object} payload
  * @return {object}
  */
 function delPropsView(payload) {
-  if (payload.view) {
+  if(payload.view){
     delete payload.view.id;
     delete payload.view.team_id;
     delete payload.view.hash;
@@ -652,7 +631,7 @@ function handlerAction(payload, template) {
       option = null;
       break;
   }
-  if (option) delete option.data.view.state;
+  if(option) delete option.data.view.state;
 
   return option
 }
@@ -711,14 +690,14 @@ const createEvent = (values, account) => {
 
   const event = {};
   event["summary"] = values["GO_input_title"]["input-action"].value;
-  if (location) event["location"] = location.trim();
-  event["start"] = {"timeZone": account.timezone};
-  event["end"] = {"timeZone": account.timezone};
-  if (recurrence !== "no") event["recurrence"] = [
+  if(location) event["location"] = location.trim();
+  event["start"] = { "timeZone": account.timezone };
+  event["end"] = { "timeZone": account.timezone };
+  if(recurrence !== "no") event["recurrence"] = [
     `RRULE:FREQ=${recurrence};`
   ];
 
-  if (noti !== "default") {
+  if(noti !== "default"){
     event["reminders"] = {};
     event["reminders"].useDefault = false;
     event["reminders"].overrides = [

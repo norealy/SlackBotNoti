@@ -57,84 +57,68 @@ const getEvent = (idCalendar, idEvent, idAccount) => {
 
 /**
  *
- * @param {string} idChanel
+ * @param {array} channels
  * @param {array} showEvent
  * @param {object} event
- * @returns {Promise}
+ * @returns {array}
  */
-const sendWatchNoti = (idChanel, showEvent, event) => {
-  const tokenBot = Env.chatServiceGet("BOT_TOKEN");
-  const options = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${tokenBot}`,
-    },
-    data: {
-      channel: idChanel,
-      blocks: [...showEvent],
-    },
-    url:
-      Env.chatServiceGet("API_URL") +
-      Env.chatServiceGet("API_POST_MESSAGE"),
-  };
-  options.data.blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
+const makeData = (channels, showEvent, event) => {
+  const blocks = [...showEvent];
+  blocks[0].elements[0].image_url = `${Env.serverGOF("URL_PUBLIC")}/icon/GOOGLE_CALENDAR.png`;
+  blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
   if (event.recurrence) {
-    options.data.blocks[0].elements[3].text = `*Repeat: ${event.recurrence[0].split('=')[1]}*`;
+    blocks[0].elements[3].text = `*Repeat: ${event.recurrence[0].split('=')[1]}*`;
   }
-  options.data.blocks[1].fields[0].text = `*${event.summary}*`;
-  options.data.blocks[1].fields[1].text = `Calendar: ${event.organizer.email}`;
-  if (event.organizer.displayName) {
-    options.data.blocks[1].fields[1].text = `Calendar: ${event.organizer.displayName}`;
+  blocks[1].fields[0].text = `*${event.summary}*`;
+  blocks[1].fields[1].text = `Calendar: ${event.organizer.email}`;
+  if(event.organizer.displayName){
+    blocks[1].fields[1].text = `Calendar: ${event.organizer.displayName}`;
   }
-  if (event.status === 'cancelled') {
-    options.data.blocks[0].elements[2].text = "*Type: Delete Event*";
-    options.data.blocks.length = 2;
-    options.data.blocks.push({"type": "divider"});
+  if(event.status === 'cancelled'){
+    blocks[0].elements[2].text = "*Type: Delete Event*";
+    blocks.length = 2;
+    blocks.push({"type": "divider"});
+
     return Axios(options);
   }
   const created = event.created.split('T')[1].split('.')[0].split('Z')[0];
   const updated = event.updated.split('T')[1].split('.')[0].split('Z')[0];
- // if (created !== updated) options.data.blocks[0].elements[1].text = "*Type: Update Event*";
+ // if (created !== updated) blocks[0].elements[1].text = "*Type: Update Event*";
 
   if (event.start.date && event.end.date) {
     const dateStart = moment(event.start.date).utc(true).format("DD-MM-YYYY");
     const dateEnd = moment(event.end.date).utc(true).format("DD-MM-YYYY");
-    options.data.blocks[2].fields[0].text = `Start: ${dateStart}`;
-    options.data.blocks[2].fields[1].text = `End: ${dateEnd}`;
+    blocks[2].fields[0].text = `Start: ${dateStart}`;
+    blocks[2].fields[1].text = `End: ${dateEnd}`;
   } else if (event.start.dateTime && event.end.dateTime) {
     const datetimeStart = moment(event.start.dateTime).utc(true).tz(event.timezone);
     const datetimeEnd = moment(event.end.dateTime).utc(true).tz(event.timezone);
-    options.data.blocks[2].fields[0].text = datetimeStart.format("DD-MM-YYYY");
-    options.data.blocks[2].fields[1].text = datetimeStart.format("hh:ss:mm") +
+    blocks[2].fields[0].text = datetimeStart.format("DD-MM-YYYY");
+    blocks[2].fields[1].text = datetimeStart.format("hh:ss:mm") +
       "-" + datetimeEnd.format("hh:ss:mm");
   }
 
-  if (event.location) options.data.blocks[3].text.text = event.location;
-  if (event.description) options.data.blocks[4].text.text = event.description;
+  if (event.location) blocks[3].text.text = event.location;
+  if (event.description) blocks[4].text.text = event.description;
 
-  if (!event.description) options.data.blocks.splice(4, 1);
-  if (!event.location) options.data.blocks.splice(3, 1);
-  // if (event.status === "cancelled") {
-  //   console.log("delete")
-  //   options.data.blocks[0].elements[1].text = "*Delete Event*"
-  // }
+  if (!event.description) blocks.splice(4, 1);
+  if (!event.location) blocks.splice(3, 1);
    if (created === updated && event.status === "confirmed") {
-     options.data.blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
-     options.data.blocks[0].elements[2].text = "*Type: Create Event*";
+     blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
+     blocks[0].elements[2].text = "*Type: Create Event*";
   } else if (created != updated && event.status === "confirmed") {
-     options.data.blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
-     options.data.blocks[0].elements[2].text = "*Type: Update  Event*";
-
+     blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
+     blocks[0].elements[2].text = "*Type: Update  Event*";
   }
-
-
-  return Axios(options)
-
+   const data = [];
+   channels.forEach(item => {
+     data.push({channel: item.id_channel, blocks})
+   })
+  return data;
 }
 
 module.exports = {
   getEventUpdate,
-  sendWatchNoti,
-  getEvent
-}
+  makeData,
+  getEvent,
+};

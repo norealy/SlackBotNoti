@@ -1,8 +1,7 @@
 const Env = require('../../utils/Env');
 const axios = require('axios');
-const Redis = require('../../utils/redis/index');
+const Redis = require('../../utils/redis');
 const moment = require('moment');
-const _ = require('lodash');
 
 /**
  *  Lay event
@@ -38,13 +37,14 @@ function getValueRedis(key) {
 /**
  * Gui tin nhan ve channel
  * @param {number} lv
+ * @param {array} channels
  * @param {object} event
- * @param {string} idChan
- * @param {json} messageFormat
+ * @param {object} view
+ * @return {array}
  */
 const handlerDatas = (lv, channels, event, view) => {
   const blocks = [...view.blocks];
-  blocks[0].elements[0].image_url = 'https://apis.iceteait.com/public/icon/MICROSOFT.png';
+  blocks[0].elements[0].image_url = `${Env.serverGOF("URL_PUBLIC")}/icon/MICROSOFT.png`;
   blocks[1].fields[0].text = `*${event.subject}*`;
   blocks[1].fields[1].text = `*Calendar: ${event.nameCalendar}*`;
   const datetimeStart = moment(event.start.dateTime).utc(true).utcOffset(event.timezone);
@@ -88,5 +88,5 @@ const handlerDatas = (lv, channels, event, view) => {
 module.exports = {
   getEvent,
   getValueRedis,
-  handlerDatas
+  handlerDatas,
 }

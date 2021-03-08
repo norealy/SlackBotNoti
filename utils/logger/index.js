@@ -5,19 +5,20 @@ const logger = (app, personality, logModel) => {
     const {statusCode} = response;
     const processingTime = new Date() - requestStart;
 
-		const newLog = new logModel({
-			headers: JSON.stringify(headers),
-			requestStart,
-			personality,
-			method,
-			url,
-			statusCode,
-			httpVersion,
-			processingTime});
+    const newLog = new logModel({
+      headers: JSON.stringify(headers),
+      requestStart,
+      personality,
+      method,
+      url,
+      statusCode,
+      httpVersion,
+      processingTime
+    });
 
-		newLog.save(function (err) {
-			if (err) return console.log('save log db fail: ', err);
-		});
+    newLog.save(function (err) {
+      if (err) return console.log('save log db fail: ', err);
+    });
   };
 
   app.use((request, response, next) => {

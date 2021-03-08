@@ -14,260 +14,325 @@ const Mongo = require('../utils/mongo');
 const LogModel = require('../models/mongo/LogModel');
 
 class BaseServer {
-	/**
-	 * constructor BaseServer class
-	 * @param {string} instanceId
-	 * @param {object} opt
-	 */
-	constructor(instanceId, opt) {
-		const args = instanceId.split("-");
+  /**
+   * constructor BaseServer class
+   * @param {string} instanceId
+   * @param {object} opt
+   */
+  constructor(instanceId, opt) {
+    const args = instanceId.split("-");
+    this.botId = opt.config.path.split("/")[2];
 
-		this.app = Express();
-		this.instanceId = instanceId;
-		this.chatService = args[0];
-		this.resourceServer = args[1];
+    this.app = Express();
+    this.instanceId = instanceId;
+    this.chatService = args[0];
+    this.resourceServer = args[1];
 
-		this.config = typeof opt.config === "object" ? opt.config : {};
+    this.config = typeof opt.config === "object" ? opt.config : {};
 
-		this.chatServiceHandler = this.chatServiceHandler.bind(this);
-		this.resourceServerHandler = this.resourceServerHandler.bind(this);
-		this.pushMessageHandler = this.pushMessageHandler.bind(this);
+    this.chatServiceHandler = this.chatServiceHandler.bind(this);
+    this.resourceServerHandler = this.resourceServerHandler.bind(this);
+    this.pushMessageHandler = this.pushMessageHandler.bind(this);
 
-		this.requestHandler = {
-			watchChatService: this.chatServiceHandler,
-			watchResourceServer: this.resourceServerHandler,
-			pushMessage: this.pushMessageHandler,
-		}
-	}
+    this.requestHandler = {
+      watchChatService: this.chatServiceHandler,
+      watchResourceServer: this.resourceServerHandler,
+      pushMessage: this.pushMessageHandler,
+    }
+  }
 
-	/**
-	 * Set uid token in redis
-	 * @param uid
-	 * @return {Promise}
-	 */
-	setUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.setex(`ACCESS_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
-				if(err) reject(err);
-				resolve(1);
-			});
-		})
-	}
+  /**
+   * Set uid token in redis
+   * @param uid
+   * @return {Promise}
+   */
+  setUidToken(uid) {
+    return new Promise((resolve, reject) => {
+      Redis.client.setex(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, 60 * 30, uid, function (err, res) {
+        if (err) reject(err);
+        resolve(1);
+      });
+    })
+  }
 
-	/**
-	 * Get uid token in redis
-	 * @param uid
-	 * @return {Promise}
-	 */
-	getUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.get(`ACCESS_TOKEN_${uid}`, (err, res) => {
-				if (err) reject(err);
-				resolve(res);
-			});
-		})
-	}
+  /**
+   * Get uid token in redis
+   * @param uid
+   * @return {Promise}
+   */
+  getUidToken(uid) {
+    return new Promise((resolve, reject) => {
+      Redis.client.get(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, (err, res) => {
+        if (err) reject(err);
+        resolve(res);
+      });
+    })
+  }
 
-	/**
-	 * Delete uid token in redis
-	 * @param uid
-	 * @return {Promise}
-	 */
-	delUidToken(uid) {
-		return new Promise((resolve, reject) => {
-			Redis.client.del(`ACCESS_TOKEN_${uid}`, (err, res) => {
-				if (err) reject(err);
-				resolve(res);
-			});
-		})
-	}
+  /**
+   * Delete uid token in redis
+   * @param uid
+   * @return {Promise}
+   */
+  delUidToken(uid) {
+    return new Promise((resolve, reject) => {
+      Redis.client.del(`${this.botId}_${this.instanceId}_UID_TOKEN_${uid}`, (err, res) => {
+        if (err) reject(err);
+        resolve(res);
+      });
+    })
+  }
 
-	/**
-	 * Read config file from config folder(either depending on the service you want to run)
-	 * @param fileName
-	 * @returns {Promise<unknown>}
-	 */
-	getConfig(fileName) {
-		return new Promise((resolve, reject) => {
-			FsExtra.readJson(Path.join(this.config.path, fileName), (err, text) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(text);
-				}
-			});
-		});
-	}
+  /**
+   *
+   * @param {string} key
+   * @returns {*} Values
+   */
+  getAccessTokenRedis(key) {
+    return new Promise((resolve, reject) => {
+      let makeKey = `${this.botId}_${this.instanceId}_ACCESS_TOKEN_${key}`;
+      Redis.client.get(makeKey, (err, reply) => {
+        if (err) reject(err);
+        resolve(reply);
+      });
+    })
+  }
 
-	/**
-	 * Load config from file in config folder(either depending on the service you want to run)
-	 * @param {string} name
-	 * @return {Promise<unknown>}
-	 */
-	loadConfig(name) {
-		try {
-			const fileName = Path.join(name + '.json');
-			return this.getConfig(fileName)
-		} catch (err) {
-			throw new Error(`E_LOAD_CONFIG: ${err.message}`)
-		}
-	}
+  /**
+   *
+   * @param {string} key
+   * @param {string} value
+   * @param {number} seconds
+   * @returns {*} Values
+   */
+  setAccessTokenRedis(key, value, seconds) {
+    return new Promise((resolve, reject) => {
+      let makeKey = `${this.botId}_${this.instanceId}_ACCESS_TOKEN_${key}`;
+      Redis.client.setex(makeKey, seconds, JSON.stringify(value), (err, reply) => {
+        if (err) reject(err);
+        resolve(reply);
+      });
+    })
+  }
 
-	/**
-	 * Load config from file in config folder(either depending on the service you want to run)
-	 * @param {object} wrapper
-	 * @return {object}
-	 */
-	async loadConfigWrapper(wrapper) {
-		const listFile = Fs.readdirSync(this.config.path);
-		listFile.splice(_.findIndex(listFile,(value) => value === `WRAPPER.json`),
-			1);
-		listFile.splice(_.findIndex(listFile,(value) => value === `${this.chatService}.json`),
-			1);
-		wrapper.server["LIST"] = [];
-		for (let i = 0, length = listFile.length; i < length; i++) {
-			const regex = /.json$/;
-			if (regex.test(listFile[i])) {
-				const prefix = listFile[i].substr(0, 2);
-				const config = await this.getConfig(listFile[i]);
-				const props = Object.keys(config.resourceServer);
-				for (let j = 0, lngProps = props.length; j < lngProps; j++) {
-					wrapper.resourceServer[`${prefix}_${props[j]}`] = config.resourceServer[`${props[j]}`]
-				}
-				const name = listFile[i].replace(regex, "");
-				wrapper.server[`${name}_PORT`] = config.server["PORT"];
-				wrapper.server["LIST"].push({
-					prefix,
-					name,
-					PORT: config.server["PORT"],
-				})
-			}
-		}
-		return wrapper
-	}
+  /**
+   *
+   * @param {string} key
+   * @returns {*} Values
+   */
+  getValueRedis(key) {
+    return new Promise((resolve, reject) => {
+      let makeKey = `${this.botId}_${this.instanceId}_${key}`;
+      Redis.client.get(makeKey, (err, reply) => {
+        if (err) reject(err);
+        resolve(reply);
+      });
+    })
+  }
 
-	/**
-	 * Check instance environment variables and initialize the environment object
-	 * @param {object} instanceEnv
-	 * @returns {void}
-	 */
-	configEnv(instanceEnv) {
-		const message = "object does not exist in the config file or it is not an object"
-		if (!instanceEnv.server
-			|| typeof instanceEnv.server !== "object"
-			|| _.isArray(instanceEnv.server)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The server ${message}`);
-		}
-		if (!instanceEnv.chatService
-			|| typeof instanceEnv.chatService !== "object"
-			|| _.isArray(instanceEnv.chatService)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The chatService ${message}`);
-		}
-		if (!instanceEnv.resourceServer
-			|| typeof instanceEnv.resourceServer !== "object"
-			|| _.isArray(instanceEnv.resourceServer)) {
-			throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer ${message}`);
-		}
-		Env.setConfig(instanceEnv);
-	}
+  /**
+   *
+   * @param {string} key
+   * @param {string} value
+   * @param {number} seconds
+   * @returns {*} Values
+   */
+  setValueRedis(key, value, seconds) {
+    return new Promise((resolve, reject) => {
+      let makeKey = `${this.botId}_${this.instanceId}_${key}`;
+      Redis.client.setex(makeKey, seconds, JSON.stringify(value), (err, reply) => {
+        if (err) reject(err);
+        resolve(reply);
+      });
+    })
+  }
 
-	/**
-	 * Config mysql database connection
-	 * @return {Promise<unknown>}
-	 */
-	configMySQL() {
-		return new Promise((resolve, reject) => {
-			const configMysql = require('../config/MySQL')(Env.appRoot);
-			const mysql = knex(configMysql);
-			Model.knex(mysql);
-			mysql.raw("SELECT VERSION()")
-				.then(() => {
-					return resolve(1)
-				})
-				.catch((err) => {
-					const code = "E_ACCESS_MYSQL_ERROR";
-					const message = err.sqlMessage ? err.sqlMessage : 'Access to mysql database denied';
-					const error = new Error(`${code}: ${message}`);
-					error.code = code;
-					reject(error)
-				})
-		})
-	}
+  /**
+   * Read config file from config folder(either depending on the service you want to run)
+   * @param fileName
+   * @returns {Promise<unknown>}
+   */
+  getConfig(fileName) {
+    return new Promise((resolve, reject) => {
+      FsExtra.readJson(Path.join(this.config.path, fileName), (err, text) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(text);
+        }
+      });
+    });
+  }
 
-	configRedis() {
-		return new Promise((resolve, reject) => {
-			const connectSuccess = () => {
-				console.log("redis connect success");
-				resolve(1)
-			};
+  /**
+   * Load config from file in config folder(either depending on the service you want to run)
+   * @param {string} name
+   * @return {Promise<unknown>}
+   */
+  loadConfig(name) {
+    try {
+      const fileName = Path.join(name + '.json');
+      return this.getConfig(fileName)
+    } catch (err) {
+      throw new Error(`E_LOAD_CONFIG: ${err.message}`)
+    }
+  }
 
-			const connectError = (e) => {
-				const err = new Error(`E_CONNECT_REDIS: ${e.message}`);
-				err.code = 'E_CONNECT_REDIS';
-				Redis.close(connectSuccess, connectError);
-				reject(err)
-			};
+  /**
+   * Load config from file in config folder(either depending on the service you want to run)
+   * @param {object} wrapper
+   * @return {object}
+   */
+  async loadConfigWrapper(wrapper) {
+    const listFile = Fs.readdirSync(this.config.path);
+    listFile.splice(_.findIndex(listFile, (value) => value === `WRAPPER.json`),
+      1);
+    listFile.splice(_.findIndex(listFile, (value) => value === `${this.chatService}.json`),
+      1);
+    wrapper.server["LIST"] = [];
+    for (let i = 0, length = listFile.length; i < length; i++) {
+      const regex = /.json$/;
+      if (regex.test(listFile[i])) {
+        const prefix = listFile[i].substr(0, 2);
+        const config = await this.getConfig(listFile[i]);
+        const props = Object.keys(config.resourceServer);
+        for (let j = 0, lngProps = props.length; j < lngProps; j++) {
+          wrapper.resourceServer[`${prefix}_${props[j]}`] = config.resourceServer[`${props[j]}`]
+        }
+        const name = listFile[i].replace(regex, "");
+        wrapper.server[`${name}_PORT`] = config.server["PORT"];
+        wrapper.server["LIST"].push({
+          prefix,
+          name,
+          PORT: config.server["PORT"],
+        })
+      }
+    }
+    return wrapper
+  }
 
-			const option = {
-				host: Env.getOrFail("REDIS_HOST"),
-				port: Env.getOrFail("REDIS_PORT"),
-			};
+  /**
+   * Check instance environment variables and initialize the environment object
+   * @param {object} instanceEnv
+   * @returns {void}
+   */
+  configEnv(instanceEnv) {
+    const message = "object does not exist in the config file or it is not an object"
+    if (!instanceEnv.server
+      || typeof instanceEnv.server !== "object"
+      || _.isArray(instanceEnv.server)) {
+      throw new Error(`E_CONFIG_ENVIRONMENT: The server ${message}`);
+    }
+    if (!instanceEnv.chatService
+      || typeof instanceEnv.chatService !== "object"
+      || _.isArray(instanceEnv.chatService)) {
+      throw new Error(`E_CONFIG_ENVIRONMENT: The chatService ${message}`);
+    }
+    if (!instanceEnv.resourceServer
+      || typeof instanceEnv.resourceServer !== "object"
+      || _.isArray(instanceEnv.resourceServer)) {
+      throw new Error(`E_CONFIG_ENVIRONMENT: The resourceServer ${message}`);
+    }
+    Env.setConfig(instanceEnv);
+  }
 
-			Redis.setConfig(option, connectSuccess, connectError);
-		})
-	}
+  /**
+   * Config mysql database connection
+   * @return {Promise<unknown>}
+   */
+  configMySQL() {
+    return new Promise((resolve, reject) => {
+      const configMysql = require('../config/MySQL')(Env.appRoot);
+      const mysql = knex(configMysql);
+      Model.knex(mysql);
+      mysql.raw("SELECT VERSION()")
+        .then(() => {
+          return resolve(1)
+        })
+        .catch((err) => {
+          const code = "E_ACCESS_MYSQL_ERROR";
+          const message = err.sqlMessage ? err.sqlMessage : 'Access to mysql database denied';
+          const error = new Error(`${code}: ${message}`);
+          error.code = code;
+          reject(error)
+        })
+    })
+  }
 
-	healthCheckHandler(req, res, next) {
-		try {
-			return res.status(200).send({"pong": "OK"});
-		} catch (e) {
-			return res.status(400);
-		}
-	}
+  configRedis() {
+    return new Promise((resolve, reject) => {
+      const connectSuccess = () => {
+        console.log("redis connect success");
+        resolve(1)
+      };
 
-	chatServiceHandler(req, res, next) {
-		return res.status(200).send("OK");
-	}
+      const connectError = (e) => {
+        const err = new Error(`E_CONNECT_REDIS: ${e.message}`);
+        err.code = 'E_CONNECT_REDIS';
+        Redis.close(connectSuccess, connectError);
+        reject(err)
+      };
 
-	resourceServerHandler(req, res, next) {
-		return res.status(200).send("OK");
-	}
+      const option = {
+        host: Env.getOrFail("REDIS_HOST"),
+        port: Env.getOrFail("REDIS_PORT"),
+      };
 
-	pushMessageHandler(req, res, next) {
-		return res.status(200).send("OK");
-	}
+      Redis.setConfig(option, connectSuccess, connectError);
+    })
+  }
 
-	async init() {
-		let instanceEnv = await this.loadConfig(this.resourceServer);
-		if (this.resourceServer === "WRAPPER") {
-			instanceEnv = await this.loadConfigWrapper(instanceEnv);
-		}
-		instanceEnv.chatService = await this.loadConfig(this.chatService);
-		this.configEnv(instanceEnv);
+  healthCheckHandler(req, res, next) {
+    try {
+      return res.status(200).send({"pong": "OK"});
+    } catch (e) {
+      return res.status(400);
+    }
+  }
 
-		if (this.resourceServer === "WRAPPER" || /dev/.test(Env.get("NODE_ENV", "dev"))) {
-			const mongoDB = await Mongo();
-			const logModel = LogModel(mongoDB);
-			require('../utils/logger')(this.app, this.instanceId, logModel)
-		}
+  chatServiceHandler(req, res, next) {
+    return res.status(200).send("OK");
+  }
 
-		await this.configMySQL();
-		await this.configRedis();
+  resourceServerHandler(req, res, next) {
+    return res.status(200).send("OK");
+  }
 
-		this.app.disable('x-powered-by');
-		this.app.use(CookieParser());
-		this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));
-		this.app.use(BodyParser.json({limit: '2mb'}));
+  pushMessageHandler(req, res, next) {
+    return res.status(200).send("OK");
+  }
 
-		this.app.get('/health-check', this.healthCheckHandler);
-		this.app.post('/watch/chat-service', this.requestHandler.watchChatService);
-		this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
-		this.app.post('/push/message', this.requestHandler.pushMessage);
+  async init() {
+    let instanceEnv = await this.loadConfig(this.resourceServer);
+    if (this.resourceServer === "WRAPPER") {
+      instanceEnv = await this.loadConfigWrapper(instanceEnv);
+    }
+    instanceEnv.chatService = await this.loadConfig(this.chatService);
+    this.configEnv(instanceEnv);
 
-		this.app.listen(Env.serverGOF("PORT"), () => {
-			console.log('%s listening at %s', this.instanceId, Env.serverGOF("PORT"));
-		});
-	}
+    if (this.resourceServer === "WRAPPER" || /dev/.test(Env.get("NODE_ENV", "dev"))) {
+      const mongoDB = await Mongo();
+      const logModel = LogModel(mongoDB);
+      require('../utils/logger')(this.app, this.instanceId, logModel)
+    }
+
+    await this.configMySQL();
+    await this.configRedis();
+
+    this.app.disable('x-powered-by');
+    this.app.use(CookieParser());
+    this.app.use(BodyParser.urlencoded({extended: true, limit: '2mb'}));
+    this.app.use(BodyParser.json({limit: '2mb'}));
+
+    this.app.get('/health-check', this.healthCheckHandler);
+    this.app.post('/watch/chat-service', this.requestHandler.watchChatService);
+    this.app.post('/watch/resource-server', this.requestHandler.watchResourceServer);
+    this.app.post('/push/message', this.requestHandler.pushMessage);
+
+    this.app.listen(Env.serverGOF("PORT"), () => {
+      console.log('%s listening at %s', this.instanceId, Env.serverGOF("PORT"));
+    });
+  }
 
 }
 

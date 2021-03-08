@@ -1,8 +1,9 @@
 {
-	"server": {
-		"PORT": 5000
-	},
-	"resourceServer": {
-
-	}
+  "server": {
+    "PORT": 5000
+  },
+  "resourceServer": {
+    "URL": "https://apis.iceteait.com",
+    "URI_LOGIN": "/login-wrapper"
+  }
 }

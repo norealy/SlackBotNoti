@@ -1,26 +1,26 @@
 {
-	"server": {
-		"PORT": 5001,
+  "server": {
+    "PORT": 5001,
     "URL_PUBLIC": "https://apis.iceteait.com/public"
-	},
-	"resourceServer": {
-		"CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",
-		"CLIENT_ID": "90881321712-8iib32ro3d46016qtor1ejg3p91mqhbu.apps.googleusercontent.com",
-		"REDIRECT_URI": "http://localhost:5000/auth/google",
-		"SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.settings.readonly",
-		"SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
-		"RESPONSE_TYPE": "code",
-		"ACCESS_TYPE": "offline",
-		"GRANT_TYPE": "authorization_code",
-		"API_URL": "https://www.googleapis.com",
-		"API_URL_OAUTH":"https://oauth2.googleapis.com",
-		"API_USER_INFO": "/oauth2/v3/userinfo",
-		"API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
-		"API_CALENDAR": "/calendar/v3/calendars",
-		"API_TIME_ZONE": "/calendar/v3/users/me/settings/timezone",
-		"API_TOKEN": "/token",
-		"API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",
-		"TYPE": "web_hook",
-		"ADDRESS": "https://apis.iceteait.com/watch/resource-server"
-	}
+  },
+  "resourceServer": {
+    "CLIENT_SECRET": "n1j1eIb0CHFjPiiTAGqo8E7D",
+    "CLIENT_ID": "90881321712-8iib32ro3d46016qtor1ejg3p91mqhbu.apps.googleusercontent.com",
+    "REDIRECT_URI": "http://localhost:5000/auth/google",
+    "SCOPE_CALENDAR": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.settings.readonly",
+    "SCOPE_USER_INFO": "https://www.googleapis.com/auth/userinfo.profile",
+    "RESPONSE_TYPE": "code",
+    "ACCESS_TYPE": "offline",
+    "GRANT_TYPE": "authorization_code",
+    "API_URL": "https://www.googleapis.com",
+    "API_URL_OAUTH": "https://oauth2.googleapis.com",
+    "API_USER_INFO": "/oauth2/v3/userinfo",
+    "API_lIST_CALENDAR": "/calendar/v3/users/me/calendarList",
+    "API_CALENDAR": "/calendar/v3/calendars",
+    "API_TIME_ZONE": "/calendar/v3/users/me/settings/timezone",
+    "API_TOKEN": "/token",
+    "API_OAUTH": "https://accounts.google.com/o/oauth2/v2/auth",
+    "TYPE": "web_hook",
+    "ADDRESS": "https://apis.iceteait.com/watch/resource-server"
+  }
 }

@@ -1,6 +1,5 @@
 const Env = require('../../utils/Env');
 const axios = require('axios');
-const Redis = require('../../utils/redis');
 const moment = require('moment');
 
 /**
@@ -18,21 +17,7 @@ const getEvent = (idUser, idEvent) => {
     url: `${Env.resourceServerGOF("GRAPH_URL")}${Env.resourceServerGOF("GRAPH_MY_EVENT")}/${idEvent}`
   };
   return axios(options);
-}
-
-/**
- *
- * @param {string} key
- * @returns {*} Values
- */
-function getValueRedis(key) {
-  return new Promise((resolve, reject) => {
-    Redis.client.get(key, (err, reply) => {
-      if (err) reject(null);
-      resolve(reply);
-    });
-  })
-}
+};
 
 /**
  * Gui tin nhan ve channel
@@ -42,7 +27,7 @@ function getValueRedis(key) {
  * @param {object} view
  * @return {array}
  */
-const handlerDatas = (lv, channels, event, view) => {
+const handlerData = (lv, channels, event, view) => {
   const blocks = [...view.blocks];
   blocks[0].elements[0].image_url = `${Env.serverGOF("URL_PUBLIC")}/icon/MICROSOFT.png`;
   blocks[1].fields[0].text = `*${event.subject}*`;
@@ -87,6 +72,5 @@ const handlerDatas = (lv, channels, event, view) => {
 
 module.exports = {
   getEvent,
-  getValueRedis,
-  handlerDatas,
+  handlerData,
 }

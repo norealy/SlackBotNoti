@@ -21,7 +21,7 @@ const getEventUpdate = (headers, idAccount) => {
     };
     Axios(options)
       .then(result => {
-        const {items = []} = result.data;
+        const {items} = result.data;
         const legItem = items.length;
         if (legItem === 0) resolve(null);
         resolve(items[legItem - 1])

@@ -291,7 +291,7 @@ class SlackGoogle extends BaseServer {
         default:
           option = null
       }
-      if (option) await Axios(option).then(({data}) => console.log(data));
+      if (option) await Axios(option)
     } catch (e) {
       console.log("⇒⇒⇒ Handler PayLoad ERROR: ", e);
       return res.status(204).send("Error");

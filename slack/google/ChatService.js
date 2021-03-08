@@ -565,7 +565,6 @@ function handlerOverflow(payload, template) {
   }
 }
 
-
 /**
  * Xóa các thành phần của view
  * @param {object} payload
@@ -681,6 +680,7 @@ function getTZOffset(country) {
  * @returns {Promise}
  */
 const createEvent = (values, account) => {
+
   let timezone = getTZOffset(account.timezone);
   const location = values["GO_input_location"]["plain_text_input-action"].value;
   const recurrence = values["GO_select_everyday"]["static_select-action"]["selected_option"].value;

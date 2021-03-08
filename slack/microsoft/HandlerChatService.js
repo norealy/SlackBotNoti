@@ -243,6 +243,7 @@ const configAddEvent = async (body, template) => {
   };
   return options;
 };
+
 /**
  * xử lý action All đây
  * @param {object} payload
@@ -292,6 +293,7 @@ const handlerAllDay = (payload, blocks) => {
   view.blocks.splice(5, 0, timeStart);
   return view;
 };
+
 /**
  * Xử lý action start date
  * @param {object} payload
@@ -338,6 +340,7 @@ function _getSelectedDate(values, blockId, actionId) {
     return values[blockId][actionId]["selected_date"];
   }
 }
+
 /**
  * Get value select options
  * @param {Object} values

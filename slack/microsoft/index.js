@@ -502,6 +502,7 @@ class SlackMicrosoft extends BaseServer {
         profileUser.id,
         payload.idChannel
       );
+
       return res.send("Successful !");
     } catch (e) {
       console.log("⇒⇒⇒ Microsoft Access ERROR: ", e);
@@ -510,9 +511,9 @@ class SlackMicrosoft extends BaseServer {
   }
 
   /**
-   * custom customRepeat
-   * @param {Object} view
-   */
+ * custom customRepeat
+ * @param {Object} view
+ */
   _customRepeat(view) {
     view.blocks[9].element.options[0].value = "nomal";
     view.blocks[9].element.options[1].value = "daily";

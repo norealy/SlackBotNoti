@@ -49,7 +49,7 @@ const handlerEditEvent = (payload, template) => {
 
   let durationDay = 1;
   if (eventEditDT.isAllDay) {
-    durationDay = getDurationDay(new Date(datetimeStart),new Date(datetimeEnd));
+    durationDay = getDurationDay(datetimeStart, datetimeEnd);
     editView.blocks.splice(6, 2);
     editView.blocks[5].accessory.initial_date = datetimeEnd.split('T')[0];
     editView.blocks[3].accessory.initial_options =

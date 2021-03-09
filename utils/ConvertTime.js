@@ -20,19 +20,20 @@ const blockTime = (dateTime) => {
 
 /**
  * get duration day
- * @param {datetime} datetimeStart
- * @param {datetime} datetimeEnd
- * @retun {number}
+ * @param {string} datetimeStart
+ * @param {string} datetimeEnd
+ * @return {number}
  */
 const getDurationDay = (datetimeStart, datetimeEnd) => {
   let durationDay = 0;
-  let currentDate = datetimeStart;
+  let currentDate = new Date(datetimeStart);
   const addDays = function (days) {
     let date = new Date(this.valueOf());
     date.setDate(date.getDate() + days);
     return date;
   };
-  while (currentDate <= datetimeEnd) {
+  let lastDate = new Date(datetimeEnd);
+  while (currentDate <= lastDate) {
     currentDate = addDays.call(currentDate, 1);
     durationDay += 1;
   }

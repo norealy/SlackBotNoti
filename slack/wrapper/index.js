@@ -1,5 +1,5 @@
 const BaseServer = require('../../common/BaseServer');
-const httpProxy = require('http-proxy');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const Axios = require('axios');
 const Template = require("../views/Template");
 const Env = require("../../utils/Env");
@@ -12,22 +12,44 @@ const {
   configUrlAuthMicrosoft,
 } = require("./ChatService");
 
-const proxy = httpProxy.createProxyServer({});
-
-proxy.on('proxyReq', function (proxyReq, req) {
+function onProxyReq(proxyReq, req, res) {
   if (req.body) {
     let bodyData = JSON.stringify(req.body);
     proxyReq.setHeader('Content-Type', 'application/json');
     proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
     proxyReq.write(bodyData);
   }
-});
+}
+
+const option = {
+  onProxyReq: onProxyReq,
+  pathRewrite: function (path, req) {
+    return path.replace(/^\/dev-slack-0001/, '')
+  },
+};
+
+const proxyGO = createProxyMiddleware(
+  '/',
+  {
+    target: 'http://localhost:5001',
+    ...option,
+  });
+const proxyMI = createProxyMiddleware(
+  '/',
+  {
+    target: 'http://localhost:5002',
+    ...option,
+  });
 
 class SlackWrapper extends BaseServer {
   constructor(instanceId, opt) {
     super(instanceId, opt);
     this.loginWrapper = this.loginWrapper.bind(this);
+    this.loginGoogle = this.loginGoogle.bind(this);
+    this.loginMicrosoft = this.loginMicrosoft.bind(this);
     this.template = Template();
+    this.proxyGO = proxyGO;
+    this.proxyMI = proxyMI;
   }
 
   /**
@@ -69,11 +91,13 @@ class SlackWrapper extends BaseServer {
 
   getDataServer(actions) {
     const list = Env.serverGOF("LIST");
+    let param = "block_id";
+    if(/^WR_/.test(actions[0].block_id)) param = "action_id";
     for (let i = 0, length = list.length; i < length; i++) {
       const {prefix} = list[i];
       const regex = new RegExp(`^${prefix}_`);
       for (let j = 0, length = actions.length; j < length; j++) {
-        if (regex.test(actions[j].block_id)) return list[i]
+        if(regex.test(actions[j][param])) return list[i]
       }
     }
   }
@@ -83,21 +107,25 @@ class SlackWrapper extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (/\/c/.test(command)) {
-        if(/^go/.test(req.body.text))return proxy.web(req, res, {target: 'http://localhost:5001'});
-        if(/^mi/.test(req.body.text))return proxy.web(req, res, {target: 'http://localhost:5002'});
+      if (/\/cal/.test(command)) {
+        if(/^go/.test(req.body.text))return this.proxyGO(req, res, next);
+        if(/^mi/.test(req.body.text))return this.proxyMI(req, res, next);
       }
       if (payload) {
         payload = JSON.parse(payload);
         const {actions, view} = payload;
         if(view && view.callback_id){
-          if(/^GO_/.test(view.callback_id))return proxy.web(req, res, {target: 'http://localhost:5001'});
-          if(/^MI_/.test(view.callback_id))return proxy.web(req, res, {target: 'http://localhost:5002'});
+          if(/^GO_/.test(view.callback_id))return this.proxyGO(req, res, next);
+          if(/^MI_/.test(view.callback_id))return this.proxyMI(req, res, next);
         } else {
           const data = this.getDataServer(actions);
-          return proxy.web(req, res, {target: `http://localhost:${data.PORT}`})
+          if(data) {
+            if (data.PORT === 5001) return this.proxyGO(req, res, next);
+            if (data.PORT === 5002) return this.proxyMI(req, res, next);
+          }
         }
       }
+      console.log("⇒⇒⇒ Chat Server Handler ERROR: not proxy ", req.body);
     } catch (e) {
       console.log("⇒⇒⇒ Chat Server Handler ERROR: ", e);
       return res.status(400).send("ERROR");
@@ -109,10 +137,10 @@ class SlackWrapper extends BaseServer {
       let regexGO = /^x-goog/;
       for (let value in req.headers) {
         if (regexGO.test(value)) {
-          return proxy.web(req, res, {target: 'http://localhost:5001'});
+          return this.proxyGO(req, res, next);
         }
       }
-      return proxy.web(req, res, {target: 'http://localhost:5002'});
+      return this.proxyMI(req, res, next);
     } catch (e) {
       console.log("⇒⇒⇒ Resource Server Handler ERROR: ", e);
       return res.status(204).send("ERROR")
@@ -134,20 +162,21 @@ class SlackWrapper extends BaseServer {
       }
     } catch (e) {
       console.log("⇒⇒⇒ Login Wrapper ERROR: ", e);
+      if(e.code === "TokenExpiredError")return res.status(401).send(e.message);
       return res.status(400).send("Bad request");
     }
   }
 
+  pushMessageHandler(req, res, next){
+
+  }
+
   loginGoogle(req, res, next) {
-    return proxy.web(req, res, {
-      target: `http://localhost:${Env.serverGOF("GOOGLE_PORT")}`
-    })
+    return this.proxyGO(req, res, next);
   }
 
   loginMicrosoft(req, res, next) {
-    return proxy.web(req, res, {
-      target: `http://localhost:${Env.serverGOF("MICROSOFT_PORT")}`
-    })
+    return this.proxyMI(req, res, next);
   }
 }
 
@@ -162,8 +191,11 @@ module.exports = SlackWrapper;
     },
   });
   await wrapper.init();
-  wrapper.app.get("/login-wrapper", wrapper.loginWrapper);
-  wrapper.app.get("/auth/google", wrapper.loginGoogle);
-  wrapper.app.get("/auth/microsoft", wrapper.loginMicrosoft);
-  wrapper.app.use('/public', Express.static(Env.appRoot + '/public'));
+  wrapper.app.post('/dev-slack-0001/watch/chat-service', wrapper.chatServiceHandler);
+  wrapper.app.post('/dev-slack-0001/watch/resource-server', wrapper.resourceServerHandler);
+  wrapper.app.post('/dev-slack-0001/push/message', wrapper.pushMessageHandler);
+  wrapper.app.get("/dev-slack-0001/login-wrapper", wrapper.loginWrapper);
+  wrapper.app.get("/dev-slack-0001/auth/google", wrapper.loginGoogle);
+  wrapper.app.get("/dev-slack-0001/auth/microsoft", wrapper.loginMicrosoft);
+  wrapper.app.use('/dev-slack-0001/public', Express.static(Env.appRoot + '/public'));
 })();

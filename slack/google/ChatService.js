@@ -547,7 +547,7 @@ const handlerUpdateEvent = (payload, template) => {
     ...userInfo,
     dateTime: datetimeStart.split("T")[0],
     durationTime: 15,
-    durationDay: getDurationDay(new Date(datetimeStart), new Date(datetimeEnd)),
+    durationDay: getDurationDay(datetimeStart, datetimeEnd),
     startTime: timeStart,
     idEvent
   });

@@ -61,6 +61,7 @@ const handlerOptionLogin = (event, view, setUidToken) => {
   payload.uid = uuidv4();
 	const accessTokenMI = createJWT(payload);
 	let urlLogin = Env.resourceServerGOF("URL");
+  urlLogin += "/dev-slack-0001";
 	urlLogin += `${Env.resourceServerGOF("URI_LOGIN")}`;
 	const urlLoginGO = urlLogin + `?accessToken=${accessTokenGO}&redirect=`;
 	viewLogin[2].elements[0].url = urlLoginGO + "GOOGLE";

@@ -1,6 +1,7 @@
 const Env = require('../../utils/Env');
 const Axios = require('axios');
 const moment = require('moment-timezone');
+const {getDurationDay} = require('../../utils/ConvertTime');
 
 /**
  * Get google calendar event updates
@@ -78,42 +79,58 @@ const makeData = (channels, showEvent, event) => {
     blocks[0].elements[2].text = "*Type: Delete Event*";
     blocks.length = 2;
     blocks.push({"type": "divider"});
-
-    return Axios(options);
+    const data = [];
+    channels.forEach(item => {
+      data.push({channel: item.id_channel, blocks})
+    })
+    return data;
   }
-  const created = event.created.split('T')[1].split('.')[0].split('Z')[0];
-  const updated = event.updated.split('T')[1].split('.')[0].split('Z')[0];
- // if (created !== updated) blocks[0].elements[1].text = "*Type: Update Event*";
+
+  let location = event.location ? `\nLocation: ${event.location}` : "";
+  let description = event.description ? `\nDescription: ${event.description}` : "";
+  blocks[3].text.text = location + description;
+  if (!event.location && !event.description) blocks.splice(3, 1);
+
+  const created = moment(event.created).unix() + 1;
+  const updated = moment(event.updated).unix();
+  if (event.status === "confirmed" && updated > created) {
+    blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
+    blocks[0].elements[2].text = "*Type: Update  Event*";
+  } else {
+    blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
+    blocks[0].elements[2].text = "*Type: Create Event*";
+  }
 
   if (event.start.date && event.end.date) {
-    const dateStart = moment(event.start.date).utc(true).format("DD-MM-YYYY");
-    const dateEnd = moment(event.end.date).utc(true).format("DD-MM-YYYY");
+    const dateStart = moment(event.start.date).format("DD-MM-YYYY");
+    const dateEnd = moment(event.end.date).add(-1, "d").format("DD-MM-YYYY");
     blocks[2].fields[0].text = `Start: ${dateStart}`;
     blocks[2].fields[1].text = `End: ${dateEnd}`;
-  } else if (event.start.dateTime && event.end.dateTime) {
-    const datetimeStart = moment(event.start.dateTime).utc(true).tz(event.timezone);
-    const datetimeEnd = moment(event.end.dateTime).utc(true).tz(event.timezone);
-    blocks[2].fields[0].text = datetimeStart.format("DD-MM-YYYY");
-    blocks[2].fields[1].text = datetimeStart.format("hh:ss:mm") +
-      "-" + datetimeEnd.format("hh:ss:mm");
+    const data = [];
+    channels.forEach(item => {
+      data.push({channel: item.id_channel, blocks})
+    })
+    return data;
   }
 
-  if (event.location) blocks[3].text.text = event.location;
-  if (event.description) blocks[4].text.text = event.description;
-
-  if (!event.description) blocks.splice(4, 1);
-  if (!event.location) blocks.splice(3, 1);
-   if (created === updated && event.status === "confirmed") {
-     blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
-     blocks[0].elements[2].text = "*Type: Create Event*";
-  } else if (created != updated && event.status === "confirmed") {
-     blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
-     blocks[0].elements[2].text = "*Type: Update  Event*";
+  const datetimeStart = moment(event.start.dateTime).tz(event.timezone);
+  const datetimeEnd = moment(event.end.dateTime).tz(event.timezone);
+  const day = getDurationDay(datetimeStart.format(), datetimeEnd.format());
+  if (day) {
+    blocks[2].fields[0].text = `Day Start: ${datetimeStart.format("YYYY-MM-DD")}\n`;
+    blocks[2].fields[0].text += `Time: ${datetimeStart.format("HH:mm")}`;
+    blocks[2].fields[1].text = `Day end: ${datetimeEnd.format("YYYY-MM-DD")}\n`;
+    blocks[2].fields[1].text += `Time: ${datetimeEnd.format("HH:mm")}`;
+  } else {
+    blocks[2].fields[0].text = `Day: ${datetimeStart.format("DD-MM-YYYY")}`;
+    blocks[2].fields[1].text = `Time: ${datetimeStart.format("HH:mm")}`;
+    blocks[2].fields[1].text += ` - ${datetimeEnd.format("HH:mm")}`;
   }
-   const data = [];
-   channels.forEach(item => {
-     data.push({channel: item.id_channel, blocks})
-   })
+
+  const data = [];
+  channels.forEach(item => {
+    data.push({channel: item.id_channel, blocks})
+  })
   return data;
 }
 

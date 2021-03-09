@@ -166,7 +166,6 @@ class SlackGoogle extends BaseServer {
    */
   async handlerCommand(req, res) {
     try {
-      res.status(200).send("OK");
       const {text} = req.body;
       let option = null;
       const type = text.trim();
@@ -193,6 +192,7 @@ class SlackGoogle extends BaseServer {
         .then(({data}) => {
           if (!data.ok) throw data
         });
+      res.status(200).send("OK");
     } catch (e) {
       console.log("⇒⇒⇒ Handler Command ERROR: ", e);
       res.status(204).send("Error");
@@ -241,6 +241,39 @@ class SlackGoogle extends BaseServer {
 
   }
 
+
+  /**
+   * Add data to payload
+   * @param {object} payload
+   * @return {Promise<object>}
+   */
+  async mixDataPayload(payload) {
+    const idEvent = payload.actions[0]["selected_option"].value.split('/')[1];
+    const idCalendar = payload.actions[0].block_id.split('/')[1];
+    const calendar = await GoogleCalendar.query().findById(idCalendar);
+    payload.calendarName = calendar.name;
+    const value = payload.actions[0].selected_option.value.split('/');
+    if (value[0] === "edit") {
+      const idAccount = payload.actions[0].block_id
+        .split('/')[0]
+        .split('GO_')[1];
+      const account = await GoogleAccount.query().findById(idAccount);
+      payload.timeZoneGG = account.timezone;
+      const user_id = payload.user.id;
+      const channel_id = payload.container.channel_id;
+      payload.userInfo = await this.getUserInfo(user_id);
+      payload.calendars = await this.getCalendarsInChannel(channel_id);
+      const options = {
+        method: 'GET',
+        headers: {'X-Google-AccountId': idAccount},
+        url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
+      };
+      const result = await Axios(options);
+      payload.event = result.data
+    }
+    return payload
+  }
+
   /**
    *
    * @param {object} req
@@ -251,35 +284,12 @@ class SlackGoogle extends BaseServer {
     try {
       let {payload} = req.body;
       payload = JSON.parse(payload);
-      if (payload.type === "block_actions" && payload.actions[0].action_id === "overflow-action") {
-        const idEvent = payload.actions[0]["selected_option"].value.split('/')[1];
-        const idCalendar = payload.actions[0].block_id.split('/')[1];
-        const calendar = await GoogleCalendar.query().findById(idCalendar);
-        payload.calendarName = calendar.name;
-
-        const value = payload.actions[0].selected_option.value.split('/');
-        if (value[0] === "edit") {
-          const idAccount = payload.actions[0].block_id
-            .split('/')[0]
-            .split('GO_')[1];
-          const account = await GoogleAccount.query().findById(idAccount);
-          payload.timeZoneGG = account.timezone;
-          const user_id = payload.user.id;
-          const channel_id = payload.container.channel_id;
-          payload.userInfo = await this.getUserInfo(user_id);
-          payload.calendars = await this.getCalendarsInChannel(channel_id);
-          const options = {
-            method: 'GET',
-            headers: {'X-Google-AccountId': idAccount},
-            url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
-          };
-          const result = await Axios(options);
-          payload.event = result.data
-        }
-      }
       let option = null;
       switch (payload.type) {
         case "block_actions":
+          if(payload.actions[0].action_id === "overflow-action"){
+            payload = await this.mixDataPayload(payload)
+          }
           option = handlerAction(payload, this.template);
           res.status(200).send("OK");
           break;
@@ -288,6 +298,7 @@ class SlackGoogle extends BaseServer {
           option = await this.handlerSubmit(payload);
           break;
         default:
+          res.status(200).send({"response_action": "clear"});
           option = null
       }
       if (option) await Axios(option)
@@ -302,7 +313,7 @@ class SlackGoogle extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (command && /^\/c$/.test(command)) return this.handlerCommand(req, res);
+      if (command && /^\/cal$/.test(command)) return this.handlerCommand(req, res);
       if (payload) return this.handlerPayLoad(req, res);
       return res.status(200).send("OK");
     } catch (e) {
@@ -433,13 +444,13 @@ class SlackGoogle extends BaseServer {
       const {idAccount, idCalendar} = JSON.parse(decode);
 
       let event = await getEventUpdate(req.headers, idAccount);
-      if(!event) return null;
+      if(!event) return res.status(204).send("OK");
       const eventRedis = await this.getValueRedis(event.id);
       if (eventRedis) {
         const data = JSON.parse(eventRedis);
         const checked = _.isEqual(event, data);
         if (checked) {
-          return null;
+          return res.status(204).send("OK");
         }
       }
       this.setValueRedis(event.id, JSON.stringify(event), 5);
@@ -463,7 +474,7 @@ class SlackGoogle extends BaseServer {
           Env.chatServiceGet("API_URL") +
           Env.chatServiceGet("API_POST_MESSAGE"),
       };
-      await Promise.all(data.map(value => {
+      if(data.length > 0)await Promise.all(data.map(value => {
         option.data = value;
         return Axios(option)
       }));

@@ -56,13 +56,6 @@
       }
     },
     {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": "description"
-      }
-    },
-    {
       "type": "divider"
     }
   ]

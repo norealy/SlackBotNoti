@@ -151,6 +151,7 @@ class SlackMicrosoft extends BaseServer {
       }
       if(option) await Axios(option)
         .then(({data}) => {if (!data.ok) throw data});
+      res.status(200).send("OK");
     } catch (e) {
       console.log("⇒⇒⇒ Handler Command ERROR: ", e);
       res.status(204).send("Command error");
@@ -267,8 +268,30 @@ class SlackMicrosoft extends BaseServer {
   };
 
   /**
+   * Add data to payload
+   * @param {object} payload
+   * @return {Promise<object>}
+   */
+  async mixDataPayload(payload) {
+    const blockId = payload.actions[0].block_id.split('/');
+    const values = payload.actions[0].selected_option.value.split('/');
+    if (values[0] === "edit") {
+      const event = await getEvent(blockId[0].split('MI_')[1], values[1]);
+      const chanCals = await ChannelsCalendar.query().where({ id_channel: payload.channel.id });
+      payload.calendars = await this.getOptionCalendars(chanCals);
+      payload.idCalendar = blockId[1];
+      payload.eventEditDT = event.data;
+      const user_id = payload.user.id;
+      payload.userInfo = await this.getUserInfo(user_id);
+    } else if (values[0] === "delete") {
+      payload.calendar = await MicrosoftCalendar.query().findById(blockId[1]);
+    }
+    return payload
+  }
+
+  /**
    *
-   * @param {Object} payload
+   * @param {Object} req
    * @param {object} res
    */
   async handlerPayload(req, res) {
@@ -279,39 +302,20 @@ class SlackMicrosoft extends BaseServer {
       switch (payload.type) {
         case "block_actions":
           res.status(200).send("Ok");
-          if (payload.actions[0].action_id !== 'overflow-action') {
-            option = handlerBlocksActions(payload, this.template);
-            break;
-          }
-          else if (payload.actions[0].selected_option.value.split('/')[0] === "edit") {
-            const value = payload.actions[0].selected_option.value.split('/');
-            const blockId = payload.actions[0].block_id.split('/');
-            const event = await getEvent(blockId[0].split('MI_')[1], value[1]);
-            const chanCals = await ChannelsCalendar.query().where({ id_channel: payload.channel.id });
-            payload.calendars = await this.getOptionCalendars(chanCals);
-            payload.idCalendar = blockId[1];
-            payload.eventEditDT = event.data;
-            const user_id = payload.user.id;
-            payload.userInfo = await this.getUserInfo(user_id);
-          } else if (payload.actions[0].selected_option.value.split('/')[0] === "delete") {
-            const blockId = payload.actions[0].block_id.split('/');
-            payload.calendar = await MicrosoftCalendar.query().findById(blockId[1]);
+          if(payload.actions[0].action_id === 'overflow-action'){
+            payload = await this.mixDataPayload(payload);
           }
           option = handlerBlocksActions(payload, this.template);
-
           break;
         case "view_submission":
-          res.status(200).send({
-            "response_action": "clear"
-          });
+          res.status(200).send({"response_action": "clear"});
           option = await this.handlerSubmit(payload);
           break;
         case "view_closed":
-          res.status(200).send({
-            "response_action": "clear"
-          });
+          res.status(200).send({"response_action": "clear"});
           break;
         default:
+          res.status(200).send({"response_action": "clear"});
           break;
       }
       if (option) await Axios(option);
@@ -331,8 +335,7 @@ class SlackMicrosoft extends BaseServer {
     try {
       if (event) {
         return this.handlerEvent(req, res);
-      } else if (command && /^\/c$/.test(command)) {
-        res.status(200).send();
+      } else if (command && /^\/cal$/.test(command)) {
         return this.handlerCommand(req, res);
       } else if (payload) {
         return this.handlerPayload(req, res);
@@ -393,13 +396,13 @@ class SlackMicrosoft extends BaseServer {
       let datas = null;
       switch (changeType) {
         case "updated":
-          datas = handlerData(2, arrChennelCalendar, event, showEvent);
+          datas = handlerData("*Type: Updated event*", arrChennelCalendar, event, showEvent);
           break;
         case "created":
-          datas = handlerData(1, arrChennelCalendar, event, showEvent);
+          datas = handlerData("*Type: Create event*", arrChennelCalendar, event, showEvent);
           break;
         case "deleted":
-          datas = handlerData(3, arrChennelCalendar, event, showEvent);
+          datas = handlerData("*Type: Deleted event*", arrChennelCalendar, event, showEvent);
           break;
         default:
           break

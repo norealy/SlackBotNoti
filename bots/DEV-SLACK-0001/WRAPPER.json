@@ -3,7 +3,7 @@
     "PORT": 5000
   },
   "resourceServer": {
-    "URL": "https://apis.iceteait.com",
+    "URL": "http://localhost:5000",
     "URI_LOGIN": "/login-wrapper"
   }
 }

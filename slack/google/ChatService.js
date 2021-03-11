@@ -560,7 +560,7 @@ function handlerOverflow(payload, template) {
   if (value[0] === "edit") {
     return handlerUpdateEvent(payload, template);
   }
-  if (value[0] === "del") {
+  if (value[0] === "delete") {
     return handlerDeleteEvent(payload, template)
   }
 }

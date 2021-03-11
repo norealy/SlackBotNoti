@@ -404,7 +404,7 @@ class SlackGoogle extends BaseServer {
           const result = await this.handlerCalendars(items[i], profile.sub);
           if (result) {
             accountCalendar.push(result);
-            await watchGoogleCalendar(result);
+            // await watchGoogleCalendar(result);
           }
         }
       }

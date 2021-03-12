@@ -132,7 +132,7 @@ class SlackMicrosoft extends BaseServer {
    * @param {Array} data
    * @returns {Array}
    */
-  convertEventsData = (data, calendars) => {
+  convertEventsData = (data, calendars, timezone) => {
     const events = [];
     for (let i = 0; i < data.length; i++) {
       const values = data[i].data.value;
@@ -141,6 +141,7 @@ class SlackMicrosoft extends BaseServer {
           const event = _.pick(item, ['id' ,'subject', 'start', 'end', 'location', 'recurrence', 'isAllDay']);
           event.nameCalendar = calendars[i].name;
           event.idCalendar = calendars[i].id;
+          event.timezone = timezone;
           events.push(event);
         });
       }
@@ -172,8 +173,10 @@ class SlackMicrosoft extends BaseServer {
         const idCalendar0 = channelCalendars[0].id_calendar.replace(/^MI_/, "");
         const accountCalendars = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar0 });
         body.idAccount = accountCalendars.id_account;
+
+        const account = await MicrosoftAccount.query().findById(body.idAccount);
         const eventsData = await getEventsTodays(body);
-        events = this.convertEventsData(eventsData, calendars);
+        events = this.convertEventsData(eventsData, calendars , account.timezone);
         let dateTimeNow = Moment(new Date()).utc(true).utcOffset(body.userInfo.user.tz).format();
         const endToday = new Date(`${dateTimeNow.split("T")[0]}T23:59:59Z`);
         dateTimeNow = new Date(dateTimeNow);

@@ -1,7 +1,7 @@
 {
   "server": {
     "PORT": 5002,
-    "URL_PUBLIC": "https://6aa422b7466f.ngrok.io/public"
+    "URL_PUBLIC": "https://7cad2b0bb273.ngrok.io/public"
   },
   "resourceServer": {
     "AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
@@ -19,7 +19,7 @@
     "GRAPH_SUB": "/subscriptions",
     "GRAPH_MY_EVENT": "/me/events",
     "SUB_CHANGE_TYPE": "created,updated,deleted",
-    "SUB_NOTIFICATION_URL": "https://6aa422b7466f.ngrok.io/watch/resource-server",
+    "SUB_NOTIFICATION_URL": "https://7cad2b0bb273.ngrok.io/watch/resource-server",
     "RESPONSE_TYPE": "code",
     "RESPONSE_MODE": "query"
   }

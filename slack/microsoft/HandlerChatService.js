@@ -40,7 +40,7 @@ const getEventsTodays = (body) => {
  * @returns {Array} blocks
  */
 const convertBlocksEvents = (body, template) => {
-  const { events, userInfo , idAccount} = body;
+  const { events, idAccount } = body;
   console.log(events);
   const blocks = [...template.listEvent.blocks];
   const blockEvent = JSON.stringify(blocks[1]);
@@ -54,20 +54,21 @@ const convertBlocksEvents = (body, template) => {
     item.accessory.options[1].value = `del/${event.id}`;
     item.fields[0].text = `*${event.subject}*`;
 
-    if (event.location[0]) {
-      item.fields[4].text = event.location[0].displayName;
+    if (event.location.displayName !== '') {
+      item.fields[4].text = `Location: ${event.location.displayName}`;
     }
-    const datetimeStart = Moment(event.start.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
-    const datetimeEnd = Moment(event.end.dateTime).utc(true).utcOffset(userInfo.user.tz).format();
-    item.fields[1].text = event.nameCalendar;
-    item.fields[2].text = datetimeStart.split('T')[0];
+    const datetimeStart = Moment(event.start.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYThh:mm");
+    const datetimeEnd = Moment(event.end.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYThh:mm");
+    item.fields[1].text = `Calendar: ${event.nameCalendar}`;
     if (event.isAllDay) {
-      item.fields[2].text = datetimeEnd.split('T')[0];
-    }else{
-      item.fields[3].text = datetimeStart.split('T')[1];
+      item.fields[2].text = `Day Start: ` + datetimeStart.split('T')[0];
+      item.fields[3].text = `Day end: ` + datetimeEnd.split('T')[0];
+    } else {
+      item.fields[2].text = `Day: ${datetimeStart.split('T')[0]}`;
+      item.fields[3].text = `Time: ${datetimeStart.split('T')[1]}`;
       item.fields[3].text += " - " + datetimeEnd.split('T')[1];
     }
-    console.log("Item :",item);
+    console.log("Item :", item);
     blocks.splice(i + 1, 0, item);
   }
   return blocks;

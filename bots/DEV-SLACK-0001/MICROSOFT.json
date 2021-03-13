@@ -1,12 +1,12 @@
 {
   "server": {
     "PORT": 5002,
-    "URL_PUBLIC": "https://7cad2b0bb273.ngrok.io/public"
+    "URL_PUBLIC": "https://1c79d4e3f101.ngrok.io/dev-slack-0001/public"
   },
   "resourceServer": {
     "AZURE_ID": "e1d1746c-6f41-4e51-8ab6-deb5eb0b186d",
     "AZURE_SECRET": "dF~tzTaOI9_.0K-OFW8l6M-PV-m0mg4mQJ",
-    "AZURE_REDIRECT": "http://localhost:5002/auth/microsoft",
+    "AZURE_REDIRECT": "http://localhost:5000/dev-slack-0001/auth/microsoft",
     "SCOPE": "offline_access user.read calendars.readwrite mailboxsettings.read",
     "API_URL_AUTH": "https://login.microsoftonline.com/common/oauth2",
     "API_TOKEN": "/v2.0/token",
@@ -19,7 +19,7 @@
     "GRAPH_SUB": "/subscriptions",
     "GRAPH_MY_EVENT": "/me/events",
     "SUB_CHANGE_TYPE": "created,updated,deleted",
-    "SUB_NOTIFICATION_URL": "https://7cad2b0bb273.ngrok.io/watch/resource-server",
+    "SUB_NOTIFICATION_URL": "https://1c79d4e3f101.ngrok.io/dev-slack-0001/watch/resource-server",
     "RESPONSE_TYPE": "code",
     "RESPONSE_MODE": "query"
   }

@@ -1,15 +1,17 @@
 const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
+const Redis = require("../../utils/redis/index");
 const Template = require("../views/Template");
 const Channels = require("../../models/Channels");
 const GoogleAccount = require("../../models/GoogleAccount");
 const GoogleCalendar = require("../../models/GoogleCalendar");
 const AxiosConfig = require('./Axios');
 const Axios = require('axios');
-const {cryptoDecode, decodeJWT} = require('../../utils/Crypto');
+const { cryptoDecode, decodeJWT } = require('../../utils/Crypto');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
 const _ = require('lodash');
+const Moment = require('moment');
 
 const {
   getToken,
@@ -31,6 +33,8 @@ const {
   updateEvent,
   deleteEvent,
   handlerAction,
+  getEventsTodays,
+  convertBlocksEvents
 } = require("./ChatService");
 const {
   getEventUpdate,
@@ -54,7 +58,7 @@ class SlackGoogle extends BaseServer {
     return new Promise((resolve, reject) => {
       const option = {
         method: 'Get',
-        headers: {'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
+        headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
         url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_USER_INFO")}?user=${id}`,
       };
       Axios(option)
@@ -73,7 +77,7 @@ class SlackGoogle extends BaseServer {
    */
   async handlerEvent(req, res) {
     try {
-      let {event, authorizations} = req.body;
+      let { event, authorizations } = req.body;
       const types = Env.chatServiceGOF("TYPE");
       let option = null;
 
@@ -91,7 +95,7 @@ class SlackGoogle extends BaseServer {
           break;
       }
 
-      if (option) await Axios(option).then(({data}) => {
+      if (option) await Axios(option).then(({ data }) => {
         if (!data.ok) throw data
       });
 
@@ -108,7 +112,7 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<[]>}
    */
   async getCalendarsInChannel(channelId) {
-    const channelCalendar = await ChannelsCalendar.query().where({id_channel: channelId});
+    const channelCalendar = await ChannelsCalendar.query().where({ id_channel: channelId });
     const calendars = [];
     const regex = /^GO_/;
     for (let i = 0, length = channelCalendar.length; i < length; i++) {
@@ -134,21 +138,21 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<{object}>}
    */
   async handlerAddEvent(body) {
-    const {user_id} = body;
+    const { user_id } = body;
     body.userInfo = await this.getUserInfo(user_id);
     body.calendars = await this.getCalendarsInChannel(body.channel_id);
     return configAddEvent(body, this.template)
   }
 
   async handlerShowEvents(body) {
-    const {channel_id = null} = body;
-    const channelCalendar = await ChannelsCalendar.query().findOne({id_channel: channel_id});
+    const { channel_id = null } = body;
+    const channelCalendar = await ChannelsCalendar.query().findOne({ id_channel: channel_id });
     const idCalendar = channelCalendar.id_calendar.replace(/^GO_/, "");
-    const idCalendars = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
+    const idCalendars = await GoogleAccountCalendar.query().findOne({ id_calendar: idCalendar });
     body.idAccount = idCalendars.id_account;
     const options = {
       method: 'GET',
-      headers: {'X-Google-AccountId': body.idAccount},
+      headers: { 'X-Google-AccountId': body.idAccount },
       url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events`
     };
     const events = await Axios(options);
@@ -157,7 +161,104 @@ class SlackGoogle extends BaseServer {
     body.idCalendar = idCalendar;
     return configShowEvent(body, this.template)
   }
+  /**
+ *
+ * @param {Array} data
+ * @param {Array} calendars
+ * @param {object} account
+ * @returns {Array}
+ */
+  convertEventsData = (data, calendars, account) => {
+    const events = [];
+    for (let i = 0; i < data.length; i++) {
+      const values = data[i].data.items;
+      if (values.length > 0) {
+        values.forEach(item => {
+          const event = _.pick(item, ['id', 'summary', 'start', 'end', 'location']);
+          event.nameCalendar = calendars[i].name;
+          event.idCalendar = calendars[i].id;
+          event.timezone = account.timezone;
+          event.idAccount = account.id;
+          events.push(event);
+        });
+      }
+    }
+    return events;
+  }
+  /**
+   *
+   * @param {string}} idChannel
+   * @returns
+   */
+  builder = (idChannel) => {
+    const queryBuilder = {
+      account: {
+        $relation: 'channel_google_account',
+        $modify: ["whereAccount"],
+        calendar: {
+          $relation: 'google_calendar',
+        }
+      }
+    }
 
+    return Channels.query()
+      .findById(idChannel)
+      .withGraphFetched(queryBuilder)
+      .modifiers({
+        whereAccount(builder) {
+          builder.select('id', "timezone");
+        },
+      });
+  }
+  /**
+   * Xử lý sự kện show Events Today
+   * @param {object} body
+   * @return {Promise<{object}>}
+   */
+  async handlerEventsToday(body) {
+    try {
+      const { channel_id } = body;
+      let events = null;
+      events = await this.getValueRedis(channel_id);
+      body.userInfo = await this.getUserInfo(body.user_id);
+      if (!events) {
+        events = [];
+        const data = await this.builder(channel_id);
+        for (let i = 0; i < data.account.length; i++) {
+          body.datas = data.account[i];
+          const eventsData = await getEventsTodays(body);
+          const convertData = this.convertEventsData(eventsData, data.account[i].calendar, data.account[i]);
+          events = [...events, ...convertData];
+        }
+        let dateTimeNow = Moment(new Date()).utc(true).utcOffset(body.userInfo.user.tz).format();
+        const endToday = new Date(`${dateTimeNow.split("T")[0]}T23:59:59Z`);
+        dateTimeNow = new Date(dateTimeNow);
+        const exp = (endToday - dateTimeNow) / 1000;
+        this.setValueRedis(channel_id, JSON.stringify(events), exp);
+      } else {
+        events = JSON.parse(events);
+      }
+      body.events = events;
+      const blocksView = await convertBlocksEvents(body, this.template);
+      const option = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`,
+        },
+        data: {
+          channel: channel_id,
+          blocks: blocksView,
+        },
+        url:
+          Env.chatServiceGet("API_URL") +
+          Env.chatServiceGet("API_POST_MESSAGE"),
+      };
+      if (events) await Axios(option);
+    } catch (e) {
+      console.log("⇒⇒⇒ handlerNotifications ERROR: ", e);
+    }
+  }
   /**
    * Xử lý command
    * @param {object} req
@@ -166,7 +267,7 @@ class SlackGoogle extends BaseServer {
    */
   async handlerCommand(req, res) {
     try {
-      const {text} = req.body;
+      const { text } = req.body;
       let option = null;
       const type = text.trim();
 
@@ -183,13 +284,16 @@ class SlackGoogle extends BaseServer {
         case "go show-events":
           option = await this.handlerShowEvents(req.body);
           break;
+        case "go events-today":
+          option = await this.handlerEventsToday(req.body);
+          break;
         default:
           option = null;
           break
       }
 
       if (option) await Axios(option)
-        .then(({data}) => {
+        .then(({ data }) => {
           if (!data.ok) throw data
         });
       res.status(200).send("OK");
@@ -205,27 +309,27 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<{object|null}>}
    */
   async handlerSubmit(payload) {
-    const {callback_id} = payload.view;
-    const {values} = payload.view.state;
+    const { callback_id } = payload.view;
+    const { values } = payload.view.state;
 
     if (callback_id === "GO_add-event") {
       const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
-      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
-      const account = await GoogleAccount.query().findOne({id: id_account});
-      let option = {method: "POST"};
+      const { id_account } = await GoogleAccountCalendar.query().findOne({ id_calendar: idCalendar });
+      const account = await GoogleAccount.query().findOne({ id: id_account });
+      let option = { method: "POST" };
       option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events`;
-      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.headers = { 'content-type': 'application/json', 'X-Google-AccountId': id_account };
       option.data = createEvent(values, account);
       return option;
     } else if (callback_id === "GO_edit-event") {
       const parseData = JSON.parse(payload.view.private_metadata);
       const idEvent = parseData.idEvent;
       const idCalendar = values["GO_select_calendar"]["select_calendar"]["selected_option"].value;
-      const {id_account} = await GoogleAccountCalendar.query().findOne({id_calendar: idCalendar});
-      const account = await GoogleAccount.query().findOne({id: id_account});
-      let option = {method: "PUT"};
+      const { id_account } = await GoogleAccountCalendar.query().findOne({ id_calendar: idCalendar });
+      const account = await GoogleAccount.query().findOne({ id: id_account });
+      let option = { method: "PUT" };
       option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`;
-      option.headers = {'content-type': 'application/json', 'X-Google-AccountId': id_account};
+      option.headers = { 'content-type': 'application/json', 'X-Google-AccountId': id_account };
       option.data = updateEvent(values, account);
       return option;
     } else if (callback_id === "GO_delete-event") {
@@ -265,7 +369,7 @@ class SlackGoogle extends BaseServer {
       payload.calendars = await this.getCalendarsInChannel(channel_id);
       const options = {
         method: 'GET',
-        headers: {'X-Google-AccountId': idAccount},
+        headers: { 'X-Google-AccountId': idAccount },
         url: `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`
       };
       const result = await Axios(options);
@@ -282,23 +386,23 @@ class SlackGoogle extends BaseServer {
    */
   async handlerPayLoad(req, res) {
     try {
-      let {payload} = req.body;
+      let { payload } = req.body;
       payload = JSON.parse(payload);
       let option = null;
       switch (payload.type) {
         case "block_actions":
-          if(payload.actions[0].action_id === "overflow-action"){
+          if (payload.actions[0].action_id === "overflow-action") {
             payload = await this.mixDataPayload(payload)
           }
           option = handlerAction(payload, this.template);
           res.status(200).send("OK");
           break;
         case "view_submission":
-          res.status(200).send({"response_action": "clear"});
+          res.status(200).send({ "response_action": "clear" });
           option = await this.handlerSubmit(payload);
           break;
         default:
-          res.status(200).send({"response_action": "clear"});
+          res.status(200).send({ "response_action": "clear" });
           option = null
       }
       if (option) await Axios(option)
@@ -309,11 +413,11 @@ class SlackGoogle extends BaseServer {
   }
 
   async chatServiceHandler(req, res, next) {
-    const {challenge, event, command, payload} = req.body;
+    const { challenge, event, command, payload } = req.body;
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (command && /^\/cal$/.test(command)) return this.handlerCommand(req, res);
+      if (command && /^\/ca$/.test(command)) return this.handlerCommand(req, res);
       if (payload) return this.handlerPayLoad(req, res);
       return res.status(200).send("OK");
     } catch (e) {
@@ -329,9 +433,9 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<object|boolean>}
    */
   async handlerCalendars(calendar, idAccount) {
-    const findCalendar = await GoogleCalendar.query().findOne({id: calendar.id});
+    const findCalendar = await GoogleCalendar.query().findOne({ id: calendar.id });
     if (!findCalendar) await GoogleCalendar.query()
-      .insert({id: calendar.id, name: calendar.summary});
+      .insert({ id: calendar.id, name: calendar.summary });
 
     const googleAC = {
       id_calendar: calendar.id,
@@ -360,7 +464,7 @@ class SlackGoogle extends BaseServer {
   }
 
   async authGoogle(req, res) {
-    let {code, state} = req.query;
+    let { code, state } = req.query;
     const cookie = req.cookies[this.instanceId];
     if (cookie) state = cookie;
 
@@ -375,13 +479,13 @@ class SlackGoogle extends BaseServer {
       const profile = await getProfile(tokens.access_token);
       const user = await GoogleAccount.query().findById(profile.sub);
 
-      if (!user){
+      if (!user) {
         await this.setAccessTokenRedis(profile.sub, tokens.access_token);
         await this.handlerUser(profile, tokens);
       }
 
       // Xử lý channel slack
-      const {idChannel} = await decodeJWT(state);
+      const { idChannel } = await decodeJWT(state);
       let channel = await Channels.query().findById(idChannel);
       if (!channel) {
         channel = await getInfoChannel(idChannel);
@@ -389,7 +493,7 @@ class SlackGoogle extends BaseServer {
       }
 
       // Xử lý danh sách calendar
-      const {items} = await getListCalendar(profile.sub, tokens.access_token);
+      const { items } = await getListCalendar(profile.sub, tokens.access_token);
       const channelCalendar = [];
       let accountCalendar = [];
       const regex = /writer|owner/;
@@ -441,10 +545,10 @@ class SlackGoogle extends BaseServer {
   async resourceServerHandler(req, res, next) {
     try {
       const decode = await cryptoDecode(req.headers['x-goog-channel-token']);
-      const {idAccount, idCalendar} = JSON.parse(decode);
+      const { idAccount, idCalendar } = JSON.parse(decode);
 
       let event = await getEventUpdate(req.headers, idAccount);
-      if(!event) return res.status(204).send("OK");
+      if (!event) return res.status(204).send("OK");
       const eventRedis = await this.getValueRedis(event.id);
       if (eventRedis) {
         const data = JSON.parse(eventRedis);
@@ -460,7 +564,7 @@ class SlackGoogle extends BaseServer {
       }
       const account = await GoogleAccount.query().findById(idAccount);
       event.timezone = account.timezone;
-      const channelCalendar = await ChannelsCalendar.query().where({id_calendar: `GO_${idCalendar}`, watch: true});
+      const channelCalendar = await ChannelsCalendar.query().where({ id_calendar: `GO_${idCalendar}`, watch: true });
       const data = makeData(channelCalendar, this.template.showEvent.blocks, event);
 
       const tokenBot = Env.chatServiceGet("BOT_TOKEN");
@@ -474,7 +578,7 @@ class SlackGoogle extends BaseServer {
           Env.chatServiceGet("API_URL") +
           Env.chatServiceGet("API_POST_MESSAGE"),
       };
-      if(data.length > 0)await Promise.all(data.map(value => {
+      if (data.length > 0) await Promise.all(data.map(value => {
         option.data = value;
         return Axios(option)
       }));
@@ -483,6 +587,9 @@ class SlackGoogle extends BaseServer {
       console.log("⇒⇒⇒ Resource Server Handler ERROR: ", e);
       return res.status(204).send("ERROR");
     }
+  }
+  convertView() {
+    this.template.listEvent.blocks[0].elements[1].text = "*CALENDAR GOOGLE*";
   }
 }
 
@@ -497,5 +604,6 @@ module.exports = SlackGoogle;
   });
   await pipeline.init();
   pipeline.app.get("/auth/google", pipeline.authGoogle);
+  pipeline.convertView();
   AxiosConfig(pipeline);
 })();

@@ -2,11 +2,79 @@ const Env = require('../../utils/Env');
 const Axios = require('axios');
 const MomentTimezone = require('moment-timezone');
 const Moment = require('moment');
-const {createJWT} = require('../../utils/Crypto');
-const {blockTime, getDurationDay} = require('../../utils/ConvertTime');
-const {v4: uuidv4} = require('uuid');
+const { createJWT } = require('../../utils/Crypto');
+const { blockTime, getDurationDay } = require('../../utils/ConvertTime');
+const { v4: uuidv4 } = require('uuid');
 require('moment-precise-range-plugin');
 
+/**
+ * get Events Todays
+ * @param {Object} body
+ * return events
+ */
+const getEventsTodays = (body) => {
+  const { datas, userInfo } = body;
+  const options = [];
+  const dateToday = Moment(new Date()).utc(true).utcOffset(userInfo.user.tz).format("YYYY-MM-DD");
+  let hours = MomentTimezone(new Date()).format("Z");
+  hours = - parseInt(hours);
+  let start = MomentTimezone(`${dateToday}T00:00:00Z`).utc(false).add(hours, "h").format();
+  let end = MomentTimezone(`${dateToday}T23:59:59Z`).utc(false).add(hours, "h").format();
+
+  for (let i = 0; i < datas.calendar.length; i++) {
+    const item = datas.calendar[i];
+    const option = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Google-AccountId": datas.id,
+      },
+      url: Env.resourceServerGOF("API_URL") +
+        Env.resourceServerGOF("API_CALENDAR") +
+        `/${item.id}/events?timeMin=${start}&timeMax=${end}`
+    };
+    options.push(option);
+  }
+  return Promise.all(options.map(item => Axios(item)));
+}
+/**
+ * convert Blocks Events
+ * @param {Array} events
+ * @returns {Array} blocks
+ */
+const convertBlocksEvents = (body, template) => {
+  const { events } = body;
+  const blocks = [...template.listEvent.blocks];
+  const blockEvent = JSON.stringify(blocks[1]);
+  blocks.splice(1, 1);
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    let item = blockEvent;
+    item = JSON.parse(item);
+
+    item.block_id = `GO_${event.idAccount}/${event.idCalendar}/${event.summary}`;
+    item.accessory.options[0].value = `edit/${event.id}`;
+    item.accessory.options[1].value = `del/${event.id}`;
+
+    item.fields[0].text = `*${event.summary}*`;
+    item.fields[1].text = `Calendar: ${event.nameCalendar}`;
+    if (event.location) {
+      item.fields[4].text = `Location: ${event.location}`;
+    }
+    if (event.end.date) {
+      item.fields[2].text = `Day Start: ` + event.start.date;
+      item.fields[3].text = `Day end: ` + event.end.date;
+    } else {
+      const datetimeStart = Moment(event.start.dateTime).tz(event.timezone).format("DD-MM-YYYYTHH:mm");
+      const datetimeEnd = Moment(event.end.dateTime).tz(event.timezone).format("DD-MM-YYYYTHH:mm");
+      item.fields[2].text = `Day: ${datetimeStart.split('T')[0]}`;
+      item.fields[3].text = `Time: ${datetimeStart.split('T')[1]}`;
+      item.fields[3].text += " - " + datetimeEnd.split('T')[1];
+    }
+    blocks.splice(i + 1, 0, item);
+  }
+  return blocks;
+}
 /**
  * Cấu hình đường dẫn redirect login google
  * @param accessToken
@@ -33,11 +101,11 @@ const configUrlAuth = (accessToken) => {
  */
 const requestPostLogin = (event, template, setUidToken) => {
   const blocks = [...template.loginResource];
-  const option = {method: "POST"};
+  const option = { method: "POST" };
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_POST_MESSAGE');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-  const {inviter, channel} = event;
+  option.headers = { 'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}` };
+  const { inviter, channel } = event;
   const iat = Math.floor(new Date() / 1000);
   const uid = uuidv4();
   const payload = {
@@ -64,12 +132,12 @@ const requestPostLogin = (event, template, setUidToken) => {
  * @returns {Promise}
  */
 const requestSettings = (body, systemSetting, setUidToken) => {
-  const option = {method: "POST"};
+  const option = { method: "POST" };
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_VIEW_OPEN');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-  const {user_id, channel_id} = body;
-  const {trigger_id} = body;
+  option.headers = { 'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}` };
+  const { user_id, channel_id } = body;
+  const { trigger_id } = body;
   const iat = Math.floor(new Date() / 1000);
   const uid = uuidv4();
   const payload = {
@@ -96,11 +164,11 @@ const requestSettings = (body, systemSetting, setUidToken) => {
  * @returns {Promise}
  */
 const requestHome = (body, homePage) => {
-  const option = {method: "POST"};
+  const option = { method: "POST" };
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_VIEW_PUBLISH');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-  const {user_id, trigger_id} = body;
+  option.headers = { 'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}` };
+  const { user_id, trigger_id } = body;
   option.data = {
     "user_id": user_id,
     "trigger_id": trigger_id,
@@ -116,7 +184,7 @@ const requestHome = (body, homePage) => {
  * @return {object}
  */
 const configAddEvent = (body, template) => {
-  const {trigger_id, calendars, userInfo} = body;
+  const { trigger_id, calendars, userInfo } = body;
   const view = {
     ...template.addEvent,
     blocks: [...template.addEvent.blocks]
@@ -164,14 +232,14 @@ const configAddEvent = (body, template) => {
   };
 
   // lưu dữ liệu cache vào view phục vụ cho update view về sau
-  view.private_metadata = JSON.stringify({...userInfo, dateTime, durationTime: 15, startTime});
+  view.private_metadata = JSON.stringify({ ...userInfo, dateTime, durationTime: 15, startTime });
   view.blocks.splice(5, 1);
 
   // khởi tạo option cho request tới slack.
-  let option = {method: "POST"};
+  let option = { method: "POST" };
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_VIEW_OPEN');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
+  option.headers = { 'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}` };
   option.data = {
     "trigger_id": trigger_id,
     view
@@ -188,7 +256,7 @@ const configAddEvent = (body, template) => {
  * @returns {Promise}
  */
 const configShowEvent = (body, template) => {
-  const {event, idAccount, idCalendar, channel_id} = body
+  const { event, idAccount, idCalendar, channel_id } = body
   const blocksView = [...template.listEvent.blocks];
 
   blocksView[1].block_id = `GO_${idAccount}/${idCalendar}`;
@@ -224,9 +292,9 @@ const configShowEvent = (body, template) => {
  * @returns {object}
  */
 const handlerAllDay = (payload, blocks) => {
-  const {selected_options} = payload.actions[0];
-  const {view} = payload;
-  const {durationDay, dateTime, durationTime} = JSON.parse(view.private_metadata);
+  const { selected_options } = payload.actions[0];
+  const { view } = payload;
+  const { durationDay, dateTime, durationTime } = JSON.parse(view.private_metadata);
 
   // All day checked
   if (selected_options.length > 0) {
@@ -243,7 +311,7 @@ const handlerAllDay = (payload, blocks) => {
 
   // event one-date
   const startTime = blockTime(dateTime);
-  const timeStart = {...blocks[6]};
+  const timeStart = { ...blocks[6] };
   timeStart.accessory.initial_option = {
     "text": {
       "type": "plain_text",
@@ -253,7 +321,7 @@ const handlerAllDay = (payload, blocks) => {
     "value": startTime
   };
   const endTime = blockTime(Moment(dateTime).add(durationTime, 'm').format());
-  const timeEnd = {...blocks[7]};
+  const timeEnd = { ...blocks[7] };
   timeEnd.accessory.initial_option = {
     "text": {
       "type": "plain_text",
@@ -274,8 +342,8 @@ const handlerAllDay = (payload, blocks) => {
  * @returns {object}
  */
 function handlerStartDate(payload, blocks) {
-  const {view} = payload;
-  const {values} = view.state;
+  const { view } = payload;
+  const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = values["GO_select-date-start"]["datepicker-action-start"]["selected_date"];
   const timezone = Moment(priMetadata.dateTime).format('Z');
@@ -291,7 +359,7 @@ function handlerStartDate(payload, blocks) {
     blocks[5].accessory.initial_date = selectedDate
   }
   view.blocks.splice(5, 1, blocks[5]);
-  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -300,7 +368,7 @@ function handlerStartDate(payload, blocks) {
 }
 
 function _getSelectedDate(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_date"];
   } else {
     return values[blockId][actionId]["selected_date"];
@@ -308,7 +376,7 @@ function _getSelectedDate(values, blockId, actionId) {
 }
 
 function _getSelectedOption(values, blockId, actionId) {
-  if(!values[blockId]){
+  if (!values[blockId]) {
     return values[`${blockId}-1`][actionId]["selected_option"].value;
   } else {
     return values[blockId][actionId]["selected_option"].value;
@@ -322,14 +390,14 @@ function _getSelectedOption(values, blockId, actionId) {
  * @returns {object}
  */
 function handlerEndDate(payload, blocks) {
-  const {view} = payload;
-  const {values} = view.state;
+  const { view } = payload;
+  const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
   const selectedDate = _getSelectedDate(values, "GO_select-date-end", "datepicker-action-end");
   const dateTime = priMetadata.dateTime.split("T")[0];
   // check all day
   let diff = Moment.preciseDiff(dateTime, selectedDate, true);
-  if(diff.firstDateWasLater) {
+  if (diff.firstDateWasLater) {
     if (priMetadata.durationDay) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime)
         .add(priMetadata.durationDay, 'd')
@@ -338,7 +406,7 @@ function handlerEndDate(payload, blocks) {
       blocks[5].accessory.initial_date = Moment(priMetadata.dateTime).format("YYYY-MM-DD")
     }
     view.blocks.splice(5, 1, blocks[5]);
-    if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+    if (view.blocks[5].block_id === 'GO_select-date-end-1') {
       view.blocks[5].block_id = "GO_select-date-end"
     } else {
       view.blocks[5].block_id = "GO_select-date-end-1"
@@ -349,7 +417,7 @@ function handlerEndDate(payload, blocks) {
   view.private_metadata = JSON.stringify(priMetadata);
   blocks[5].accessory.initial_date = selectedDate;
   view.blocks.splice(5, 1, blocks[5]);
-  if(view.blocks[5].block_id === 'GO_select-date-end-1'){
+  if (view.blocks[5].block_id === 'GO_select-date-end-1') {
     view.blocks[5].block_id = "GO_select-date-end"
   } else {
     view.blocks[5].block_id = "GO_select-date-end-1"
@@ -363,8 +431,8 @@ function handlerEndDate(payload, blocks) {
  * @returns {object}
  */
 function handlerStartTime(payload) {
-  const {view} = payload;
-  const {values} = view.state;
+  const { view } = payload;
+  const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
 
   const selectedTime = _getSelectedOption(values, "GO_select-time-start", "time-start-action");
@@ -375,7 +443,7 @@ function handlerStartTime(payload) {
   const datetimeStart = `${date}T${selectedTime}:00${timezone}`;
   const datetimeEnd = `${date}T${timeEnd}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if(diff.firstDateWasLater || selectedTime === timeEnd){
+  if (diff.firstDateWasLater || selectedTime === timeEnd) {
     view.blocks[5].accessory.initial_option = {
       "text": {
         "type": "plain_text",
@@ -384,7 +452,7 @@ function handlerStartTime(payload) {
       },
       "value": blockTime(priMetadata.dateTime)
     };
-    if(view.blocks[5].block_id === 'GO_select-time-start-1'){
+    if (view.blocks[5].block_id === 'GO_select-time-start-1') {
       view.blocks[5].block_id = "GO_select-time-start"
     } else {
       view.blocks[5].block_id = "GO_select-time-start-1"
@@ -393,7 +461,7 @@ function handlerStartTime(payload) {
   }
 
   priMetadata.dateTime = datetimeStart;
-  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   priMetadata.startTime = selectedTime;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
@@ -405,8 +473,8 @@ function handlerStartTime(payload) {
  * @returns {object}
  */
 function handlerEndTime(payload) {
-  const {view} = payload;
-  const {values} = view.state;
+  const { view } = payload;
+  const { values } = view.state;
   const priMetadata = JSON.parse(view.private_metadata);
 
   const selectedTime = _getSelectedOption(values, "GO_select-time-end", "time-end-action");
@@ -417,7 +485,7 @@ function handlerEndTime(payload) {
   const datetimeStart = `${date}T${timeStart}:00${timezone}`;
   const datetimeEnd = `${date}T${selectedTime}:00${timezone}`;
   let diff = Moment.preciseDiff(datetimeStart, datetimeEnd, true);
-  if(diff.firstDateWasLater || selectedTime === timeStart){
+  if (diff.firstDateWasLater || selectedTime === timeStart) {
     let timeEnd = Moment(datetimeStart).add(priMetadata.durationTime, 'm').format();
     timeEnd = blockTime(timeEnd);
     view.blocks[6].accessory.initial_option = {
@@ -428,7 +496,7 @@ function handlerEndTime(payload) {
       },
       "value": timeEnd
     };
-    if(view.blocks[6].block_id === 'GO_select-time-end-1'){
+    if (view.blocks[6].block_id === 'GO_select-time-end-1') {
       view.blocks[6].block_id = "GO_select-time-end"
     } else {
       view.blocks[6].block_id = "GO_select-time-end-1"
@@ -436,14 +504,14 @@ function handlerEndTime(payload) {
     return view;
   }
   priMetadata.dateTime = datetimeStart;
-  if(diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
+  if (diff.hours > 0) priMetadata.durationTime = diff.hours * 60 + diff.minutes;
   view.private_metadata = JSON.stringify(priMetadata);
   return view;
 }
 
 const handlerDeleteEvent = (payload, template) => {
-  const view = {...template.deleteEvent, blocks: [...template.deleteEvent.blocks]}
-  view.blocks[0].text.text = `Delete event: ${payload.message.blocks[1].fields[0].text}`
+  const view = { ...template.deleteEvent, blocks: [...template.deleteEvent.blocks] }
+  view.blocks[0].text.text = `Delete event: ${payload.actions[0].block_id.split('/')[2]}`;
   view.blocks[0].block_id = payload.actions[0]["selected_option"].value
   // mic calendar
   view.blocks[1].text.text = `Event of calendar: ${payload.calendarName}`
@@ -452,7 +520,7 @@ const handlerDeleteEvent = (payload, template) => {
 }
 
 const handlerUpdateEvent = (payload, template) => {
-  const {calendars, userInfo, event} = payload;
+  const { calendars, userInfo, event } = payload;
   const view = {
     ...template.editEvent,
     blocks: [...template.editEvent.blocks]
@@ -469,10 +537,15 @@ const handlerUpdateEvent = (payload, template) => {
   const timDateEnd = datetimeEnd.split('T')[0]
   let diffTimeDate = Moment.preciseDiff(event.start.dateTime, event.end.dateTime, true);
   // chọn calendar default cho view add event
+
+  let displayName = event.organizer.displayName;
+  if(!displayName){
+    displayName = event.organizer.email;
+  }
   view.blocks[1].accessory.initial_option = {
     "text": {
       "type": "plain_text",
-      "text": event.organizer.displayName,
+      "text": displayName,
       "emoji": true
     },
     "value": event.organizer.email
@@ -485,20 +558,20 @@ const handlerUpdateEvent = (payload, template) => {
     const recurrence = event.recurrence[0].split('=')
     if (recurrence[1] === "no") {
       view.blocks[9].element.initial_option = {
-        text: {type: 'plain_text', text: 'No', emoji: true},
+        text: { type: 'plain_text', text: 'No', emoji: true },
         value: 'no'
       }
     } else if (recurrence[1] === "DAILY") {
       view.blocks[9].element.initial_option = {
-        text: {type: 'plain_text', text: 'Every day', emoji: true}, value: `${recurrence[1]}`
+        text: { type: 'plain_text', text: 'Every day', emoji: true }, value: `${recurrence[1]}`
       }
     } else if (recurrence[1] === "WEEKLY") {
       view.blocks[9].element.initial_option = {
-        text: {type: 'plain_text', text: 'Every week', emoji: true}, value: `${recurrence[1]}`
+        text: { type: 'plain_text', text: 'Every week', emoji: true }, value: `${recurrence[1]}`
       }
     } else if (recurrence[1] === "MONTHLY") {
       view.blocks[9].element.initial_option = {
-        text: {type: 'plain_text', text: 'Every month', emoji: true}, value: `${recurrence[1]}`
+        text: { type: 'plain_text', text: 'Every month', emoji: true }, value: `${recurrence[1]}`
       }
     }
   }
@@ -560,7 +633,7 @@ function handlerOverflow(payload, template) {
   if (value[0] === "edit") {
     return handlerUpdateEvent(payload, template);
   }
-  if (value[0] === "delete") {
+  if (value[0] === "del") {
     return handlerDeleteEvent(payload, template)
   }
 }
@@ -571,7 +644,7 @@ function handlerOverflow(payload, template) {
  * @return {object}
  */
 function delPropsView(payload) {
-  if(payload.view){
+  if (payload.view) {
     delete payload.view.id;
     delete payload.view.team_id;
     delete payload.view.hash;
@@ -592,12 +665,12 @@ function delPropsView(payload) {
  */
 function handlerAction(payload, template) {
   const changePayload = delPropsView(payload);
-  const {action_id, selected_options} = changePayload.actions[0];
+  const { action_id, selected_options } = changePayload.actions[0];
 
-  const {blocks} = template.addEvent;
+  const { blocks } = template.addEvent;
   let option = {
     method: 'POST',
-    headers: {'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}`},
+    headers: { 'Authorization': `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
     url: `${Env.chatServiceGOF("API_URL")}${Env.chatServiceGOF("API_VIEW_UPDATE")}`,
     data: {
       "view_id": payload["container"]["view_id"],
@@ -631,8 +704,7 @@ function handlerAction(payload, template) {
       option = null;
       break;
   }
-  if(option) delete option.data.view.state;
-
+  if (option) delete option.data.view.state;
   return option
 }
 
@@ -643,11 +715,11 @@ function handlerAction(payload, template) {
  * @returns {Promise}
  */
 const requestButtonSettings = (payload, systemSetting,) => {
-  const option = {method: "POST"};
+  const option = { method: "POST" };
   option.url = Env.chatServiceGOF('API_URL');
   option.url += Env.chatServiceGOF('API_VIEW_OPEN');
-  option.headers = {'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}`};
-  const {user, trigger_id} = payload;
+  option.headers = { 'Authorization': `Bearer ${Env.chatServiceGet("BOT_TOKEN")}` };
+  const { user, trigger_id } = payload;
   const iat = Math.floor(new Date() / 1000);
   const data = {
     idUser: user.id,
@@ -690,14 +762,14 @@ const createEvent = (values, account) => {
 
   const event = {};
   event["summary"] = values["GO_input_title"]["input-action"].value;
-  if(location) event["location"] = location.trim();
+  if (location) event["location"] = location.trim();
   event["start"] = { "timeZone": account.timezone };
   event["end"] = { "timeZone": account.timezone };
-  if(recurrence !== "no") event["recurrence"] = [
+  if (recurrence !== "no") event["recurrence"] = [
     `RRULE:FREQ=${recurrence};`
   ];
 
-  if(noti !== "default"){
+  if (noti !== "default") {
     event["reminders"] = {};
     event["reminders"].useDefault = false;
     event["reminders"].overrides = [
@@ -740,8 +812,8 @@ const updateEvent = (values, account) => {
   const event = {};
   event["summary"] = values["GO_input_title"]["input-action"].value;
   if (location) event["location"] = location.trim();
-  event["start"] = {"timeZone": account.timezone};
-  event["end"] = {"timeZone": account.timezone};
+  event["start"] = { "timeZone": account.timezone };
+  event["end"] = { "timeZone": account.timezone };
   if (recurrence !== "no") event["recurrence"] = [
     `RRULE:FREQ=${recurrence};`
   ];
@@ -778,9 +850,9 @@ const updateEvent = (values, account) => {
   return event;
 };
 const deleteEvent = (idAccount, idCalendar, idEvent) => {
-  const option = {method: "DELETE"};
+  const option = { method: "DELETE" };
   option.url = `${Env.resourceServerGOF("API_URL")}${Env.resourceServerGOF("API_CALENDAR")}/${idCalendar}/events/${idEvent}`;
-  option.headers = {'X-Google-AccountId': idAccount};
+  option.headers = { 'X-Google-AccountId': idAccount };
   return option
 }
 
@@ -795,4 +867,6 @@ module.exports = {
   updateEvent,
   deleteEvent,
   handlerAction,
+  getEventsTodays,
+  convertBlocksEvents
 };

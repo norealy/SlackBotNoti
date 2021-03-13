@@ -13,22 +13,25 @@ require('moment-precise-range-plugin');
  * return events
  */
 const getEventsTodays = (body) => {
-  const { channelCalendars, idAccount, userInfo } = body;
+  const { datas, userInfo } = body;
   const options = [];
   const dateToday = Moment(new Date()).utc(true).utcOffset(userInfo.user.tz).format("YYYY-MM-DD");
-  console.log("dateTodayy :", dateToday);
-  for (let i = 0; i < channelCalendars.length; i++) {
-    const item = channelCalendars[i];
-    item.id_calendar = item.id_calendar.replace(/^MI_/, "");
+  let hours = MomentTimezone(new Date()).format("Z");
+  hours = - parseInt(hours);
+  let start = MomentTimezone(`${dateToday}T00:00:00Z`).utc(false).add(hours, "h").format();
+  let end = MomentTimezone(`${dateToday}T23:59:59Z`).utc(false).add(hours, "h").format();
+
+  for (let i = 0; i < datas.calendar.length; i++) {
+    const item = datas.calendar[i];
     const option = {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "X-Microsoft-AccountId": idAccount,
+        "X-Microsoft-AccountId": datas.id,
       },
       url: Env.resourceServerGOF("GRAPH_URL") +
         Env.resourceServerGOF("GRAPH_CALENDARS") +
-        `/${item.id_calendar}/calendarView/delta?startdatetime=${dateToday}T00:00:00Z&enddatetime=${dateToday}T23:59:59Z`
+        `/${item.id}/calendarView/delta?startdatetime=${start}&enddatetime=${end}`
     };
     options.push(option);
   }
@@ -40,8 +43,7 @@ const getEventsTodays = (body) => {
  * @returns {Array} blocks
  */
 const convertBlocksEvents = (body, template) => {
-  const { events, idAccount } = body;
-  console.log(events);
+  const { events } = body;
   const blocks = [...template.listEvent.blocks];
   const blockEvent = JSON.stringify(blocks[1]);
   blocks.splice(1, 1);
@@ -49,7 +51,7 @@ const convertBlocksEvents = (body, template) => {
     const event = events[i];
     let item = blockEvent;
     item = JSON.parse(item);
-    item.block_id = `MI_${idAccount}/${event.idCalendar}/${event.subject}`;
+    item.block_id = `MI_${event.idAccount}/${event.idCalendar}/${event.subject}`;
     item.accessory.options[0].value = `edit/${event.id}`;
     item.accessory.options[1].value = `del/${event.id}`;
     item.fields[0].text = `*${event.subject}*`;
@@ -57,8 +59,8 @@ const convertBlocksEvents = (body, template) => {
     if (event.location.displayName !== '') {
       item.fields[4].text = `Location: ${event.location.displayName}`;
     }
-    const datetimeStart = Moment(event.start.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYThh:mm");
-    const datetimeEnd = Moment(event.end.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYThh:mm");
+    const datetimeStart = Moment(event.start.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYTHH:mm");
+    const datetimeEnd = Moment(event.end.dateTime).utc(true).utcOffset(event.timezone).format("DD-MM-YYYYTHH:mm");
     item.fields[1].text = `Calendar: ${event.nameCalendar}`;
     if (event.isAllDay) {
       item.fields[2].text = `Day Start: ` + datetimeStart.split('T')[0];
@@ -68,7 +70,6 @@ const convertBlocksEvents = (body, template) => {
       item.fields[3].text = `Time: ${datetimeStart.split('T')[1]}`;
       item.fields[3].text += " - " + datetimeEnd.split('T')[1];
     }
-    console.log("Item :", item);
     blocks.splice(i + 1, 0, item);
   }
   return blocks;
@@ -164,7 +165,6 @@ const handlerEditEvent = (payload, template) => {
  */
 const handlerOverflowAction = (payload, template) => {
   const value = payload.actions[0].selected_option.value.split('/');
-  console.log(value);
   if (value[0] === "edit") {
     return handlerEditEvent(payload, template);
   }

@@ -24,6 +24,24 @@ class MicrosoftAccount extends Model {
       },
     };
   }
+  static get relationMappings() {
+    const MicrosoftCalendar = require("./MicrosoftCalendar");
+    return {
+      microsoft_calendar: {
+        relation: Model.ManyToManyRelation,
+        modelClass: MicrosoftCalendar,
+        join: {
+          from: 'microsoft_account.id',
+          through: {
+            // channel_microsoft_account is the join table.
+            from: 'microsoft_account_calendar.id_account',
+            to: 'microsoft_account_calendar.id_calendar'
+          },
+          to: 'microsoft_calendar.id'
+        }
+      }
+    }
+  }
 }
 
 module.exports = MicrosoftAccount;

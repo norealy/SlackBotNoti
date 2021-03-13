@@ -9,6 +9,7 @@ const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
+const Channels = require("../../models/Channels");
 const _ = require('lodash');
 const Moment = require('moment');
 
@@ -128,25 +129,53 @@ class SlackMicrosoft extends BaseServer {
     return configShowEvents(body, this.template)
   }
   /**
-   *
-   * @param {Array} data
-   * @returns {Array}
-   */
-  convertEventsData = (data, calendars, timezone) => {
+ *
+ * @param {Array} data
+ * @param {Array} calendars
+ * @param {object} account
+ * @returns {Array}
+ */
+  convertEventsData = (data, calendars, account) => {
     const events = [];
     for (let i = 0; i < data.length; i++) {
       const values = data[i].data.value;
       if (values.length > 0) {
         values.forEach(item => {
-          const event = _.pick(item, ['id' ,'subject', 'start', 'end', 'location', 'recurrence', 'isAllDay']);
+          const event = _.pick(item, ['id', 'subject', 'start', 'end', 'location', 'recurrence', 'isAllDay']);
           event.nameCalendar = calendars[i].name;
           event.idCalendar = calendars[i].id;
-          event.timezone = timezone;
+          event.idAccount = account.id;
+          event.timezone = account.timezone;
           events.push(event);
         });
       }
     }
     return events;
+  }
+  /**
+   *
+   * @param {string} idChannel
+   * @returns
+   */
+  builder = (idChannel) => {
+    const queryBuilder = {
+      account: {
+        $relation: 'channel_microsoft_account',
+        $modify: ["whereAccount"],
+        calendar: {
+          $relation: 'microsoft_calendar',
+        }
+      }
+    }
+
+    return Channels.query()
+      .findById(idChannel)
+      .withGraphFetched(queryBuilder)
+      .modifiers({
+        whereAccount(builder) {
+          builder.select('id', "timezone");
+        },
+      });
   }
   /**
    * Xử lý sự kện show Events Today
@@ -155,38 +184,28 @@ class SlackMicrosoft extends BaseServer {
    */
   async handlerEventsToday(body) {
     try {
-
       const { channel_id } = body;
       let events = null;
       events = await this.getValueRedis(channel_id);
       body.userInfo = await this.getUserInfo(body.user_id);
       if (!events) {
-        console.log("GET EVENT TODAY FALSE");
-        const channelCalendars = await ChannelsCalendar.query().where({ id_channel: channel_id })
-        const regex = /^MI_/;
-        const calendars = await Promise.all(channelCalendars.map(item => {
-          if (regex.test(item.id_calendar)) {
-            return MicrosoftCalendar.query().findById(item.id_calendar.replace(regex, ""))
-          }
-        }));
-        body.channelCalendars = channelCalendars;
-        const idCalendar0 = channelCalendars[0].id_calendar.replace(/^MI_/, "");
-        const accountCalendars = await MicrosoftAccountCalendar.query().findOne({ id_calendar: idCalendar0 });
-        body.idAccount = accountCalendars.id_account;
-
-        const account = await MicrosoftAccount.query().findById(body.idAccount);
-        const eventsData = await getEventsTodays(body);
-        events = this.convertEventsData(eventsData, calendars , account.timezone);
+        events = [];
+        const data = await this.builder(channel_id);
+        for (let i = 0; i < data.account.length; i++) {
+          body.datas = data.account[i];
+          const eventsData = await getEventsTodays(body);
+          const convertData = this.convertEventsData(eventsData, data.account[i].calendar, data.account[i]);
+          events = [...events, ...convertData];
+        }
         let dateTimeNow = Moment(new Date()).utc(true).utcOffset(body.userInfo.user.tz).format();
         const endToday = new Date(`${dateTimeNow.split("T")[0]}T23:59:59Z`);
         dateTimeNow = new Date(dateTimeNow);
         const exp = (endToday - dateTimeNow) / 1000;
-        Redis.client.setex(body.channel_id, exp, JSON.stringify(events));
-        console.log(events);
+        this.setValueRedis(channel_id, JSON.stringify(events), exp);
+      } else {
+        events = JSON.parse(events);
       }
-      console.log("GET EVENT TODAY TRUE");
       body.events = events;
-
       const blocksView = await convertBlocksEvents(body, this.template);
       const option = {
         method: "POST",
@@ -365,15 +384,16 @@ class SlackMicrosoft extends BaseServer {
     if (values[0] === "edit") {
       const event = await getEvent(blockId[0].split('MI_')[1], values[1]);
       const chanCals = await ChannelsCalendar.query().where({ id_channel: payload.channel.id });
-      payload.calendars = await this.getOptionCalendars(chanCals);
+      const calendars = await this.getOptionCalendars(chanCals);
+      payload.calendars = calendars.filter(function (el) {
+        return el != null;
+      });
       payload.idCalendar = blockId[1];
       payload.eventEditDT = event.data;
       const user_id = payload.user.id;
       payload.userInfo = await this.getUserInfo(user_id);
     } else if (values[0] === "del") {
-      console.log("blockId :",blockId);
       payload.calendar = await MicrosoftCalendar.query().findById(blockId[1]);
-      console.log("payload.calendar :",payload.calendar);
     }
     return payload
   }
@@ -391,7 +411,6 @@ class SlackMicrosoft extends BaseServer {
       switch (payload.type) {
         case "block_actions":
           res.status(200).send("Ok");
-          console.log("PAYLOAD :",payload);
           if (payload.actions[0].action_id === 'overflow-action') {
             payload = await this.mixDataPayload(payload);
           }

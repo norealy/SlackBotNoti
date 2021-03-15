@@ -155,11 +155,11 @@ class SlackMicrosoft extends BaseServer {
     return events;
   }
   /**
-   *
+   * builder Get Account And Calendar
    * @param {string} idChannel
    * @returns
    */
-  builder(idChannel) {
+  builderGetAccountCalendar(idChannel) {
     const queryBuilder = {
       account: {
         $relation: 'channel_microsoft_account',
@@ -192,7 +192,7 @@ class SlackMicrosoft extends BaseServer {
       body.userInfo = await this.getUserInfo(body.user_id);
       if (!events) {
         events = [];
-        const data = await this.builder(channel_id);
+        const data = await this.builderGetAccountCalendar(channel_id);
         for (let i = 0; i < data.account.length; i++) {
           body.datas = data.account[i];
           const eventsData = await getEventsTodays(body);
@@ -208,7 +208,6 @@ class SlackMicrosoft extends BaseServer {
         events = JSON.parse(events);
       }
       body.events = events;
-      const blocksView = await convertBlocksEvents(body, this.template);
       const option = {
         method: "POST",
         headers: {
@@ -217,13 +216,18 @@ class SlackMicrosoft extends BaseServer {
         },
         data: {
           channel: channel_id,
-          blocks: blocksView,
         },
         url:
           Env.chatServiceGet("API_URL") +
           Env.chatServiceGet("API_POST_MESSAGE"),
       };
-      if (events) await Axios(option);
+      if (events.length === 0) {
+        option.data.text = " You are free today ! ";
+      } else {
+        const blocksView = await convertBlocksEvents(body, this.template);
+        option.data.blocks = blocksView;
+      }
+      await Axios(option);
     } catch (e) {
       console.log("⇒⇒⇒ handlerNotifications ERROR: ", e);
     }
@@ -446,7 +450,7 @@ class SlackMicrosoft extends BaseServer {
     try {
       if (event) {
         return this.handlerEvent(req, res);
-      } else if (command && /^\/cal$/.test(command)) {
+      } else if (command && /^\/ca$/.test(command)) {
         return this.handlerCommand(req, res);
       } else if (payload) {
         return this.handlerPayload(req, res);

@@ -192,7 +192,7 @@ class SlackGoogle extends BaseServer {
    * @param {string}} idChannel
    * @returns
    */
-  builder = (idChannel) => {
+  builder(idChannel) {
     const queryBuilder = {
       account: {
         $relation: 'channel_google_account',
@@ -203,7 +203,7 @@ class SlackGoogle extends BaseServer {
       }
     }
 
-    return Channels.query()
+    return Channel.query()
       .findById(idChannel)
       .withGraphFetched(queryBuilder)
       .modifiers({

@@ -9,7 +9,7 @@ const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
-const Channels = require("../../models/Channels");
+const Channel = require("../../models/Channel");
 const _ = require('lodash');
 const Moment = require('moment');
 
@@ -159,7 +159,7 @@ class SlackMicrosoft extends BaseServer {
    * @param {string} idChannel
    * @returns
    */
-  builder = (idChannel) => {
+  builder(idChannel) {
     const queryBuilder = {
       account: {
         $relation: 'channel_microsoft_account',
@@ -170,7 +170,7 @@ class SlackMicrosoft extends BaseServer {
       }
     }
 
-    return Channels.query()
+    return Channel.query()
       .findById(idChannel)
       .withGraphFetched(queryBuilder)
       .modifiers({

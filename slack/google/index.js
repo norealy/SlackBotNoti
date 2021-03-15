@@ -1,7 +1,7 @@
 const BaseServer = require("../../common/BaseServer");
 const Env = require("../../utils/Env");
 const Template = require("../views/Template");
-const Channels = require("../../models/Channels");
+const Channel = require("../../models/Channel");
 const GoogleAccount = require("../../models/GoogleAccount");
 const GoogleCalendar = require("../../models/GoogleCalendar");
 const AxiosConfig = require('./Axios');
@@ -9,6 +9,7 @@ const Axios = require('axios');
 const {cryptoDecode, decodeJWT} = require('../../utils/Crypto');
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
 const GoogleAccountCalendar = require("../../models/GoogleAccountCalendar");
+const ChannelGoogleCalendar = require("../../models/ChannelGoogleCalendar");
 const _ = require('lodash');
 
 const {
@@ -18,7 +19,8 @@ const {
   getInfoChannel,
   saveInfoChannel,
   watchGoogleCalendar,
-  getTimeZoneGoogle
+  getTimeZoneGoogle,
+  saveChannelAccount,
 } = require("./Auth");
 
 const {
@@ -329,7 +331,8 @@ class SlackGoogle extends BaseServer {
    * @return {Promise<object|boolean>}
    */
   async handlerCalendars(calendar, idAccount) {
-    const findCalendar = await GoogleCalendar.query().findOne({id: calendar.id});
+    const findCalendar = await GoogleCalendar.query()
+      .findOne({id: calendar.id});
     if (!findCalendar) await GoogleCalendar.query()
       .insert({id: calendar.id, name: calendar.summary});
 
@@ -338,8 +341,10 @@ class SlackGoogle extends BaseServer {
       id_account: idAccount,
     };
     const findGAC = await GoogleAccountCalendar.query().findOne(googleAC);
-    if (!findGAC) return googleAC;
-    return false
+    if (!findGAC) {
+      await GoogleAccountCalendar.query().insert(googleAC);
+      await watchGoogleCalendar(googleAC);
+    }
   }
 
   /**
@@ -354,9 +359,26 @@ class SlackGoogle extends BaseServer {
     await GoogleAccount.query().insert({
       id: profile.sub,
       name: profile.name,
+      mail: profile.email,
       refresh_token: tokens.refresh_token,
       timezone: timeZone,
     });
+  }
+
+  async saveChannelsCalendar(item) {
+    const result = await ChannelsCalendar.query().findOne(item);
+    if(!result){
+      item.watch = true;
+      await ChannelsCalendar.query().insert(item)
+    }
+  }
+
+  async saveChannelGoogleCalendar(item) {
+    const result = await ChannelGoogleCalendar.query().findOne(item);
+    if(!result){
+      item.watch = true;
+      await ChannelGoogleCalendar.query().insert(item)
+    }
   }
 
   async authGoogle(req, res) {
@@ -381,55 +403,31 @@ class SlackGoogle extends BaseServer {
       }
 
       // Xử lý channel slack
-      const {idChannel} = await decodeJWT(state);
-      let channel = await Channels.query().findById(idChannel);
+      let channel = await Channel.query().findById(payload.idChannel);
       if (!channel) {
-        channel = await getInfoChannel(idChannel);
+        channel = await getInfoChannel(payload.idChannel);
         await saveInfoChannel(channel)
       }
 
+      // Thêm dữ liệu vào bảng ChannelMicrosoftAccount
+      await saveChannelAccount(payload.idChannel, profile.sub);
+
       // Xử lý danh sách calendar
       const {items} = await getListCalendar(profile.sub, tokens.access_token);
-      const channelCalendar = [];
-      let accountCalendar = [];
       const regex = /writer|owner/;
       for (let i = 0, length = items.length; i < length; i++) {
         if (regex.test(items[i].accessRole)) {
-          channelCalendar.push({
+          await this.handlerCalendars(items[i], profile.sub);
+          await this.saveChannelsCalendar({
             id_calendar: `GO_${items[i].id}`,
-            id_channel: idChannel,
-            watch: true,
+            id_channel: payload.idChannel,
           });
-
-          const result = await this.handlerCalendars(items[i], profile.sub);
-          if (result) {
-            accountCalendar.push(result);
-            await watchGoogleCalendar(result);
-          }
+          await this.saveChannelGoogleCalendar({
+            id_calendar: items[i].id,
+            id_channel: payload.idChannel
+          });
         }
       }
-
-      await GoogleAccountCalendar.transaction(async trx => {
-        try {
-          await trx.insert(accountCalendar).into(GoogleAccountCalendar.tableName)
-            .onConflict(["id_calendar", "id_account"])
-            .merge();
-        } catch (e) {
-          console.log("⇒⇒⇒ Auth Google GoogleAccountCalendar ERROR: ", e);
-          trx.rollback();
-        }
-      });
-
-      await ChannelsCalendar.transaction(async trx => {
-        try {
-          await trx.insert(channelCalendar).into(ChannelsCalendar.tableName)
-            .onConflict(["id_calendar", "id_channel"])
-            .merge();
-        } catch (e) {
-          console.log("⇒⇒⇒ Auth Google ChannelsCalendar ERROR: ", e);
-          trx.rollback();
-        }
-      });
 
       return res.send("Oke");
     } catch (e) {

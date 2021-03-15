@@ -20,7 +20,6 @@ class GoogleAccountCalendar extends Model {
       properties: {
         id_calendar: {type: "string"},
         id_account: {type: "string"},
-        created_at: {default: null},
       },
     };
   }

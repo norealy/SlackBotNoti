@@ -10,6 +10,9 @@ const {
   handlerOptionLogin,
   configUrlAuthGoogle,
   configUrlAuthMicrosoft,
+  configViewSetting,
+  queryChannelGoogleCalendar,
+  queryChannelMicrosoftCalendar,
 } = require("./ChatService");
 
 function onProxyReq(proxyReq, req, res) {
@@ -89,6 +92,64 @@ class SlackWrapper extends BaseServer {
     }
   }
 
+  async handlerSetting(template, body) {
+    const google = await queryChannelGoogleCalendar(body.channel_id);
+    const microsoft = await queryChannelMicrosoftCalendar(body.channel_id);
+    const goAccount = google ? google.account : [];
+    const miAccount = microsoft ? microsoft.account : [];
+
+    const view = configViewSetting(
+      this.setUidToken,
+      template,
+      body.channel_id,
+      goAccount,
+      miAccount,
+    );
+
+    const option = {
+      method: "POST",
+      headers: { Authorization: `Bearer ${Env.chatServiceGOF("BOT_TOKEN")}` },
+      data: {
+        trigger_id: body.trigger_id,
+        view,
+      },
+      url:
+        Env.chatServiceGet("API_URL") +
+        Env.chatServiceGet("API_VIEW_OPEN"),
+    };
+
+    return option
+  }
+
+  handlerShowEvents(body){
+    // console.log("handlerShowEvents body: ", body);
+    return null
+  }
+
+  async handleCommand(req, res, next) {
+    try {
+      let text = req.body.text.trim();
+      let option = null;
+      switch (text) {
+        case "setting":
+          option = await this.handlerSetting(this.template, req.body);
+          break;
+        case "show-events":
+          option = await this.handlerShowEvents(req.body);
+          break;
+        default:
+          option = null;
+          break;
+      }
+      if(option) await Axios(option)
+        .then(({data}) => {if (!data.ok) throw data});
+      return res.status(200).send("OK");
+    } catch (e) {
+      console.log("⇒⇒⇒ Handler Command ERROR: ", e);
+      return res.status(204).send("Command error");
+    }
+  }
+
   getDataServer(actions) {
     const list = Env.serverGOF("LIST");
     let param = "block_id";
@@ -110,22 +171,19 @@ class SlackWrapper extends BaseServer {
       if (/\/cal/.test(command)) {
         if(/^go/.test(req.body.text))return this.proxyGO(req, res, next);
         if(/^mi/.test(req.body.text))return this.proxyMI(req, res, next);
+        return this.handleCommand(req, res, next);
       }
       if (payload) {
         payload = JSON.parse(payload);
         const {actions, view} = payload;
-        if(view && view.callback_id){
-          if(/^GO_/.test(view.callback_id))return this.proxyGO(req, res, next);
-          if(/^MI_/.test(view.callback_id))return this.proxyMI(req, res, next);
-        } else {
-          const data = this.getDataServer(actions);
-          if(data) {
-            if (data.PORT === 5001) return this.proxyGO(req, res, next);
-            if (data.PORT === 5002) return this.proxyMI(req, res, next);
-          }
-        }
+        if (view && view.callback_id && /^GO_/.test(view.callback_id)) return this.proxyGO(req, res, next);
+        if (view && view.callback_id && /^MI_/.test(view.callback_id)) return this.proxyMI(req, res, next);
+        const data = this.getDataServer(actions);
+        if (data && data.PORT === 5001) return this.proxyGO(req, res, next);
+        if (data && data.PORT === 5002) return this.proxyMI(req, res, next);
       }
       console.log("⇒⇒⇒ Chat Server Handler ERROR: not proxy ", req.body);
+      return res.status(200).send("OK");
     } catch (e) {
       console.log("⇒⇒⇒ Chat Server Handler ERROR: ", e);
       return res.status(400).send("ERROR");

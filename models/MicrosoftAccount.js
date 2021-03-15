@@ -19,8 +19,39 @@ class MicrosoftAccount extends Model {
         id: {type: "string"},
         name: {type: "string"},
         refresh_token: {type: "string"},
-        created_at: {default: null},
-        updated_at: {default: null},
+      },
+    };
+  }
+
+  static get relationMappings() {
+    const Channel = require("./Channel");
+    const MicrosoftCalendar = require('./MicrosoftCalendar')
+    return {
+      microsoft_calendar: {
+        relation: Model.ManyToManyRelation,
+        modelClass: MicrosoftCalendar,
+        join: {
+          from: 'microsoft_account.id',
+          through: {
+            // microsoft_account_calendar is the join table.
+            from: 'microsoft_account_calendar.id_account',
+            to: 'microsoft_account_calendar.id_calendar'
+          },
+          to: 'microsoft_calendar.id'
+        },
+      },
+      channel: {
+        relation: Model.ManyToManyRelation,
+        modelClass: Channel,
+        join: {
+          from: 'microsoft_account.id',
+          through: {
+            // channel_microsoft_calendar is the join table.
+            from: 'channel_microsoft_account.id_account',
+            to: 'channel_microsoft_account.id_channel'
+          },
+          to: 'channel.id'
+        }
       },
     };
   }

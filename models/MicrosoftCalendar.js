@@ -19,9 +19,22 @@ class MicrosoftCalendar extends Model {
         id: {type: "string"},
         name: {type: "string"},
         address_owner: {type: "string"},
-        created_at: {default: null},
       },
     };
+  }
+
+  static get relationMappings() {
+    const ChannelMicrosoftCalendar = require("./ChannelMicrosoftCalendar");
+    return {
+      channel_microsoft_calendar: {
+        relation: Model.HasManyRelation,
+        modelClass: ChannelMicrosoftCalendar,
+        join: {
+          from: "microsoft_calendar.id",
+          to: "channel_microsoft_calendar.id_calendar",
+        },
+      }
+    }
   }
 }
 

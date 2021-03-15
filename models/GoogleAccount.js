@@ -19,8 +19,39 @@ class GoogleAccount extends Model {
         id: {type: "string"},
         name: {type: "string"},
         refresh_token: {type: "string"},
-        created_at: {default: null},
-        updated_at: {default: null},
+      },
+    };
+  }
+
+  static get relationMappings() {
+    const Channel = require("./Channel");
+    const GoogleCalendar = require("./GoogleCalendar");
+    return {
+      google_calendar: {
+        relation: Model.ManyToManyRelation,
+        modelClass: GoogleCalendar,
+        join: {
+          from: 'google_account.id',
+          through: {
+            // channel_google_account is the join table.
+            from: 'google_account_calendar.id_account',
+            to: 'google_account_calendar.id_calendar'
+          },
+          to: 'google_calendar.id'
+        }
+      },
+      channel: {
+        relation: Model.ManyToManyRelation,
+        modelClass: Channel,
+        join: {
+          from: 'google_account.id',
+          through: {
+            // channel_google_account is the join table.
+            from: 'channel_google_account.id_account',
+            to: 'channel_google_account.id_channel'
+          },
+          to: 'channel.id'
+        }
       },
     };
   }

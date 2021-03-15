@@ -1,7 +1,8 @@
 const Axios = require("axios");
 const qs = require("qs");
 const Env = require("../../utils/Env");
-const Channels = require("../../models/Channels");
+const Channel = require("../../models/Channel");
+const ChannelGoogleAccount = require("../../models/ChannelGoogleAccount");
 const {cryptoEncode} = require('../../utils/Crypto');
 const {v4: uuidV4} = require("uuid");
 
@@ -140,10 +141,28 @@ const getTimeZoneGoogle = (idAccount) => {
  * @returns {Promise}
  */
 const saveInfoChannel = (channel) => {
-	return Channels.query().insert({
+	return Channel.query().insert({
 		id: channel.id,
 		name: channel.name,
 	});
+};
+
+/**
+ * Luu thong tin channel vao database
+ * @param {string} idChannel
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
+const saveChannelAccount = async (idChannel, idAccount) => {
+  const result = await ChannelGoogleAccount.query()
+    .where("id_channel", idChannel)
+    .where("id_account", idAccount);
+  if(result.length === 0){
+    return ChannelGoogleAccount.query().insert({
+      id_channel: idChannel,
+      id_account: idAccount,
+    });
+  }
 };
 
 module.exports = {
@@ -153,5 +172,6 @@ module.exports = {
 	getInfoChannel,
 	saveInfoChannel,
 	watchGoogleCalendar,
-	getTimeZoneGoogle
+	getTimeZoneGoogle,
+  saveChannelAccount
 };

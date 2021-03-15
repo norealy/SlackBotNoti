@@ -19,6 +19,8 @@ const {
   saveInfoChannel,
   saveAccountCalendar,
   saveChannelCalendar,
+  saveChannelAccount,
+  saveChannelMicrosoftCalendar,
 } = require("./Auth");
 const {
   sendMessageLogin,
@@ -467,6 +469,10 @@ class SlackMicrosoft extends BaseServer {
           id_calendar: item.id,
           id_account: idAccount,
         });
+        await saveChannelMicrosoftCalendar({
+          id_calendar: item.id,
+          id_channel: idChannel,
+        });
         await saveChannelCalendar({
           id_calendar: `MI_${item.id}`,
           id_channel: idChannel,
@@ -494,8 +500,11 @@ class SlackMicrosoft extends BaseServer {
       // Thêm đối tượng microsoftAccount và bảng microsoft_account
       await saveUserProfile(profileUser, tokens);
 
-      // Thêm channelvào bảng channels
+      // Thêm channel vào bảng channels
       await saveInfoChannel(payload.idChannel);
+
+      // Thêm dữ liệu vào bảng ChannelMicrosoftAccount
+      await saveChannelAccount(payload.idChannel, profileUser.id);
 
       // Thuc hien lay tai nguyen list calendars
       const allData = await getListCalendar(profileUser.id);

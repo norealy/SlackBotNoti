@@ -1,5 +1,5 @@
 exports.up = function (knex) {
-  return knex.schema.createTable('channels', function (table) {
+  return knex.schema.createTable('channel', function (table) {
     table.string('id').primary().notNull();
     table.string('name').notNull();
     table.timestamp('created_at').defaultTo(knex.fn.now())
@@ -7,5 +7,5 @@ exports.up = function (knex) {
 };
 
 exports.down = function (knex) {
-  return knex.schema.dropTable('channels');
+  return knex.schema.dropTable('channel');
 };

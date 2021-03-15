@@ -1,5 +1,5 @@
 const {Model} = require("objection");
-const Channels = require("./Channels");
+const Channel = require("./Channel");
 
 class ChannelsCalendar extends Model {
   /* tableName */
@@ -21,8 +21,6 @@ class ChannelsCalendar extends Model {
         id_calendar: {type: "string"},
         id_channel: {type: "string"},
         watch: {type: "boolean", default: true},
-        created_at: {default: null},
-        updated_at: {default: null},
       },
     };
   }
@@ -31,7 +29,7 @@ class ChannelsCalendar extends Model {
     return {
       channel: {
         relation: Model.BelongsToOneRelation,
-        modelClass: Channels,
+        modelClass: Channel,
         join: {
           from: "channels_calendar.id_calendar",
           to: "channel.id",

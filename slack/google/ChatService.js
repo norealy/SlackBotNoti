@@ -52,7 +52,7 @@ const convertBlocksEvents = (body, template) => {
     let item = blockEvent;
     item = JSON.parse(item);
 
-    item.block_id = `GO_${event.idAccount}/${event.idCalendar}/${event.summary}`;
+    item.block_id = `GO_${event.idAccount}/${event.idCalendar}/${event.summary}/${i}`;
     item.accessory.options[0].value = `edit/${event.id}`;
     item.accessory.options[1].value = `del/${event.id}`;
 

@@ -51,7 +51,7 @@ const convertBlocksEvents = (body, template) => {
     const event = events[i];
     let item = blockEvent;
     item = JSON.parse(item);
-    item.block_id = `MI_${event.idAccount}/${event.idCalendar}/${event.subject}`;
+    item.block_id = `MI_${event.idAccount}/${event.idCalendar}/${event.subject}/${i}`;
     item.accessory.options[0].value = `edit/${event.id}`;
     item.accessory.options[1].value = `del/${event.id}`;
     item.fields[0].text = `*${event.subject}*`;

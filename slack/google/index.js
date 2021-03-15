@@ -417,7 +417,7 @@ class SlackGoogle extends BaseServer {
     try {
       if (challenge) return res.status(200).send(challenge);
       if (event) return this.handlerEvent(req, res);
-      if (command && /^\/ca$/.test(command)) return this.handlerCommand(req, res);
+      if (command && /^\/cal$/.test(command)) return this.handlerCommand(req, res);
       if (payload) return this.handlerPayLoad(req, res);
       return res.status(200).send("OK");
     } catch (e) {

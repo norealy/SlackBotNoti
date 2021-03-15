@@ -18,9 +18,22 @@ class GoogleCalendar extends Model {
       properties: {
         id: {type: "string"},
         name: {type: "string"},
-        created_at: {default: null},
       },
     };
+  }
+
+  static get relationMappings() {
+    const ChannelGoogleCalendar = require("./ChannelGoogleCalendar");
+    return {
+      channel_google_calendar: {
+        relation: Model.HasManyRelation,
+        modelClass: ChannelGoogleCalendar,
+        join: {
+          from: "google_calendar.id",
+          to: "channel_google_calendar.id_calendar",
+        },
+      }
+    }
   }
 }
 

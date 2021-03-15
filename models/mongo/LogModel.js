@@ -11,7 +11,8 @@ const logSchema = new Schema({
   headers: {type: String, required: true},
 });
 let model = "";
+
 module.exports = function (mongo) {
   if (!model) model = mongo.model('logs', logSchema);
   return model
-}
+};

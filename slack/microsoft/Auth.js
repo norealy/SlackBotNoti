@@ -4,8 +4,10 @@ const Env = require("../../utils/Env");
 const MicrosoftAccount = require("../../models/MicrosoftAccount");
 const MicrosoftCalendar = require("../../models/MicrosoftCalendar");
 const MicrosoftAccountCalendar = require("../../models/MicrosoftAccountCalendar");
-const Channels = require("../../models/Channels");
+const Channel = require("../../models/Channel");
 const ChannelsCalendar = require("../../models/ChannelsCalendar");
+const ChannelMicrosoftAccount = require("../../models/ChannelMicrosoftAccount");
+const ChannelMicrosoftCalendar = require("../../models/ChannelMicrosoftCalendar");
 const { createSubscription } = require('./Subscription');
 
 /**
@@ -110,17 +112,18 @@ const getProfileUser = (accessTokenAzure) => {
 
 /**
  * Luu thong tin vao database
- * @param {object} profileUser
+ * @param {object} profile
  * @param {object} tokens
  * @returns {Promise}
  */
-const saveUserProfile = async (profileUser, tokens) => {
+const saveUserProfile = async (profile, tokens) => {
   const result = await getTimeZoneOutlook(tokens.access_token);
   const resultArr = await getTimeZoneSupport(tokens.access_token);
   const timeZone = resultArr.data.value.find((element) => element.alias === result.data.timeZone);
   const account = {
-    id: profileUser.id,
-    name: profileUser.displayName,
+    id: profile.id,
+    name: profile.displayName,
+    mail: profile.mail ? profile.mail : profile.userPrincipalName,
     refresh_token: tokens.refresh_token,
     timezone: timeZone.displayName.split('UTC')[1].split(')')[0],
     created_at: null,
@@ -172,20 +175,38 @@ const getNameChannel = (idChannel) => {
 /**
  * Luu thong tin channel vao database
  * @param {string} idChannel
+ * @param {string} idAccount
+ * @returns {Promise}
+ */
+const saveChannelAccount = async (idChannel, idAccount) => {
+  const result = await ChannelMicrosoftAccount.query()
+    .where("id_channel", idChannel)
+    .where("id_account", idAccount);
+  if(result.length === 0){
+    return ChannelMicrosoftAccount.query().insert({
+      id_channel: idChannel,
+      id_account: idAccount,
+    });
+  }
+};
+
+/**
+ * Luu thong tin channel vao database
+ * @param {string} idChannel
  * @returns {Promise}
  */
 const saveInfoChannel = async (idChannel) => {
   const promise = new Promise((resolve) => resolve());
   const dataChannel = await getNameChannel(idChannel);
   if (!dataChannel) return promise;
-  const result = await Channels.query().findById(idChannel);
+  const result = await Channel.query().findById(idChannel);
   if (result) return promise;
   const channel = {
     id: idChannel,
     name: dataChannel.data.channel.name,
     created_at: null,
   };
-  return Channels.query().insert(channel);
+  return Channel.query().insert(channel);
 };
 
 /**
@@ -200,7 +221,7 @@ const saveAccountCalendar = async (accountCalendar) => {
 
 /**
  * Luu thong tin saveChannelsCalendar vao database
- * @param {array} item
+ * @param {object} item
  * @returns {void}
  */
 const saveChannelCalendar = async (item) => {
@@ -209,6 +230,20 @@ const saveChannelCalendar = async (item) => {
     id_calendar: item.id_calendar,
   });
   if (!data) await ChannelsCalendar.query().insert(item);
+};
+
+
+/**
+ * Luu thong tin saveChannelsCalendar vao database
+ * @param {object} item
+ * @returns {void}
+ */
+const saveChannelMicrosoftCalendar = async (item) => {
+  const data = await ChannelMicrosoftCalendar.query().findOne(item);
+  if (!data) {
+    item.watch = true;
+    await ChannelMicrosoftCalendar.query().insert(item);
+  }
 };
 
 
@@ -221,4 +256,6 @@ module.exports = {
   saveInfoChannel,
   saveAccountCalendar,
   saveChannelCalendar,
+  saveChannelAccount,
+  saveChannelMicrosoftCalendar,
 };
